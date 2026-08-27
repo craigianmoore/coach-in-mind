@@ -1,0 +1,316 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import RequireProfile from "@/components/RequireProfile";
+import CheckboxGroup from "@/components/CheckboxGroup";
+import { createClient } from "@/lib/supabase/client";
+import {
+  COACHING_ROLES,
+  ABILITY_LEVELS,
+  COMPETITION_LEVELS,
+  AGE_GROUPS,
+  REGIONS,
+  GENDER_OPTIONS,
+  ROLE_PRICES_AUD,
+} from "@/lib/constants";
+import type { Club2CoachCoachListing, Person } from "@/types/database";
+
+function Club2CoachCoachForm({ person }: { person: Person }) {
+  const supabase = createClient();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [existing, setExisting] = useState<Club2CoachCoachListing | null>(null);
+
+  const [roleSought, setRoleSought] = useState<string>(COACHING_ROLES[0]);
+  const [preferredTeamGender, setPreferredTeamGender] = useState("");
+  const [abilityLevels, setAbilityLevels] = useState<string[]>([]);
+  const [competitionLevels, setCompetitionLevels] = useState<string[]>([]);
+  const [ageGroups, setAgeGroups] = useState<string[]>([]);
+  const [regions, setRegions] = useState<string[]>([]);
+  const [openToRelocating, setOpenToRelocating] = useState(false);
+  const [salaryMin, setSalaryMin] = useState("");
+  const [salaryMax, setSalaryMax] = useState("");
+  const [salaryNegotiable, setSalaryNegotiable] = useState(false);
+  const [overview, setOverview] = useState("");
+  const [notes, setNotes] = useState("");
+  const [authoriseShare, setAuthoriseShare] = useState(false);
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function load() {
+    const { data } = await supabase
+      .from("club2coach_coach_listings")
+      .select("*")
+      .eq("person_id", person.id)
+      .maybeSingle();
+
+    if (data) {
+      const l = data as Club2CoachCoachListing;
+      setExisting(l);
+      setRoleSought(l.role_sought);
+      setPreferredTeamGender(l.preferred_team_gender ?? "");
+      setAbilityLevels(l.ability_levels ?? []);
+      setCompetitionLevels(l.preferred_competition_levels ?? []);
+      setAgeGroups(l.preferred_age_groups ?? []);
+      setRegions(l.preferred_regions ?? []);
+      setOpenToRelocating(l.open_to_relocating);
+      setSalaryMin(l.salary_min?.toString() ?? "");
+      setSalaryMax(l.salary_max?.toString() ?? "");
+      setSalaryNegotiable(l.salary_negotiable);
+      setOverview(l.overview ?? "");
+      setNotes(l.notes ?? "");
+      setAuthoriseShare(l.authorise_share);
+    }
+    setLoading(false);
+  }
+
+  function toggle(list: string[], setList: (v: string[]) => void, value: string) {
+    setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSaving(true);
+
+    const payload = {
+      person_id: person.id,
+      role_sought: roleSought,
+      preferred_team_gender: preferredTeamGender || null,
+      ability_levels: abilityLevels,
+      preferred_competition_levels: competitionLevels,
+      preferred_age_groups: ageGroups,
+      preferred_regions: regions,
+      open_to_relocating: openToRelocating,
+      salary_min: salaryMin ? Number(salaryMin) : null,
+      salary_max: salaryMax ? Number(salaryMax) : null,
+      salary_negotiable: salaryNegotiable,
+      overview,
+      notes,
+      authorise_share: authoriseShare,
+    };
+
+    const { error: saveError } = existing
+      ? await supabase.from("club2coach_coach_listings").update(payload).eq("id", existing.id)
+      : await supabase.from("club2coach_coach_listings").insert(payload);
+
+    if (saveError) {
+      setError(saveError.message);
+      setSaving(false);
+      return;
+    }
+
+    await load();
+    setSaving(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  if (loading) return <p className="py-8 text-sm text-gray-500">Loading…</p>;
+
+  return (
+    <div className="py-8">
+      <h1 className="text-xl font-bold">Find a Coaching Role</h1>
+
+      {existing && (
+        <div
+          className={`mt-4 rounded-lg border p-4 text-sm ${
+            existing.paid
+              ? "border-green-200 bg-green-50 text-green-800"
+              : "border-amber-200 bg-amber-50 text-amber-900"
+          }`}
+        >
+          {existing.paid ? (
+            <>✓ Your listing is active and included in matching.</>
+          ) : (
+            <>
+              <strong>Payment required (${ROLE_PRICES_AUD.club2coach_coach} AUD):</strong> your
+              listing is saved but won't be included in matching until
+              payment is confirmed. Coach In Mind will be in touch about
+              how to pay — once confirmed, this activates automatically.
+            </>
+          )}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
+        <div>
+          <label className="text-xs font-semibold uppercase text-gray-500">Coaching role sought</label>
+          <select
+            value={roleSought}
+            onChange={(e) => setRoleSought(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+          >
+            {COACHING_ROLES.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold uppercase text-gray-500">
+            Ability level — select all that apply
+          </label>
+          <div className="mt-1">
+            <CheckboxGroup
+              options={ABILITY_LEVELS}
+              selected={abilityLevels}
+              onToggle={(v) => toggle(abilityLevels, setAbilityLevels, v)}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold uppercase text-gray-500">
+            Preferred competition levels
+          </label>
+          <div className="mt-1">
+            <CheckboxGroup
+              options={COMPETITION_LEVELS}
+              selected={competitionLevels}
+              onToggle={(v) => toggle(competitionLevels, setCompetitionLevels, v)}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold uppercase text-gray-500">Preferred age groups</label>
+          <div className="mt-1">
+            <CheckboxGroup
+              options={AGE_GROUPS}
+              selected={ageGroups}
+              onToggle={(v) => toggle(ageGroups, setAgeGroups, v)}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold uppercase text-gray-500">Preferred regions</label>
+          <div className="mt-1">
+            <CheckboxGroup
+              options={REGIONS}
+              selected={regions}
+              onToggle={(v) => toggle(regions, setRegions, v)}
+            />
+          </div>
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={openToRelocating}
+              onChange={(e) => setOpenToRelocating(e.target.checked)}
+            />
+            Open to relocating outside preferred regions
+          </label>
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold uppercase text-gray-500">
+            Preferred team gender to work with
+          </label>
+          <select
+            value={preferredTeamGender}
+            onChange={(e) => setPreferredTeamGender(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+          >
+            <option value="">Select…</option>
+            {GENDER_OPTIONS.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">
+              Salary expectation min (AUD)
+            </label>
+            <input
+              type="number"
+              value={salaryMin}
+              onChange={(e) => setSalaryMin(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">
+              Salary expectation max (AUD)
+            </label>
+            <input
+              type="number"
+              value={salaryMax}
+              onChange={(e) => setSalaryMax(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={salaryNegotiable}
+            onChange={(e) => setSalaryNegotiable(e.target.checked)}
+          />
+          Salary negotiable
+        </label>
+
+        <div>
+          <label className="text-xs font-semibold uppercase text-gray-500">
+            Short overview — sell yourself to clubs
+          </label>
+          <textarea
+            maxLength={300}
+            value={overview}
+            onChange={(e) => setOverview(e.target.value)}
+            rows={3}
+            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold uppercase text-gray-500">Notes for Coach In Mind admin (private — not shown publicly)</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+          />
+        </div>
+
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            required
+            checked={authoriseShare}
+            onChange={(e) => setAuthoriseShare(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            I authorise Coach In Mind to share my details above with a
+            matched club once a suitable match is confirmed. My details
+            are kept private and only shared once approved. *
+          </span>
+        </label>
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={saving}
+          className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
+        >
+          {saving ? "Saving…" : existing ? "Save changes" : "Add coach listing"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+export default function Club2CoachCoachPage() {
+  return <RequireProfile>{(person) => <Club2CoachCoachForm person={person} />}</RequireProfile>;
+}

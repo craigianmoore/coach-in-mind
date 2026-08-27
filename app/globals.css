@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-navy: #191B41;
+  --brand-navy-light: #2A2D6B;
+  --brand-gold: #B8935A;
+  --brand-gold-light: #D4AF6A;
+}
+
+/* Club2Coach section theme: warm gold header, navy on white body */
+.theme-club2coach {
+  --accent: #D4AF6A;
+  --accent-dark: #B8935A;
+  --accent-contrast: #191B41;
+  --header-bg: #D4AF6A;
+  --header-text: #191B41;
+}
+
+/* Coach2Mentor section theme: deep navy header, orange accent */
+.theme-coach2mentor {
+  --accent: #E8791A;
+  --accent-dark: #B85A0C;
+  --accent-contrast: #ffffff;
+  --header-bg: #191B41;
+  --header-text: #ffffff;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900;
+}
+
+.btn-accent {
+  background-color: var(--accent-dark);
+  color: white;
+}
+.btn-accent:hover {
+  filter: brightness(1.1);
+}
+
+.text-accent {
+  color: var(--accent-dark);
+}
+
+.border-accent {
+  border-color: var(--accent-dark);
+}
+
+.bg-accent-soft {
+  background-color: color-mix(in srgb, var(--accent) 15%, white);
+}
