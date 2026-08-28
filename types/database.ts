@@ -40,6 +40,7 @@ export interface Club2CoachCoachListing {
   paid: boolean;
   paid_at: string | null;
   price_aud: number | null;
+  included_introductions: number | null; // package size (1, 2, or 3) — how many club introductions this coach has paid for
   deleted_at: string | null; // soft-delete: set instead of removing the row, so payment history stays intact
   created_at: string;
   updated_at: string;
