@@ -13,7 +13,7 @@ import type {
   AdminSettings,
 } from "@/types/database";
 
-type Tab = "unpaid" | "requests" | "weighting";
+type Tab = "unpaid" | "requests" | "weighting" | "listings";
 
 function Coach2MentorAdmin() {
   const supabase = createClient();
@@ -88,8 +88,23 @@ function Coach2MentorAdmin() {
     await supabase.from("admin_settings").update({ weights: newWeights }).eq("id", settings.id);
   }
 
-  const unpaidCoaches = coachListings.filter((l) => !l.paid);
-  const unpaidMentors = mentorListings.filter((l) => !l.paid);
+  async function deleteListing(table: "coach2mentor_coach_listings" | "coach2mentor_mentor_listings", id: string) {
+    if (!window.confirm("Delete this listing? It will be hidden from the owner and from matching — this can be undone from this tab.")) {
+      return;
+    }
+    supabase.rpc("refresh_admin_session");
+    await supabase.from(table).update({ deleted_at: new Date().toISOString() }).eq("id", id);
+    await loadAll();
+  }
+
+  async function restoreListing(table: "coach2mentor_coach_listings" | "coach2mentor_mentor_listings", id: string) {
+    supabase.rpc("refresh_admin_session");
+    await supabase.from(table).update({ deleted_at: null }).eq("id", id);
+    await loadAll();
+  }
+
+  const unpaidCoaches = coachListings.filter((l) => !l.paid && !l.deleted_at);
+  const unpaidMentors = mentorListings.filter((l) => !l.paid && !l.deleted_at);
   const weights = settings?.weights as Coach2MentorWeights | undefined;
 
   function coachName(listingId: string) {
@@ -110,8 +125,8 @@ function Coach2MentorAdmin() {
         {requests.length} requests
       </p>
 
-      <div className="mt-4 flex gap-2 border-b border-white/20">
-        {(["unpaid", "requests", "weighting"] as Tab[]).map((t) => (
+      <div className="mt-4 flex flex-wrap gap-2 border-b border-white/20">
+        {(["unpaid", "requests", "weighting", "listings"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -143,12 +158,20 @@ function Coach2MentorAdmin() {
                       <p className="text-sm font-medium">{people[l.person_id]?.full_name ?? "Unknown"}</p>
                       {l.notes && <p className="mt-1 text-xs italic text-gray-400">Notes: {l.notes}</p>}
                     </div>
-                    <button
-                      onClick={() => markCoachPaid(l.id)}
-                      className="btn-accent rounded-lg px-3 py-1.5 text-sm font-semibold"
-                    >
-                      Mark paid (${ROLE_PRICES_AUD.coach2mentor_coach})
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => markCoachPaid(l.id)}
+                        className="btn-accent rounded-lg px-3 py-1.5 text-sm font-semibold"
+                      >
+                        Mark paid (${ROLE_PRICES_AUD.coach2mentor_coach})
+                      </button>
+                      <button
+                        onClick={() => deleteListing("coach2mentor_coach_listings", l.id)}
+                        className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -167,12 +190,20 @@ function Coach2MentorAdmin() {
                       <p className="text-sm font-medium">{people[l.person_id]?.full_name ?? "Unknown"}</p>
                       {l.notes && <p className="mt-1 text-xs italic text-gray-400">Notes: {l.notes}</p>}
                     </div>
-                    <button
-                      onClick={() => markMentorPaid(l.id)}
-                      className="btn-accent rounded-lg px-3 py-1.5 text-sm font-semibold"
-                    >
-                      Mark paid (${ROLE_PRICES_AUD.coach2mentor_mentor})
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => markMentorPaid(l.id)}
+                        className="btn-accent rounded-lg px-3 py-1.5 text-sm font-semibold"
+                      >
+                        Mark paid (${ROLE_PRICES_AUD.coach2mentor_mentor})
+                      </button>
+                      <button
+                        onClick={() => deleteListing("coach2mentor_mentor_listings", l.id)}
+                        className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -240,6 +271,80 @@ function Coach2MentorAdmin() {
               />
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === "listings" && (
+        <div className="mt-6 flex flex-col gap-6">
+          <div>
+            <h2 className="font-semibold">All coach profiles ({coachListings.length})</h2>
+            <div className="mt-2 flex flex-col gap-2">
+              {coachListings.map((l) => (
+                <div
+                  key={l.id}
+                  className={`flex items-center justify-between rounded-lg border bg-white p-3 ${l.deleted_at ? "opacity-50" : ""}`}
+                >
+                  <div>
+                    <p className="text-sm font-medium">
+                      {people[l.person_id]?.full_name ?? "Unknown"}
+                      {l.deleted_at && <span className="ml-2 text-xs font-normal text-red-500">(deleted)</span>}
+                    </p>
+                    <p className="text-xs text-gray-500">{l.paid ? "Paid" : "Unpaid"} · {l.status}</p>
+                  </div>
+                  {l.deleted_at ? (
+                    <button
+                      onClick={() => restoreListing("coach2mentor_coach_listings", l.id)}
+                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                    >
+                      Restore
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => deleteListing("coach2mentor_coach_listings", l.id)}
+                      className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="font-semibold">All mentor profiles ({mentorListings.length})</h2>
+            <div className="mt-2 flex flex-col gap-2">
+              {mentorListings.map((m) => (
+                <div
+                  key={m.id}
+                  className={`flex items-center justify-between rounded-lg border bg-white p-3 ${m.deleted_at ? "opacity-50" : ""}`}
+                >
+                  <div>
+                    <p className="text-sm font-medium">
+                      {people[m.person_id]?.full_name ?? "Unknown"}
+                      {m.deleted_at && <span className="ml-2 text-xs font-normal text-red-500">(deleted)</span>}
+                    </p>
+                    <p className="text-xs text-gray-500">{m.paid ? "Paid" : "Unpaid"} · {m.status}</p>
+                  </div>
+                  {m.deleted_at ? (
+                    <button
+                      onClick={() => restoreListing("coach2mentor_mentor_listings", m.id)}
+                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                    >
+                      Restore
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => deleteListing("coach2mentor_mentor_listings", m.id)}
+                      className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>
