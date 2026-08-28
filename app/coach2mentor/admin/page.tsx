@@ -284,7 +284,14 @@ function Coach2MentorAdmin() {
                         {coachName(r.coach_listing_id)} <span className="text-gray-400">→</span>{" "}
                         {mentorName(r.mentor_listing_id)}
                       </p>
-                      <span className="text-xs font-medium capitalize">{r.status}</span>
+                      <div className="flex items-center gap-3">
+                        {r.score != null && (
+                          <span className="text-sm font-bold" style={{ color: "var(--accent-dark)" }}>
+                            {Math.round(r.score * 100)}%
+                          </span>
+                        )}
+                        <span className="text-xs font-medium capitalize">{r.status}</span>
+                      </div>
                     </div>
                     {(coachListing?.notes || mentorListing?.notes) && (
                       <div className="mt-1 space-y-0.5">
