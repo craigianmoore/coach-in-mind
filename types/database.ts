@@ -72,6 +72,7 @@ export interface Club2CoachClubVacancy {
   shared_at: string | null; // set when the first coach is introduced; starts the 1-month contact window
   filled_at: string | null; // set when the club marks this vacancy as filled
   included_introductions: number | null; // package size (2, 3, or 5) set when marked paid — how many coach introductions this payment covers
+  is_charity: boolean; // true when gifted for free rather than actually paid
   deleted_at: string | null; // soft-delete: set instead of removing the row, so payment history stays intact
   created_at: string;
   updated_at: string;
@@ -83,6 +84,7 @@ export interface Club2CoachShare {
   club_vacancy_id: string;
   score: number | null;
   admin_notes: string | null;
+  status: "suggested" | "approved"; // suggested = admin-only, no contact info revealed yet; approved = both parties can see each other's details
   shared_at: string;
 }
 
@@ -193,6 +195,7 @@ export interface AdminSettings {
   product: "club2coach" | "coach2mentor";
   weights: Club2CoachWeights | Coach2MentorWeights;
   salary_benchmarks: Record<string, SalaryBenchmark>;
+  auto_approve_matches: boolean; // club2coach only — when false (default), auto-matched suggestions need explicit admin approval before contact details are shared
   updated_at: string;
 }
 
