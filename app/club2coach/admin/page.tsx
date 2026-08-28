@@ -89,11 +89,24 @@ function Club2CoachAdmin() {
       club_vacancy_id: vacancyId,
       score,
     });
-    if (error) setStatus(error.message);
-    else {
-      setStatus("Details shared — both parties can now see each other's contact info.");
-      await loadAll();
+    if (error) {
+      setStatus(error.message);
+      return;
     }
+
+    // Start the club's 1-month contact-window clock on the FIRST
+    // introduction only — later introductions for the same vacancy
+    // don't reset it.
+    const vacancy = vacancies.find((v) => v.id === vacancyId);
+    if (vacancy && !vacancy.shared_at) {
+      await supabase
+        .from("club2coach_club_vacancies")
+        .update({ shared_at: new Date().toISOString() })
+        .eq("id", vacancyId);
+    }
+
+    setStatus("Details shared — both parties can now see each other's contact info.");
+    await loadAll();
   }
 
   async function updateWeight(key: keyof Club2CoachWeights, value: number) {
@@ -107,7 +120,9 @@ function Club2CoachAdmin() {
   const unpaidCoaches = coachListings.filter((l) => !l.paid);
   const unpaidVacancies = vacancies.filter((v) => !v.paid);
   const activeCoaches = coachListings.filter((l) => l.paid && l.status !== "placed");
-  const activeVacancies = vacancies.filter((v) => v.paid && v.status !== "filled");
+  const activeVacancies = vacancies.filter(
+    (v) => v.paid && v.status !== "filled" && v.status !== "expired"
+  );
   const sharedPairs = new Set(shares.map((s) => `${s.coach_listing_id}:${s.club_vacancy_id}`));
 
   const weights = settings?.weights as Club2CoachWeights | undefined;
