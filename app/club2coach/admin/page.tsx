@@ -12,9 +12,10 @@ import type {
   Club2CoachShare,
   Person,
   AdminSettings,
+  SupportQuery,
 } from "@/types/database";
 
-type Tab = "unpaid" | "matches" | "weighting" | "listings" | "admins";
+type Tab = "unpaid" | "matches" | "weighting" | "listings" | "admins" | "support";
 
 interface AdminPinRow {
   id: string;
@@ -38,10 +39,20 @@ function Club2CoachAdmin() {
   const [newPin, setNewPin] = useState("");
   const [newPinLabel, setNewPinLabel] = useState("");
 
+  const [supportQueries, setSupportQueries] = useState<SupportQuery[]>([]);
+
   useEffect(() => {
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function loadSupportQueries() {
+    const { data } = await supabase
+      .from("support_queries")
+      .select("*")
+      .order("created_at", { ascending: false });
+    setSupportQueries((data as SupportQuery[]) ?? []);
+  }
 
   async function loadAll() {
     setLoading(true);
@@ -70,8 +81,15 @@ function Club2CoachAdmin() {
 
   useEffect(() => {
     if (tab === "admins") loadAdminPins();
+    if (tab === "support") loadSupportQueries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
+
+  async function markQueryResolved(id: string) {
+    supabase.rpc("refresh_admin_session");
+    await supabase.from("support_queries").update({ status: "resolved" }).eq("id", id);
+    await loadSupportQueries();
+  }
 
   async function markCoachPaid(id: string) {
     supabase.rpc("refresh_admin_session"); // keep the idle-timeout session alive
@@ -214,7 +232,7 @@ function Club2CoachAdmin() {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 border-b">
-        {(["unpaid", "matches", "weighting", "listings", "admins"] as Tab[]).map((t) => (
+        {(["unpaid", "matches", "weighting", "listings", "admins", "support"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -223,7 +241,11 @@ function Club2CoachAdmin() {
             }`}
             style={tab === t ? { borderColor: "var(--accent-dark)", color: "var(--accent-dark)" } : {}}
           >
-            {t === "unpaid" ? `Unpaid (${unpaidCoaches.length + unpaidVacancies.length})` : t}
+            {t === "unpaid"
+              ? `Unpaid (${unpaidCoaches.length + unpaidVacancies.length})`
+              : t === "support"
+              ? `Support (${supportQueries.filter((q) => q.status === "open").length})`
+              : t}
           </button>
         ))}
       </div>
@@ -520,6 +542,47 @@ function Club2CoachAdmin() {
               Add admin PIN
             </button>
           </form>
+        </div>
+      )}
+      {tab === "support" && (
+        <div className="mt-6 flex flex-col gap-3">
+          {supportQueries.length === 0 ? (
+            <p className="text-sm text-gray-500">No queries or complaints have been submitted.</p>
+          ) : (
+            supportQueries.map((q) => (
+              <div
+                key={q.id}
+                className={`rounded-lg border bg-white p-4 ${q.status === "resolved" ? "opacity-60" : ""}`}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium">
+                      {q.name} <span className="font-normal text-gray-500">&lt;{q.email}&gt;</span>
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(q.created_at).toLocaleString("en-GB")}
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      q.status === "resolved" ? "bg-gray-100 text-gray-600" : "bg-amber-100 text-amber-800"
+                    }`}
+                  >
+                    {q.status === "resolved" ? "Resolved" : "Open"}
+                  </span>
+                </div>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{q.message}</p>
+                {q.status !== "resolved" && (
+                  <button
+                    onClick={() => markQueryResolved(q.id)}
+                    className="mt-3 rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                  >
+                    Mark resolved
+                  </button>
+                )}
+              </div>
+            ))
+          )}
         </div>
       )}
     </div>
