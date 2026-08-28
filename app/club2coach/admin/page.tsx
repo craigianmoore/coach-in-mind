@@ -58,12 +58,16 @@ function Club2CoachAdmin() {
 
   async function loadAll() {
     setLoading(true);
-    const [{ data: cl }, { data: cv }, { data: ppl }, { data: sh }, { data: st }] = await Promise.all([
+    // support_queries is loaded here too — not just lazily on tab
+    // click — so the "Support (N)" badge count is correct the moment
+    // the page loads, not just after you've already opened that tab.
+    const [{ data: cl }, { data: cv }, { data: ppl }, { data: sh }, { data: st }, { data: sq }] = await Promise.all([
       supabase.from("club2coach_coach_listings").select("*"),
       supabase.from("club2coach_club_vacancies").select("*"),
       supabase.from("people").select("*"),
       supabase.from("club2coach_shares").select("*"),
       supabase.from("admin_settings").select("*").eq("product", "club2coach").maybeSingle(),
+      supabase.from("support_queries").select("*").order("created_at", { ascending: false }),
     ]);
 
     setCoachListings((cl as Club2CoachCoachListing[]) ?? []);
@@ -73,6 +77,7 @@ function Club2CoachAdmin() {
     setPeople(peopleMap);
     setShares((sh as Club2CoachShare[]) ?? []);
     setSettings(st as AdminSettings | null);
+    setSupportQueries((sq as SupportQuery[]) ?? []);
     setLoading(false);
   }
 
@@ -83,7 +88,6 @@ function Club2CoachAdmin() {
 
   useEffect(() => {
     if (tab === "admins") loadAdminPins();
-    if (tab === "support") loadSupportQueries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
