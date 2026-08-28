@@ -14,6 +14,33 @@ import type {
 } from "@/types/database";
 
 type Tab = "unpaid" | "requests" | "weighting" | "listings";
+type RequestStatus = "pending" | "accepted" | "declined";
+
+function FilterPills<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            value === opt.value ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function Coach2MentorAdmin() {
   const supabase = createClient();
@@ -26,6 +53,10 @@ function Coach2MentorAdmin() {
   const [settings, setSettings] = useState<AdminSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
+
+  const [requestsFilter, setRequestsFilter] = useState<RequestStatus | "all">("all");
+  const [listingsPaidFilter, setListingsPaidFilter] = useState<"all" | "paid" | "unpaid">("all");
+  const [listingsDeletedFilter, setListingsDeletedFilter] = useState<"active" | "all">("active");
 
   useEffect(() => {
     loadAll();
@@ -106,6 +137,17 @@ function Coach2MentorAdmin() {
   const unpaidCoaches = coachListings.filter((l) => !l.paid && !l.deleted_at);
   const unpaidMentors = mentorListings.filter((l) => !l.paid && !l.deleted_at);
   const weights = settings?.weights as Coach2MentorWeights | undefined;
+
+  const filteredRequests = requests.filter((r) => requestsFilter === "all" || r.status === requestsFilter);
+
+  function passesListingsFilter(l: { paid: boolean; deleted_at: string | null }) {
+    if (listingsDeletedFilter === "active" && l.deleted_at) return false;
+    if (listingsPaidFilter === "paid" && !l.paid) return false;
+    if (listingsPaidFilter === "unpaid" && l.paid) return false;
+    return true;
+  }
+  const filteredCoachListings = coachListings.filter(passesListingsFilter);
+  const filteredMentorListings = mentorListings.filter(passesListingsFilter);
 
   function coachName(listingId: string) {
     const listing = coachListings.find((l) => l.id === listingId);
@@ -214,11 +256,25 @@ function Coach2MentorAdmin() {
 
       {tab === "requests" && (
         <div className="mt-6">
-          {requests.length === 0 ? (
-            <p className="text-sm text-gray-500">No requests yet.</p>
+          <div className="mb-4">
+            <FilterPills
+              value={requestsFilter}
+              onChange={setRequestsFilter}
+              options={[
+                { value: "all", label: "All" },
+                { value: "pending", label: "Pending" },
+                { value: "accepted", label: "Accepted" },
+                { value: "declined", label: "Declined" },
+              ]}
+            />
+          </div>
+          {filteredRequests.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              {requests.length === 0 ? "No requests yet." : "Nothing matches this filter."}
+            </p>
           ) : (
             <div className="flex flex-col gap-2">
-              {requests.map((r) => {
+              {filteredRequests.map((r) => {
                 const coachListing = coachListings.find((l) => l.id === r.coach_listing_id);
                 const mentorListing = mentorListings.find((l) => l.id === r.mentor_listing_id);
                 return (
@@ -276,10 +332,32 @@ function Coach2MentorAdmin() {
 
       {tab === "listings" && (
         <div className="mt-6 flex flex-col gap-6">
+          <div className="flex flex-wrap items-center gap-4">
+            <FilterPills
+              value={listingsPaidFilter}
+              onChange={setListingsPaidFilter}
+              options={[
+                { value: "all", label: "All payment statuses" },
+                { value: "paid", label: "Paid" },
+                { value: "unpaid", label: "Unpaid" },
+              ]}
+            />
+            <FilterPills
+              value={listingsDeletedFilter}
+              onChange={setListingsDeletedFilter}
+              options={[
+                { value: "active", label: "Hide deleted" },
+                { value: "all", label: "Show deleted" },
+              ]}
+            />
+          </div>
+
           <div>
-            <h2 className="font-semibold">All coach profiles ({coachListings.length})</h2>
+            <h2 className="font-semibold">
+              Coach profiles ({filteredCoachListings.length} of {coachListings.length})
+            </h2>
             <div className="mt-2 flex flex-col gap-2">
-              {coachListings.map((l) => (
+              {filteredCoachListings.map((l) => (
                 <div
                   key={l.id}
                   className={`flex items-center justify-between rounded-lg border bg-white p-3 ${l.deleted_at ? "opacity-50" : ""}`}
@@ -312,9 +390,11 @@ function Coach2MentorAdmin() {
           </div>
 
           <div>
-            <h2 className="font-semibold">All mentor profiles ({mentorListings.length})</h2>
+            <h2 className="font-semibold">
+              Mentor profiles ({filteredMentorListings.length} of {mentorListings.length})
+            </h2>
             <div className="mt-2 flex flex-col gap-2">
-              {mentorListings.map((m) => (
+              {filteredMentorListings.map((m) => (
                 <div
                   key={m.id}
                   className={`flex items-center justify-between rounded-lg border bg-white p-3 ${m.deleted_at ? "opacity-50" : ""}`}
