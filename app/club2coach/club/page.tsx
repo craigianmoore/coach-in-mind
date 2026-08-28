@@ -12,7 +12,7 @@ import {
   REGIONS,
   GENDER_OPTIONS,
   ACCREDITATION_LEVELS,
-  ROLE_PRICES_AUD,
+  CLUB2COACH_CLUB_PACKAGES,
 } from "@/lib/constants";
 import type { Club, Club2CoachClubVacancy, Club2CoachShare, Person } from "@/types/database";
 import { notifyAdmin } from "@/lib/notify";
@@ -438,12 +438,34 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             <>✓ Your vacancy is active and included in matching.</>
           ) : (
             <>
-              <strong>Payment required (${ROLE_PRICES_AUD.club2coach_club} AUD):</strong> your
+              <strong>Payment required (from ${CLUB2COACH_CLUB_PACKAGES[1]} AUD):</strong> your
               vacancy is saved but won't be included in matching until
               payment is confirmed. Coach In Mind will be in touch about
               how to pay — once confirmed, this activates automatically.
             </>
           )}
+        </div>
+      )}
+
+      {existing && !existing.paid && existing.status !== "filled" && (
+        <div className="mt-4 rounded-xl border bg-white p-4">
+          <p className="text-xs font-semibold uppercase text-gray-500">
+            Year 1 Introductory Pricing
+          </p>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {Object.entries(CLUB2COACH_CLUB_PACKAGES).map(([count, price]) => (
+              <div key={count} className="rounded-lg border border-gray-200 p-3 text-center">
+                <p className="font-semibold">
+                  {count} intro{count === "1" ? "" : "s"}
+                </p>
+                <p className="text-sm text-gray-500">${price} AUD</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-gray-500">
+            Coach In Mind will confirm which package suits your vacancy when we're in touch about
+            payment.
+          </p>
         </div>
       )}
 
