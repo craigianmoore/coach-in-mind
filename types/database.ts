@@ -12,7 +12,7 @@ export interface Person {
   updated_at: string;
 }
 
-export type ListingStatus = "draft" | "active" | "paused" | "placed" | "filled";
+export type ListingStatus = "draft" | "active" | "paused" | "placed" | "filled" | "expired";
 
 export interface Club2CoachCoachListing {
   id: string;
@@ -61,6 +61,8 @@ export interface Club2CoachClubVacancy {
   paid: boolean;
   paid_at: string | null;
   price_aud: number | null;
+  shared_at: string | null; // set when the first coach is introduced; starts the 1-month contact window
+  filled_at: string | null; // set when the club marks this vacancy as filled
   created_at: string;
   updated_at: string;
 }
