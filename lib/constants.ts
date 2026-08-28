@@ -41,13 +41,16 @@ export const COACHING_ROLES = [
   "TD (Senior)",
 ] as const;
 
+// Alphabetical — unlike ACCREDITATION_LEVELS/AGE_GROUPS, these don't
+// form a single clean low-to-high ladder, so alphabetical is the
+// clearest ordering rather than an arbitrary one.
 export const ABILITY_LEVELS = [
   "Grassroots",
-  "Youth Talent Pathway",
-  "Semi-Professional",
   "Junior Development",
-  "Senior Amateur",
   "Professional / Elite",
+  "Semi-Professional",
+  "Senior Amateur",
+  "Youth Talent Pathway",
 ] as const;
 
 export const COMPETITION_LEVELS = [
