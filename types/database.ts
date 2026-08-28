@@ -14,6 +14,12 @@ export interface Person {
 
 export type ListingStatus = "draft" | "active" | "paused" | "placed" | "filled" | "expired";
 
+export interface Club {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
 export interface Club2CoachCoachListing {
   id: string;
   person_id: string;
@@ -41,7 +47,8 @@ export interface Club2CoachCoachListing {
 export interface Club2CoachClubVacancy {
   id: string;
   person_id: string;
-  club_name: string;
+  club_id: string | null; // FK to clubs — null only on pre-migration rows
+  club_name: string; // denormalised from clubs.name at time of creation, for display
   role_being_recruited: string;
   competition_level: string;
   age_group: string;
