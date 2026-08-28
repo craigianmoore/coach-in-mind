@@ -26,6 +26,7 @@ function ProfileForm() {
   const [gender, setGender] = useState("");
   const [region, setRegion] = useState("");
   const [currentLicence, setCurrentLicence] = useState("None / In Progress");
+  const [mobileWarning, setMobileWarning] = useState(false);
 
   useEffect(() => {
     load();
@@ -56,6 +57,21 @@ function ProfileForm() {
       setCurrentLicence(p.current_licence ?? "None / In Progress");
     }
     setLoading(false);
+  }
+
+  // Soft, non-blocking check: does this mobile number already belong
+  // to a different account? Never says whose — just flags it, so a
+  // genuinely shared family number doesn't get anyone locked out.
+  async function checkMobile(value: string) {
+    if (!value.trim()) {
+      setMobileWarning(false);
+      return;
+    }
+    const { data } = await supabase.rpc("is_mobile_registered", {
+      check_mobile: value,
+      exclude_person_id: existing?.id ?? null,
+    });
+    setMobileWarning(Boolean(data));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -142,8 +158,17 @@ function ProfileForm() {
               required
               value={mobile}
               onChange={(e) => setMobile(e.target.value)}
+              onBlur={(e) => checkMobile(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
+            {mobileWarning && (
+              <p className="mt-1 text-xs text-amber-700">
+                This mobile number is already linked to another Coach In
+                Mind account. If that's you, log in with your original
+                account instead — you can still save, but duplicate
+                accounts can't be merged later.
+              </p>
+            )}
           </div>
         </div>
 
