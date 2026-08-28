@@ -14,7 +14,7 @@ import {
   ACCREDITATION_LEVELS,
   ROLE_PRICES_AUD,
 } from "@/lib/constants";
-import type { Club2CoachClubVacancy, Club2CoachShare, Person } from "@/types/database";
+import type { Club, Club2CoachClubVacancy, Club2CoachShare, Person } from "@/types/database";
 
 const PRIORITY_HINTS = [
   "Accreditation",
@@ -142,6 +142,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   const [error, setError] = useState<string | null>(null);
 
   const [vacancies, setVacancies] = useState<Club2CoachClubVacancy[]>([]);
+  const [clubs, setClubs] = useState<Club[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null); // null while showForm=false; "new" or a vacancy id while true
   const [form, setForm] = useState<FormState>(emptyForm());
@@ -150,8 +151,14 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
   useEffect(() => {
     load();
+    loadClubs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function loadClubs() {
+    const { data } = await supabase.from("clubs").select("*").order("name", { ascending: true });
+    setClubs((data as Club[]) ?? []);
+  }
 
   async function load() {
     const { data } = await supabase
@@ -233,11 +240,21 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    const matchedClub = clubs.find(
+      (c) => c.name.trim().toLowerCase() === form.clubName.trim().toLowerCase()
+    );
+    if (!matchedClub) {
+      setError("Please select a club from the suggestions list — start typing and choose a match.");
+      return;
+    }
+
     setSaving(true);
 
     const payload = {
       person_id: person.id,
-      club_name: form.clubName,
+      club_id: matchedClub.id,
+      club_name: matchedClub.name, // canonical spelling/casing from the master list
       role_being_recruited: form.roleBeingRecruited,
       competition_level: form.competitionLevel,
       age_group: form.ageGroup,
@@ -272,15 +289,17 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     closeForm();
 
     if (isNew) {
-      const { count } = await supabase
-        .from("club2coach_club_vacancies")
-        .select("*", { count: "exact", head: true })
-        .eq("person_id", person.id)
-        .neq("status", "filled")
-        .neq("status", "expired");
-
-      const n = count ?? 0;
-      setOpenCountMessage(`You now have ${n} open vacanc${n === 1 ? "y" : "ies"} advertised.`);
+      // Club-scoped, not person-scoped: this counts every open vacancy
+      // at this club regardless of who advertised it, via a function
+      // that returns a number only — never the underlying rows, so no
+      // other club contact's activity or details are ever exposed.
+      const { data: n } = await supabase.rpc("get_c2c_open_vacancy_count", {
+        target_club_id: matchedClub.id,
+      });
+      const count = n ?? 0;
+      setOpenCountMessage(
+        `${matchedClub.name} currently has ${count} open vacanc${count === 1 ? "y" : "ies"} advertised.`
+      );
     }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -449,10 +468,22 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           <label className="text-xs font-semibold uppercase text-gray-500">Club name *</label>
           <input
             required
+            list="club-options"
+            autoComplete="off"
             value={form.clubName}
             onChange={(e) => setForm((f) => ({ ...f, clubName: e.target.value }))}
+            placeholder="Start typing your club name…"
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
           />
+          <datalist id="club-options">
+            {clubs.map((c) => (
+              <option key={c.id} value={c.name} />
+            ))}
+          </datalist>
+          <p className="mt-1 text-xs text-gray-500">
+            Pick your club from the suggestions as you type. Can't find
+            it? Let Coach In Mind know and we'll add it.
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
