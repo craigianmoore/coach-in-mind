@@ -54,11 +54,36 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function resetForm() {
+    setExisting(null);
+    setPreferredCoachGender("");
+    setAvailability("Either");
+    setRegionsServed([]);
+    setLicence(person.current_licence ?? ACCREDITATION_LEVELS[0]);
+    setCareerStage(CAREER_STAGES[0]);
+    setSpecialisms([]);
+    setMeetCapacity("");
+    setRateType("paid");
+    setRateAmount("");
+    setRateUnit(RATE_UNITS[0]);
+    setRateNegotiable(false);
+    setInPersonDiffers(false);
+    setInPersonAmount("");
+    setMaxMentees("");
+    setCurrentlyOpen(true);
+    setBio("");
+    setNotes("");
+    setConfirmAccurate(false);
+    setAuthoriseShare(false);
+    setRequests([]);
+  }
+
   async function load() {
     const { data } = await supabase
       .from("coach2mentor_mentor_listings")
       .select("*")
       .eq("person_id", person.id)
+      .is("deleted_at", null)
       .maybeSingle();
 
     if (data) {
@@ -91,6 +116,8 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           .eq("mentor_listing_id", l.id);
         setRequests((reqs as Coach2MentorRequest[]) ?? []);
       }
+    } else {
+      resetForm();
     }
     setLoading(false);
   }
@@ -142,6 +169,19 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
 
     await load();
     setSaving(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function handleDelete() {
+    if (!existing) return;
+    if (!window.confirm("Delete your mentor profile? You'll stop appearing to coaches searching for a mentor. You can create a new profile afterwards if you change your mind.")) {
+      return;
+    }
+    await supabase
+      .from("coach2mentor_mentor_listings")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", existing.id);
+    await load();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -434,13 +474,24 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
-        >
-          {saving ? "Saving…" : existing ? "Save changes" : "Save profile"}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={saving}
+            className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
+          >
+            {saving ? "Saving…" : existing ? "Save changes" : "Save profile"}
+          </button>
+          {existing && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="self-start rounded-lg border border-red-200 px-6 py-2 font-semibold text-red-600 hover:bg-red-50"
+            >
+              Delete profile
+            </button>
+          )}
+        </div>
       </form>
 
       {existing?.paid && (
