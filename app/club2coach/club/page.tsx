@@ -698,9 +698,13 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             <CheckboxGroup options={PRIORITY_HINTS} selected={form.priorityHints} onToggle={toggleHint} />
           </div>
           <p className="mt-1 text-xs text-gray-500">
-            This is a hint for the admin, not a guarantee — the admin
-            reviews it and decides whether to apply custom weighting for
-            this specific vacancy. It won't change the score on its own.
+            Ticking a box here doesn't change the match score by itself —
+            it flags that factor to Coach In Mind's admin as especially
+            important for <em>this specific vacancy</em>. When reviewing
+            candidates for this role, the admin can choose to weight that
+            factor more heavily than the standard formula would — a
+            manual decision they make on your behalf, not an automatic
+            one.
           </p>
         </div>
 
