@@ -40,6 +40,7 @@ export interface Club2CoachCoachListing {
   paid: boolean;
   paid_at: string | null;
   price_aud: number | null;
+  deleted_at: string | null; // soft-delete: set instead of removing the row, so payment history stays intact
   created_at: string;
   updated_at: string;
 }
@@ -70,6 +71,7 @@ export interface Club2CoachClubVacancy {
   price_aud: number | null;
   shared_at: string | null; // set when the first coach is introduced; starts the 1-month contact window
   filled_at: string | null; // set when the club marks this vacancy as filled
+  deleted_at: string | null; // soft-delete: set instead of removing the row, so payment history stays intact
   created_at: string;
   updated_at: string;
 }
@@ -100,6 +102,7 @@ export interface Coach2MentorCoachListing {
   paid: boolean;
   paid_at: string | null;
   price_aud: number | null;
+  deleted_at: string | null; // soft-delete: set instead of removing the row, so payment history stays intact
   created_at: string;
   updated_at: string;
 }
@@ -130,6 +133,7 @@ export interface Coach2MentorMentorListing {
   paid: boolean;
   paid_at: string | null;
   price_aud: number | null;
+  deleted_at: string | null; // soft-delete: set instead of removing the row, so payment history stays intact
   created_at: string;
   updated_at: string;
 }
