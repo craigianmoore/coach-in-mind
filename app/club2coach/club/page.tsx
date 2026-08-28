@@ -165,6 +165,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
       .from("club2coach_club_vacancies")
       .select("*")
       .eq("person_id", person.id)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     const list = (data as Club2CoachClubVacancy[]) ?? [];
@@ -232,6 +233,18 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     await supabase
       .from("club2coach_club_vacancies")
       .update({ status: "filled", filled_at: new Date().toISOString() })
+      .eq("id", v.id);
+    await load();
+    if (editingId === v.id) closeForm();
+  }
+
+  async function deleteVacancy(v: Club2CoachClubVacancy) {
+    if (!window.confirm(`Delete the ${v.role_being_recruited} vacancy at ${v.club_name}? This removes it from your list.`)) {
+      return;
+    }
+    await supabase
+      .from("club2coach_club_vacancies")
+      .update({ deleted_at: new Date().toISOString() })
       .eq("id", v.id);
     await load();
     if (editingId === v.id) closeForm();
@@ -367,6 +380,13 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                         Mark as filled
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => deleteVacancy(v)}
+                      className="whitespace-nowrap rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               );
@@ -425,15 +445,24 @@ function Club2CoachClubForm({ person }: { person: Person }) {
         <div className="mt-4 rounded-lg border bg-white p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700">Activity history</h2>
-            {existing.status !== "filled" && existing.status !== "expired" && (
+            <div className="flex items-center gap-2">
+              {existing.status !== "filled" && existing.status !== "expired" && (
+                <button
+                  type="button"
+                  onClick={() => markFilled(existing)}
+                  className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                >
+                  Mark as filled
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => markFilled(existing)}
-                className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                onClick={() => deleteVacancy(existing)}
+                className="rounded-lg border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
               >
-                Mark as filled
+                Delete
               </button>
-            )}
+            </div>
           </div>
           <ul className="mt-3 flex flex-col gap-1.5 text-sm text-gray-600">
             <li>Advertised: {formatDate(existing.created_at)}</li>
