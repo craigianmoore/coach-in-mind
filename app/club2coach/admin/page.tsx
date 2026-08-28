@@ -15,7 +15,7 @@ import type {
   SupportQuery,
 } from "@/types/database";
 
-type Tab = "unpaid" | "matches" | "weighting" | "listings" | "admins" | "support";
+type Tab = "unpaid" | "matches" | "weighting" | "listings" | "admins" | "support" | "people";
 
 interface AdminPinRow {
   id: string;
@@ -47,6 +47,9 @@ function Club2CoachAdmin() {
   const [listingsPaidFilter, setListingsPaidFilter] = useState<"all" | "paid" | "unpaid">("all");
   const [listingsDeletedFilter, setListingsDeletedFilter] = useState<"active" | "all">("active");
   const [matchesFilter, setMatchesFilter] = useState<"all" | "unshared" | "shared">("all");
+  const [matchesClubFilter, setMatchesClubFilter] = useState<string>("all");
+  const [vacancyPackage, setVacancyPackage] = useState<Record<string, number>>({});
+  const [vacancyAmount, setVacancyAmount] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadAll();
@@ -119,13 +122,16 @@ function Club2CoachAdmin() {
   async function markVacancyPaid(id: string) {
     supabase.rpc("refresh_admin_session"); // keep the idle-timeout session alive
     setStatus(null);
+    const introductions = vacancyPackage[id] ?? 2;
+    const amount = Number(vacancyAmount[id] ?? ROLE_PRICES_AUD.club2coach_club);
     const { error } = await supabase.rpc("mark_club2coach_club_paid", {
       target_listing_id: id,
-      amount: ROLE_PRICES_AUD.club2coach_club,
+      amount,
+      introductions,
     });
     if (error) setStatus(error.message);
     else {
-      setStatus("Marked as paid.");
+      setStatus(`Marked as paid — ${introductions} coach introductions included.`);
       await loadAll();
     }
   }
@@ -241,25 +247,48 @@ function Club2CoachAdmin() {
 
   const weights = settings?.weights as Club2CoachWeights | undefined;
 
-  const computedMatches = weights
-    ? activeVacancies.flatMap((vacancy) =>
-        activeCoaches.map((coach) => {
-          const coachPerson = people[coach.person_id];
-          const breakdown = scoreClub2CoachMatch(coach, coachPerson?.current_licence ?? null, vacancy, weights);
-          return { coach, vacancy, breakdown };
-        })
-      ).sort((a, b) => b.breakdown.total - a.breakdown.total)
-    : [];
+  // Grouped by vacancy rather than a flat coach×vacancy list — this is
+  // what actually lets you track "2 of 3 introductions shared" per
+  // club without different clubs' candidates getting mixed together.
+  const clubNamesForFilter = Array.from(new Set(activeVacancies.map((v) => v.club_name))).sort();
 
-  const filteredMatches = computedMatches.filter(({ coach, vacancy }) => {
-    if (matchesFilter === "all") return true;
-    const shared = sharedPairs.has(`${coach.id}:${vacancy.id}`);
-    return matchesFilter === "shared" ? shared : !shared;
-  });
+  const vacancyGroups = activeVacancies
+    .filter((v) => matchesClubFilter === "all" || v.club_name === matchesClubFilter)
+    .map((vacancy) => {
+      const sharedCount = shares.filter((s) => s.club_vacancy_id === vacancy.id).length;
+      const entitled = vacancy.included_introductions;
+      const remaining = entitled != null ? Math.max(0, entitled - sharedCount) : null;
+      const candidates = weights
+        ? activeCoaches
+            .map((coach) => {
+              const coachPerson = people[coach.person_id];
+              const breakdown = scoreClub2CoachMatch(coach, coachPerson?.current_licence ?? null, vacancy, weights);
+              return { coach, breakdown, shared: sharedPairs.has(`${coach.id}:${vacancy.id}`) };
+            })
+            .sort((a, b) => b.breakdown.total - a.breakdown.total)
+        : [];
+      return { vacancy, sharedCount, entitled, remaining, candidates };
+    })
+    .filter((g) => {
+      if (matchesFilter === "all") return true;
+      const full = g.entitled != null && g.remaining === 0;
+      return matchesFilter === "shared" ? full : !full;
+    })
+    // Submission order — oldest vacancy first, so you work through them
+    // in the order clubs actually paid, not by whichever has the
+    // highest-scoring candidate today.
+    .sort((a, b) => new Date(a.vacancy.created_at).getTime() - new Date(b.vacancy.created_at).getTime());
 
   const filteredSupportQueries = supportQueries.filter(
     (q) => supportFilter === "all" || q.status === supportFilter
   );
+
+  const allPeople = Object.values(people).sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+  const newSignupsCount = allPeople.filter(
+    (p) => Date.now() - new Date(p.created_at).getTime() < 24 * 60 * 60 * 1000
+  ).length;
 
   function passesListingsFilter(l: { paid: boolean; deleted_at: string | null }) {
     if (listingsDeletedFilter === "active" && l.deleted_at) return false;
@@ -308,7 +337,7 @@ function Club2CoachAdmin() {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 border-b">
-        {(["unpaid", "matches", "weighting", "listings", "admins", "support"] as Tab[]).map((t) => (
+        {(["unpaid", "matches", "weighting", "listings", "admins", "support", "people"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -321,6 +350,8 @@ function Club2CoachAdmin() {
               ? `Unpaid (${unpaidCoaches.length + unpaidVacancies.length})`
               : t === "support"
               ? `Support (${supportQueries.filter((q) => q.status === "open").length})`
+              : t === "people"
+              ? `People${newSignupsCount > 0 ? ` (${newSignupsCount} new)` : ""}`
               : t}
           </button>
         ))}
@@ -379,11 +410,29 @@ function Club2CoachAdmin() {
                       {v.notes && <p className="mt-1 text-xs italic text-gray-400">Notes: {v.notes}</p>}
                     </div>
                     <div className="flex items-center gap-2">
+                      <select
+                        value={vacancyPackage[v.id] ?? 2}
+                        onChange={(e) =>
+                          setVacancyPackage((prev) => ({ ...prev, [v.id]: Number(e.target.value) }))
+                        }
+                        className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                      >
+                        <option value={2}>2 intros</option>
+                        <option value={3}>3 intros</option>
+                        <option value={5}>5 intros</option>
+                      </select>
+                      <input
+                        type="number"
+                        placeholder={`$${ROLE_PRICES_AUD.club2coach_club}`}
+                        value={vacancyAmount[v.id] ?? ""}
+                        onChange={(e) => setVacancyAmount((prev) => ({ ...prev, [v.id]: e.target.value }))}
+                        className="w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                      />
                       <button
                         onClick={() => markVacancyPaid(v.id)}
                         className="btn-accent rounded-lg px-3 py-1.5 text-sm font-semibold"
                       >
-                        Mark paid (${ROLE_PRICES_AUD.club2coach_club})
+                        Mark paid
                       </button>
                       <button
                         onClick={() => deleteListing("club2coach_club_vacancies", v.id)}
@@ -402,69 +451,104 @@ function Club2CoachAdmin() {
 
       {tab === "matches" && (
         <div className="mt-6">
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap items-center gap-4">
             <FilterPills
               value={matchesFilter}
               onChange={setMatchesFilter}
               options={[
-                { value: "all", label: "All" },
-                { value: "unshared", label: "Not yet shared" },
-                { value: "shared", label: "Shared" },
+                { value: "all", label: "All vacancies" },
+                { value: "unshared", label: "Needs sharing" },
+                { value: "shared", label: "Fully shared" },
               ]}
             />
+            <select
+              value={matchesClubFilter}
+              onChange={(e) => setMatchesClubFilter(e.target.value)}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+            >
+              <option value="all">All clubs</option>
+              {clubNamesForFilter.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
           </div>
-          {filteredMatches.length === 0 ? (
+
+          {vacancyGroups.length === 0 ? (
             <p className="text-sm text-gray-500">
-              {computedMatches.length === 0
-                ? "No active, paid listings on both sides yet — nothing to match."
-                : "No matches for this filter."}
+              {activeVacancies.length === 0
+                ? "No active, paid vacancies yet — nothing to match."
+                : "No vacancies match this filter."}
             </p>
           ) : (
-            <div className="flex flex-col gap-2">
-              {filteredMatches.slice(0, 50).map(({ coach, vacancy, breakdown }) => {
-                const key = `${coach.id}:${vacancy.id}`;
-                const alreadyShared = sharedPairs.has(key);
-                return (
-                  <div key={key} className="rounded-lg border bg-white p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">
-                          {people[coach.person_id]?.full_name} <span className="text-gray-400">→</span>{" "}
-                          {vacancy.club_name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {vacancy.role_being_recruited} · {vacancy.competition_level} · {vacancy.region}
-                        </p>
-                        {(coach.notes || vacancy.notes) && (
-                          <div className="mt-1 space-y-0.5">
+            <div className="flex flex-col gap-4">
+              {vacancyGroups.map(({ vacancy, sharedCount, entitled, remaining, candidates }) => (
+                <div key={vacancy.id} className="rounded-xl border bg-white p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {vacancy.club_name} — {vacancy.role_being_recruited}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {vacancy.competition_level} · {vacancy.region} · Advertised{" "}
+                        {new Date(vacancy.created_at).toLocaleDateString("en-GB")}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        entitled != null && remaining === 0
+                          ? "bg-green-100 text-green-800"
+                          : "bg-blue-50 text-blue-800"
+                      }`}
+                    >
+                      {entitled != null
+                        ? `${sharedCount} of ${entitled} introductions shared`
+                        : `${sharedCount} shared (no package set)`}
+                    </span>
+                  </div>
+                  {vacancy.notes && (
+                    <p className="mt-1 text-xs italic text-gray-400">Club notes: {vacancy.notes}</p>
+                  )}
+
+                  {entitled != null && remaining === 0 ? (
+                    <p className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-800">
+                      ✓ All paid introductions for this vacancy have been shared.
+                    </p>
+                  ) : (
+                    <div className="mt-3 flex flex-col gap-1.5">
+                      {candidates.slice(0, 10).map(({ coach, breakdown, shared }) => (
+                        <div
+                          key={coach.id}
+                          className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+                        >
+                          <div>
+                            <p className="text-sm">{people[coach.person_id]?.full_name}</p>
                             {coach.notes && (
                               <p className="text-xs italic text-gray-400">Coach notes: {coach.notes}</p>
                             )}
-                            {vacancy.notes && (
-                              <p className="text-xs italic text-gray-400">Club notes: {vacancy.notes}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-bold" style={{ color: "var(--accent-dark)" }}>
+                              {Math.round(breakdown.total * 100)}%
+                            </span>
+                            {shared ? (
+                              <span className="text-xs text-green-600">✓ Shared</span>
+                            ) : (
+                              <button
+                                onClick={() => shareMatch(coach.id, vacancy.id, breakdown.total)}
+                                className="btn-accent rounded-lg px-3 py-1 text-xs font-semibold"
+                              >
+                                Share this match
+                              </button>
                             )}
                           </div>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-accent" style={{ color: "var(--accent-dark)" }}>
-                          {Math.round(breakdown.total * 100)}%
-                        </p>
-                        {alreadyShared ? (
-                          <span className="text-xs text-green-600">✓ Shared</span>
-                        ) : (
-                          <button
-                            onClick={() => shareMatch(coach.id, vacancy.id, breakdown.total)}
-                            className="btn-accent mt-1 rounded-lg px-3 py-1 text-xs font-semibold"
-                          >
-                            Share this match
-                          </button>
-                        )}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                );
-              })}
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -743,6 +827,37 @@ function Club2CoachAdmin() {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {tab === "people" && (
+        <div className="mt-6 flex flex-col gap-2">
+          <p className="text-sm text-gray-600">
+            {allPeople.length} total · {newSignupsCount} signed up in the last 24 hours
+          </p>
+          {allPeople.map((p) => {
+            const isNew = Date.now() - new Date(p.created_at).getTime() < 24 * 60 * 60 * 1000;
+            return (
+              <div key={p.id} className="flex items-center justify-between rounded-lg border bg-white p-3">
+                <div>
+                  <p className="text-sm font-medium">
+                    {p.full_name}
+                    {isNew && (
+                      <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                        New
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {p.email} · {p.mobile} · {p.region ?? "No region set"}
+                  </p>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Joined {new Date(p.created_at).toLocaleDateString("en-GB")}
+                </p>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
