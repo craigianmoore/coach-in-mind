@@ -50,6 +50,7 @@ function Club2CoachAdmin() {
   const [matchesClubFilter, setMatchesClubFilter] = useState<string>("all");
   const [vacancyPackage, setVacancyPackage] = useState<Record<string, number>>({});
   const [vacancyAmount, setVacancyAmount] = useState<Record<string, string>>({});
+  const [autoMatching, setAutoMatching] = useState(false);
 
   useEffect(() => {
     loadAll();
@@ -96,6 +97,7 @@ function Club2CoachAdmin() {
 
   useEffect(() => {
     if (tab === "admins") loadAdminPins();
+    if (tab === "matches" && weights) runAutoMatchSweep();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -129,11 +131,136 @@ function Club2CoachAdmin() {
       amount,
       introductions,
     });
-    if (error) setStatus(error.message);
-    else {
-      setStatus(`Marked as paid — ${introductions} coach introductions included.`);
-      await loadAll();
+    if (error) {
+      setStatus(error.message);
+      return;
     }
+    await loadAll();
+    await runAutoMatchSweep([id]);
+  }
+
+  async function giftVacancy(id: string) {
+    if (!window.confirm("Gift this vacancy for free? This activates it and includes the selected number of introductions, but records $0 — not a real payment.")) {
+      return;
+    }
+    supabase.rpc("refresh_admin_session");
+    setStatus(null);
+    const introductions = vacancyPackage[id] ?? 2;
+    const { error } = await supabase.rpc("gift_club2coach_vacancy", {
+      target_listing_id: id,
+      introductions,
+    });
+    if (error) {
+      setStatus(error.message);
+      return;
+    }
+    await loadAll();
+    await runAutoMatchSweep([id]);
+  }
+
+  // Fills any vacancy's remaining paid slots with its current
+  // top-scoring, not-yet-considered candidates. Idempotent — safe to
+  // run repeatedly, since club2coach_shares has a unique constraint
+  // on (coach, vacancy) so it can never double-suggest the same pair.
+  // When auto_approve_matches is off (the default), new rows go in as
+  // 'suggested' — invisible to both parties, no contact info shared —
+  // and need an explicit Approve click. When it's on, they go straight
+  // to 'approved', same as before.
+  // vacancyIds: restrict the sweep to specific vacancies (e.g. right
+  // after marking one paid); omit to sweep everything with open slots.
+  async function runAutoMatchSweep(vacancyIds?: string[]) {
+    if (!weights) return;
+    setAutoMatching(true);
+
+    const autoApprove = settings?.auto_approve_matches ?? false;
+
+    const targets = activeVacancies.filter((v) => {
+      if (vacancyIds && !vacancyIds.includes(v.id)) return false;
+      if (v.included_introductions == null) return false;
+      const usedSlots = shares.filter((s) => s.club_vacancy_id === v.id).length;
+      return usedSlots < v.included_introductions;
+    });
+
+    let totalNew = 0;
+    for (const vacancy of targets) {
+      const usedSlots = shares.filter((s) => s.club_vacancy_id === vacancy.id).length;
+      const remaining = (vacancy.included_introductions ?? 0) - usedSlots;
+      if (remaining <= 0) continue;
+
+      const candidates = activeCoaches
+        .filter((c) => !sharedPairs.has(`${c.id}:${vacancy.id}`))
+        .map((coach) => {
+          const coachPerson = people[coach.person_id];
+          const breakdown = scoreClub2CoachMatch(coach, coachPerson?.current_licence ?? null, vacancy, weights);
+          return { coach, breakdown };
+        })
+        .sort((a, b) => b.breakdown.total - a.breakdown.total)
+        .slice(0, remaining);
+
+      for (const { coach, breakdown } of candidates) {
+        const { error } = await supabase.from("club2coach_shares").insert({
+          coach_listing_id: coach.id,
+          club_vacancy_id: vacancy.id,
+          score: breakdown.total,
+          admin_notes: "Auto-matched (top score)",
+          status: autoApprove ? "approved" : "suggested",
+        });
+        if (!error) {
+          totalNew += 1;
+          if (autoApprove && !vacancy.shared_at) {
+            await supabase
+              .from("club2coach_club_vacancies")
+              .update({ shared_at: new Date().toISOString() })
+              .eq("id", vacancy.id);
+          }
+        }
+      }
+    }
+
+    setAutoMatching(false);
+    if (totalNew > 0) {
+      setStatus(
+        autoApprove
+          ? `Auto-matched and shared ${totalNew} new introduction${totalNew === 1 ? "" : "s"}.`
+          : `Found ${totalNew} new suggested match${totalNew === 1 ? "" : "es"} — awaiting your approval.`
+      );
+    }
+    await loadAll();
+  }
+
+  async function approveShare(shareId: string, vacancyId: string) {
+    supabase.rpc("refresh_admin_session");
+    await supabase.from("club2coach_shares").update({ status: "approved" }).eq("id", shareId);
+    const vacancy = vacancies.find((v) => v.id === vacancyId);
+    if (vacancy && !vacancy.shared_at) {
+      await supabase
+        .from("club2coach_club_vacancies")
+        .update({ shared_at: new Date().toISOString() })
+        .eq("id", vacancyId);
+    }
+    await loadAll();
+  }
+
+  async function rejectShare(shareId: string) {
+    supabase.rpc("refresh_admin_session");
+    await supabase.from("club2coach_shares").delete().eq("id", shareId);
+    await loadAll();
+  }
+
+  async function toggleAutoApprove(value: boolean) {
+    if (!settings) return;
+    supabase.rpc("refresh_admin_session");
+    setSettings({ ...settings, auto_approve_matches: value });
+    await supabase.from("admin_settings").update({ auto_approve_matches: value }).eq("id", settings.id);
+  }
+
+  async function revokeShare(shareId: string) {
+    if (!window.confirm("Undo this introduction? Both parties will lose access to each other's contact details.")) {
+      return;
+    }
+    supabase.rpc("refresh_admin_session");
+    await supabase.from("club2coach_shares").delete().eq("id", shareId);
+    await loadAll();
   }
 
   async function shareMatch(coachListingId: string, vacancyId: string, score: number) {
@@ -143,6 +270,7 @@ function Club2CoachAdmin() {
       coach_listing_id: coachListingId,
       club_vacancy_id: vacancyId,
       score,
+      status: "approved", // a manual admin click is itself the review — goes live immediately
     });
     if (error) {
       setStatus(error.message);
@@ -255,19 +383,25 @@ function Club2CoachAdmin() {
   const vacancyGroups = activeVacancies
     .filter((v) => matchesClubFilter === "all" || v.club_name === matchesClubFilter)
     .map((vacancy) => {
-      const sharedCount = shares.filter((s) => s.club_vacancy_id === vacancy.id).length;
+      const vacancyShares = shares.filter((s) => s.club_vacancy_id === vacancy.id);
+      const approvedCount = vacancyShares.filter((s) => s.status === "approved").length;
+      const suggestedCount = vacancyShares.filter((s) => s.status === "suggested").length;
+      const usedSlots = approvedCount + suggestedCount; // a pending suggestion still reserves its slot
       const entitled = vacancy.included_introductions;
-      const remaining = entitled != null ? Math.max(0, entitled - sharedCount) : null;
+      const remaining = entitled != null ? Math.max(0, entitled - usedSlots) : null;
       const candidates = weights
         ? activeCoaches
             .map((coach) => {
               const coachPerson = people[coach.person_id];
               const breakdown = scoreClub2CoachMatch(coach, coachPerson?.current_licence ?? null, vacancy, weights);
-              return { coach, breakdown, shared: sharedPairs.has(`${coach.id}:${vacancy.id}`) };
+              const shareRow = shares.find(
+                (s) => s.coach_listing_id === coach.id && s.club_vacancy_id === vacancy.id
+              );
+              return { coach, breakdown, shareRow };
             })
             .sort((a, b) => b.breakdown.total - a.breakdown.total)
         : [];
-      return { vacancy, sharedCount, entitled, remaining, candidates };
+      return { vacancy, approvedCount, suggestedCount, entitled, remaining, candidates };
     })
     .filter((g) => {
       if (matchesFilter === "all") return true;
@@ -435,6 +569,12 @@ function Club2CoachAdmin() {
                         Mark paid
                       </button>
                       <button
+                        onClick={() => giftVacancy(v.id)}
+                        className="rounded-lg border border-purple-200 px-3 py-1.5 text-sm font-semibold text-purple-700 hover:bg-purple-50"
+                      >
+                        Gift free
+                      </button>
+                      <button
                         onClick={() => deleteListing("club2coach_club_vacancies", v.id)}
                         className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
                       >
@@ -473,7 +613,23 @@ function Club2CoachAdmin() {
                 </option>
               ))}
             </select>
+            <button
+              onClick={() => runAutoMatchSweep()}
+              disabled={autoMatching}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+            >
+              {autoMatching ? "Matching…" : "Re-run auto-match now"}
+            </button>
           </div>
+
+          <label className="mb-4 flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={settings?.auto_approve_matches ?? false}
+              onChange={(e) => toggleAutoApprove(e.target.checked)}
+            />
+            Fully automate matching — skip review and share top matches immediately
+          </label>
 
           {vacancyGroups.length === 0 ? (
             <p className="text-sm text-gray-500">
@@ -483,7 +639,7 @@ function Club2CoachAdmin() {
             </p>
           ) : (
             <div className="flex flex-col gap-4">
-              {vacancyGroups.map(({ vacancy, sharedCount, entitled, remaining, candidates }) => (
+              {vacancyGroups.map(({ vacancy, approvedCount, suggestedCount, entitled, remaining, candidates }) => (
                 <div key={vacancy.id} className="rounded-xl border bg-white p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
@@ -495,32 +651,43 @@ function Club2CoachAdmin() {
                         {new Date(vacancy.created_at).toLocaleDateString("en-GB")}
                       </p>
                     </div>
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        entitled != null && remaining === 0
-                          ? "bg-green-100 text-green-800"
-                          : "bg-blue-50 text-blue-800"
-                      }`}
-                    >
-                      {entitled != null
-                        ? `${sharedCount} of ${entitled} introductions shared`
-                        : `${sharedCount} shared (no package set)`}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {suggestedCount > 0 && (
+                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                          {suggestedCount} pending your approval
+                        </span>
+                      )}
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          entitled != null && remaining === 0
+                            ? "bg-green-100 text-green-800"
+                            : "bg-blue-50 text-blue-800"
+                        }`}
+                      >
+                        {entitled != null
+                          ? `${approvedCount} of ${entitled} approved`
+                          : `${approvedCount} shared (no package set)`}
+                      </span>
+                    </div>
                   </div>
                   {vacancy.notes && (
                     <p className="mt-1 text-xs italic text-gray-400">Club notes: {vacancy.notes}</p>
                   )}
 
-                  {entitled != null && remaining === 0 ? (
+                  {entitled != null && remaining === 0 && suggestedCount === 0 && (
                     <p className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-800">
-                      ✓ All paid introductions for this vacancy have been shared.
+                      ✓ All paid introductions for this vacancy have been approved and shared.
                     </p>
-                  ) : (
-                    <div className="mt-3 flex flex-col gap-1.5">
-                      {candidates.slice(0, 10).map(({ coach, breakdown, shared }) => (
+                  )}
+
+                  <div className="mt-3 flex flex-col gap-1.5">
+                    {/* Pending suggestions — invisible to the coach and club until you approve them */}
+                    {candidates
+                      .filter((c) => c.shareRow?.status === "suggested")
+                      .map(({ coach, breakdown, shareRow }) => (
                         <div
                           key={coach.id}
-                          className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+                          className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2"
                         >
                           <div>
                             <p className="text-sm">{people[coach.person_id]?.full_name}</p>
@@ -529,24 +696,92 @@ function Club2CoachAdmin() {
                             )}
                           </div>
                           <div className="flex items-center gap-3">
+                            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                              Suggested
+                            </span>
                             <span className="text-sm font-bold" style={{ color: "var(--accent-dark)" }}>
                               {Math.round(breakdown.total * 100)}%
                             </span>
-                            {shared ? (
-                              <span className="text-xs text-green-600">✓ Shared</span>
-                            ) : (
+                            <button
+                              onClick={() => shareRow && approveShare(shareRow.id, vacancy.id)}
+                              className="btn-accent rounded-lg px-3 py-1 text-xs font-semibold"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => shareRow && rejectShare(shareRow.id)}
+                              className="text-xs font-semibold text-red-500 hover:underline"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                    {/* Approved — contact details are actually visible to both parties */}
+                    {candidates
+                      .filter((c) => c.shareRow?.status === "approved")
+                      .map(({ coach, breakdown, shareRow }) => (
+                        <div
+                          key={coach.id}
+                          className="flex items-center justify-between rounded-lg border border-green-100 bg-green-50/50 px-3 py-2"
+                        >
+                          <div>
+                            <p className="text-sm">{people[coach.person_id]?.full_name}</p>
+                            {coach.notes && (
+                              <p className="text-xs italic text-gray-400">Coach notes: {coach.notes}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {shareRow?.admin_notes === "Auto-matched (top score)" && (
+                              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                Auto
+                              </span>
+                            )}
+                            <span className="text-sm font-bold" style={{ color: "var(--accent-dark)" }}>
+                              {Math.round(breakdown.total * 100)}%
+                            </span>
+                            <span className="text-xs text-green-600">✓ Shared</span>
+                            <button
+                              onClick={() => shareRow && revokeShare(shareRow.id)}
+                              className="text-xs font-semibold text-red-500 hover:underline"
+                            >
+                              Undo
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                    {/* Other available candidates — only while slots remain */}
+                    {(entitled == null || remaining! > 0) &&
+                      candidates
+                        .filter((c) => !c.shareRow)
+                        .slice(0, 10)
+                        .map(({ coach, breakdown }) => (
+                          <div
+                            key={coach.id}
+                            className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+                          >
+                            <div>
+                              <p className="text-sm">{people[coach.person_id]?.full_name}</p>
+                              {coach.notes && (
+                                <p className="text-xs italic text-gray-400">Coach notes: {coach.notes}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-bold" style={{ color: "var(--accent-dark)" }}>
+                                {Math.round(breakdown.total * 100)}%
+                              </span>
                               <button
                                 onClick={() => shareMatch(coach.id, vacancy.id, breakdown.total)}
                                 className="btn-accent rounded-lg px-3 py-1 text-xs font-semibold"
                               >
                                 Share this match
                               </button>
-                            )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                  </div>
                 </div>
               ))}
             </div>
@@ -657,7 +892,8 @@ function Club2CoachAdmin() {
                       {v.deleted_at && <span className="ml-2 text-xs font-normal text-red-500">(deleted)</span>}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {people[v.person_id]?.full_name ?? "Unknown"} · {v.paid ? "Paid" : "Unpaid"} · {v.status}
+                      {people[v.person_id]?.full_name ?? "Unknown"} ·{" "}
+                      {v.is_charity ? "Gifted" : v.paid ? "Paid" : "Unpaid"} · {v.status}
                     </p>
                   </div>
                   {v.deleted_at ? (
