@@ -106,8 +106,26 @@ export const RATE_UNITS = ["per session", "per hour", "per month"] as const;
 // they wear (Club2Coach coach, Club2Coach club, Coach2Mentor coach,
 // Coach2Mentor mentor). These are placeholders until real pricing is set.
 export const ROLE_PRICES_AUD = {
-  club2coach_coach: 15,
-  club2coach_club: 45,
+  club2coach_coach: 20, // starting tier — see CLUB2COACH_COACH_PACKAGES for the full ladder
+  club2coach_club: 100, // starting tier — see CLUB2COACH_CLUB_PACKAGES for the full ladder
   coach2mentor_coach: 15,
   coach2mentor_mentor: 25,
 } as const;
+
+// Club2Coach runs on paid introduction packages rather than a flat
+// fee — the number is how many coach<->club introductions that
+// payment buys. Once a listing hits its package size, matching stops
+// for it until it's topped up with another package.
+export const CLUB2COACH_COACH_PACKAGES: Record<number, number> = {
+  1: 20,
+  2: 35,
+  3: 50,
+};
+
+export const CLUB2COACH_CLUB_PACKAGES: Record<number, number> = {
+  1: 100,
+  2: 200,
+  3: 300,
+  4: 380,
+  5: 440,
+};
