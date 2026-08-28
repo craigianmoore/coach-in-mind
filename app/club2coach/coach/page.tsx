@@ -11,7 +11,7 @@ import {
   AGE_GROUPS,
   REGIONS,
   GENDER_OPTIONS,
-  ROLE_PRICES_AUD,
+  CLUB2COACH_COACH_PACKAGES,
 } from "@/lib/constants";
 import type { Club2CoachCoachListing, Person } from "@/types/database";
 import { notifyAdmin } from "@/lib/notify";
@@ -36,6 +36,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   const [overview, setOverview] = useState("");
   const [notes, setNotes] = useState("");
   const [authoriseShare, setAuthoriseShare] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState(1);
 
   useEffect(() => {
     load();
@@ -57,6 +58,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     setOverview("");
     setNotes("");
     setAuthoriseShare(false);
+    setSelectedPackage(1);
   }
 
   async function load() {
@@ -83,6 +85,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       setOverview(l.overview ?? "");
       setNotes(l.notes ?? "");
       setAuthoriseShare(l.authorise_share);
+      setSelectedPackage(l.included_introductions ?? 1);
     } else {
       resetForm();
     }
@@ -113,6 +116,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       overview,
       notes,
       authorise_share: authoriseShare,
+      included_introductions: selectedPackage, // the coach's chosen package — admin confirms this (or adjusts it) when marking paid
     };
 
     const { error: saveError } = existing
@@ -165,15 +169,56 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           }`}
         >
           {existing.paid ? (
-            <>✓ Your listing is active and included in matching.</>
+            <>
+              ✓ Your listing is active and included in matching — you're set up for{" "}
+              {existing.included_introductions ?? "?"} club introduction
+              {existing.included_introductions === 1 ? "" : "s"}. Once you've used them all, you'll
+              need to top up with another package to keep being matched.
+            </>
           ) : (
             <>
-              <strong>Payment required (${ROLE_PRICES_AUD.club2coach_coach} AUD):</strong> your
+              <strong>Payment required (${CLUB2COACH_COACH_PACKAGES[selectedPackage]} AUD):</strong> your
               listing is saved but won't be included in matching until
               payment is confirmed. Coach In Mind will be in touch about
               how to pay — once confirmed, this activates automatically.
             </>
           )}
+        </div>
+      )}
+
+      {!existing?.paid && (
+        <div className="mt-4 rounded-xl border bg-white p-4">
+          <p className="text-xs font-semibold uppercase text-gray-500">
+            How many club introductions do you want?
+          </p>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+            {Object.entries(CLUB2COACH_COACH_PACKAGES).map(([count, price]) => (
+              <label
+                key={count}
+                className={`flex-1 cursor-pointer rounded-lg border-2 p-3 text-center ${
+                  selectedPackage === Number(count)
+                    ? "border-brand-navy bg-brand-navy/5"
+                    : "border-gray-200"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="package"
+                  className="sr-only"
+                  checked={selectedPackage === Number(count)}
+                  onChange={() => setSelectedPackage(Number(count))}
+                />
+                <p className="font-semibold">
+                  {count} introduction{count === "1" ? "" : "s"}
+                </p>
+                <p className="text-sm text-gray-500">${price} AUD</p>
+              </label>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-gray-500">
+            We'll match you with your top-scoring club vacancies, up to this many, based on your
+            criteria below. If none of them work out, you can top up for more later.
+          </p>
         </div>
       )}
 
