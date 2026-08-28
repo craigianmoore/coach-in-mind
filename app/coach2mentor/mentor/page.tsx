@@ -15,6 +15,7 @@ import {
   ROLE_PRICES_AUD,
 } from "@/lib/constants";
 import type { Coach2MentorMentorListing, Coach2MentorRequest, Person } from "@/types/database";
+import { notifyAdmin } from "@/lib/notify";
 
 interface RequestWithCoachName extends Coach2MentorRequest {
   coachName?: string;
@@ -170,6 +171,13 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
     await load();
     setSaving(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
+
+    if (!existing) {
+      notifyAdmin(
+        "new mentor profile (Coach 2 Mentor)",
+        `${person.full_name} (${person.email}, ${person.mobile})\nCareer stage: ${careerStage} · Licence: ${licence}`
+      );
+    }
   }
 
   async function handleDelete() {
@@ -527,22 +535,29 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
                       Requested {new Date(r.created_at).toLocaleDateString("en-GB")}
                     </p>
                   </div>
-                  {r.status === "pending" && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => respondToRequest(r.id, "accepted")}
-                        className="btn-accent rounded-lg px-4 py-2 text-sm font-semibold"
-                      >
-                        Accept
-                      </button>
-                      <button
-                        onClick={() => respondToRequest(r.id, "declined")}
-                        className="rounded-lg border px-4 py-2 text-sm font-semibold text-gray-600"
-                      >
-                        Decline
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {r.score != null && (
+                      <span className="text-sm font-bold" style={{ color: "var(--accent-dark)" }}>
+                        {Math.round(r.score * 100)}% match
+                      </span>
+                    )}
+                    {r.status === "pending" && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => respondToRequest(r.id, "accepted")}
+                          className="btn-accent rounded-lg px-4 py-2 text-sm font-semibold"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => respondToRequest(r.id, "declined")}
+                          className="rounded-lg border px-4 py-2 text-sm font-semibold text-gray-600"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
