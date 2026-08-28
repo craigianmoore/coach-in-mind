@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import PinGate from "@/components/PinGate";
 import { createClient } from "@/lib/supabase/client";
 import { scoreClub2CoachMatch } from "@/lib/scoring";
-import { ROLE_PRICES_AUD } from "@/lib/constants";
+import { CLUB2COACH_COACH_PACKAGES, CLUB2COACH_CLUB_PACKAGES } from "@/lib/constants";
 import type {
   Club2CoachCoachListing,
   Club2CoachClubVacancy,
@@ -50,6 +50,8 @@ function Club2CoachAdmin() {
   const [matchesClubFilter, setMatchesClubFilter] = useState<string>("all");
   const [vacancyPackage, setVacancyPackage] = useState<Record<string, number>>({});
   const [vacancyAmount, setVacancyAmount] = useState<Record<string, string>>({});
+  const [coachPackage, setCoachPackage] = useState<Record<string, number>>({});
+  const [coachAmount, setCoachAmount] = useState<Record<string, string>>({});
   const [autoMatching, setAutoMatching] = useState(false);
 
   useEffect(() => {
@@ -110,22 +112,26 @@ function Club2CoachAdmin() {
   async function markCoachPaid(id: string) {
     supabase.rpc("refresh_admin_session"); // keep the idle-timeout session alive
     setStatus(null);
+    const introductions = coachPackage[id] ?? 1;
+    const amount = Number(coachAmount[id] ?? CLUB2COACH_COACH_PACKAGES[introductions]);
     const { error } = await supabase.rpc("mark_club2coach_coach_paid", {
       target_listing_id: id,
-      amount: ROLE_PRICES_AUD.club2coach_coach,
+      amount,
+      introductions,
     });
-    if (error) setStatus(error.message);
-    else {
-      setStatus("Marked as paid.");
-      await loadAll();
+    if (error) {
+      setStatus(error.message);
+      return;
     }
+    setStatus(`Marked as paid — ${introductions} club introduction${introductions === 1 ? "" : "s"} included.`);
+    await loadAll();
   }
 
   async function markVacancyPaid(id: string) {
     supabase.rpc("refresh_admin_session"); // keep the idle-timeout session alive
     setStatus(null);
-    const introductions = vacancyPackage[id] ?? 2;
-    const amount = Number(vacancyAmount[id] ?? ROLE_PRICES_AUD.club2coach_club);
+    const introductions = vacancyPackage[id] ?? 1;
+    const amount = Number(vacancyAmount[id] ?? CLUB2COACH_CLUB_PACKAGES[introductions]);
     const { error } = await supabase.rpc("mark_club2coach_club_paid", {
       target_listing_id: id,
       amount,
@@ -145,7 +151,7 @@ function Club2CoachAdmin() {
     }
     supabase.rpc("refresh_admin_session");
     setStatus(null);
-    const introductions = vacancyPackage[id] ?? 2;
+    const introductions = vacancyPackage[id] ?? 1;
     const { error } = await supabase.rpc("gift_club2coach_vacancy", {
       target_listing_id: id,
       introductions,
@@ -367,7 +373,20 @@ function Club2CoachAdmin() {
 
   const unpaidCoaches = coachListings.filter((l) => !l.paid && !l.deleted_at);
   const unpaidVacancies = vacancies.filter((v) => !v.paid && !v.deleted_at);
-  const activeCoaches = coachListings.filter((l) => l.paid && l.status !== "placed" && !l.deleted_at);
+  // Excludes coaches who've used up their own paid introduction quota
+  // — once shared to as many clubs as they paid for, they stop being
+  // a candidate anywhere until they top up, regardless of how well
+  // they'd otherwise score against a vacancy.
+  function coachIntroductionsUsed(coachListingId: string) {
+    return shares.filter((s) => s.coach_listing_id === coachListingId).length;
+  }
+  const activeCoaches = coachListings.filter((l) => {
+    if (!l.paid || l.status === "placed" || l.deleted_at) return false;
+    if (l.included_introductions != null && coachIntroductionsUsed(l.id) >= l.included_introductions) {
+      return false;
+    }
+    return true;
+  });
   const activeVacancies = vacancies.filter(
     (v) => v.paid && v.status !== "filled" && v.status !== "expired" && !v.deleted_at
   );
@@ -506,14 +525,42 @@ function Club2CoachAdmin() {
                     <div>
                       <p className="text-sm font-medium">{people[l.person_id]?.full_name ?? "Unknown"}</p>
                       <p className="text-xs text-gray-500">{l.role_sought}</p>
+                      {l.included_introductions != null && (
+                        <p className="text-xs text-blue-600">
+                          Requested: {l.included_introductions} introduction
+                          {l.included_introductions === 1 ? "" : "s"}
+                        </p>
+                      )}
                       {l.notes && <p className="mt-1 text-xs italic text-gray-400">Notes: {l.notes}</p>}
                     </div>
                     <div className="flex items-center gap-2">
+                      <select
+                        value={coachPackage[l.id] ?? l.included_introductions ?? 1}
+                        onChange={(e) => {
+                          const n = Number(e.target.value);
+                          setCoachPackage((prev) => ({ ...prev, [l.id]: n }));
+                          setCoachAmount((prev) => ({ ...prev, [l.id]: String(CLUB2COACH_COACH_PACKAGES[Number(n)]) }));
+                        }}
+                        className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                      >
+                        {Object.keys(CLUB2COACH_COACH_PACKAGES).map((n) => (
+                          <option key={n} value={n}>
+                            {n} intro{n === "1" ? "" : "s"}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        placeholder={`$${CLUB2COACH_COACH_PACKAGES[coachPackage[l.id] ?? l.included_introductions ?? 1]}`}
+                        value={coachAmount[l.id] ?? ""}
+                        onChange={(e) => setCoachAmount((prev) => ({ ...prev, [l.id]: e.target.value }))}
+                        className="w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                      />
                       <button
                         onClick={() => markCoachPaid(l.id)}
                         className="btn-accent rounded-lg px-3 py-1.5 text-sm font-semibold"
                       >
-                        Mark paid (${ROLE_PRICES_AUD.club2coach_coach})
+                        Mark paid
                       </button>
                       <button
                         onClick={() => deleteListing("club2coach_coach_listings", l.id)}
@@ -545,19 +592,23 @@ function Club2CoachAdmin() {
                     </div>
                     <div className="flex items-center gap-2">
                       <select
-                        value={vacancyPackage[v.id] ?? 2}
-                        onChange={(e) =>
-                          setVacancyPackage((prev) => ({ ...prev, [v.id]: Number(e.target.value) }))
-                        }
+                        value={vacancyPackage[v.id] ?? 1}
+                        onChange={(e) => {
+                          const n = Number(e.target.value);
+                          setVacancyPackage((prev) => ({ ...prev, [v.id]: n }));
+                          setVacancyAmount((prev) => ({ ...prev, [v.id]: String(CLUB2COACH_CLUB_PACKAGES[n]) }));
+                        }}
                         className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
                       >
-                        <option value={2}>2 intros</option>
-                        <option value={3}>3 intros</option>
-                        <option value={5}>5 intros</option>
+                        {Object.keys(CLUB2COACH_CLUB_PACKAGES).map((n) => (
+                          <option key={n} value={n}>
+                            {n} intro{n === "1" ? "" : "s"}
+                          </option>
+                        ))}
                       </select>
                       <input
                         type="number"
-                        placeholder={`$${ROLE_PRICES_AUD.club2coach_club}`}
+                        placeholder={`$${CLUB2COACH_CLUB_PACKAGES[vacancyPackage[v.id] ?? 1]}`}
                         value={vacancyAmount[v.id] ?? ""}
                         onChange={(e) => setVacancyAmount((prev) => ({ ...prev, [v.id]: e.target.value }))}
                         className="w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
