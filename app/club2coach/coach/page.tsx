@@ -14,6 +14,7 @@ import {
   ROLE_PRICES_AUD,
 } from "@/lib/constants";
 import type { Club2CoachCoachListing, Person } from "@/types/database";
+import { notifyAdmin } from "@/lib/notify";
 
 function Club2CoachCoachForm({ person }: { person: Person }) {
   const supabase = createClient();
@@ -127,6 +128,13 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     await load();
     setSaving(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
+
+    if (!existing) {
+      notifyAdmin(
+        "new coach listing (Club 2 Coach)",
+        `${person.full_name} (${person.email}, ${person.mobile})\nRole sought: ${roleSought}`
+      );
+    }
   }
 
   async function handleDelete() {
