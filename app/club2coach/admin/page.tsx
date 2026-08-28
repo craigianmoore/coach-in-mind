@@ -38,6 +38,8 @@ function Club2CoachAdmin() {
   const [adminPins, setAdminPins] = useState<AdminPinRow[]>([]);
   const [newPin, setNewPin] = useState("");
   const [newPinLabel, setNewPinLabel] = useState("");
+  const [editingPinId, setEditingPinId] = useState<string | null>(null);
+  const [editingLabelValue, setEditingLabelValue] = useState("");
 
   const [supportQueries, setSupportQueries] = useState<SupportQuery[]>([]);
 
@@ -197,6 +199,25 @@ function Club2CoachAdmin() {
     if (error) setStatus(error.message);
     else {
       setStatus("PIN revoked.");
+      await loadAdminPins();
+    }
+  }
+
+  function startEditingLabel(p: AdminPinRow) {
+    setEditingPinId(p.id);
+    setEditingLabelValue(p.label || "");
+  }
+
+  async function saveLabel(id: string) {
+    setStatus(null);
+    supabase.rpc("refresh_admin_session");
+    const { error } = await supabase.rpc("update_admin_pin_label", {
+      target_id: id,
+      new_label: editingLabelValue || null,
+    });
+    if (error) setStatus(error.message);
+    else {
+      setEditingPinId(null);
       await loadAdminPins();
     }
   }
@@ -496,18 +517,52 @@ function Club2CoachAdmin() {
           <div className="mt-4 flex flex-col gap-2">
             {adminPins.map((p) => (
               <div key={p.id} className="flex items-center justify-between rounded-lg border bg-white p-3">
-                <div>
-                  <p className="text-sm font-medium">{p.label || "Unlabelled PIN"}</p>
-                  <p className="text-xs text-gray-500">
-                    Added {new Date(p.created_at).toLocaleDateString("en-GB")}
-                  </p>
-                </div>
-                <button
-                  onClick={() => revokeAdminPin(p.id, p.label)}
-                  className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
-                >
-                  Revoke
-                </button>
+                {editingPinId === p.id ? (
+                  <div className="flex flex-1 items-center gap-2">
+                    <input
+                      autoFocus
+                      value={editingLabelValue}
+                      onChange={(e) => setEditingLabelValue(e.target.value)}
+                      placeholder="e.g. Sarah"
+                      className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+                    />
+                    <button
+                      onClick={() => saveLabel(p.id)}
+                      className="btn-accent rounded-lg px-3 py-1.5 text-xs font-semibold"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingPinId(null)}
+                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-sm font-medium">{p.label || "Unlabelled PIN"}</p>
+                      <p className="text-xs text-gray-500">
+                        Added {new Date(p.created_at).toLocaleDateString("en-GB")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => startEditingLabel(p)}
+                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => revokeAdminPin(p.id, p.label)}
+                        className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                      >
+                        Revoke
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>
