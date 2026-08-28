@@ -14,7 +14,13 @@ import type {
   AdminSettings,
 } from "@/types/database";
 
-type Tab = "unpaid" | "matches" | "weighting";
+type Tab = "unpaid" | "matches" | "weighting" | "listings" | "admins";
+
+interface AdminPinRow {
+  id: string;
+  label: string | null;
+  created_at: string;
+}
 
 function Club2CoachAdmin() {
   const supabase = createClient();
@@ -27,6 +33,10 @@ function Club2CoachAdmin() {
   const [settings, setSettings] = useState<AdminSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
+
+  const [adminPins, setAdminPins] = useState<AdminPinRow[]>([]);
+  const [newPin, setNewPin] = useState("");
+  const [newPinLabel, setNewPinLabel] = useState("");
 
   useEffect(() => {
     loadAll();
@@ -52,6 +62,16 @@ function Club2CoachAdmin() {
     setSettings(st as AdminSettings | null);
     setLoading(false);
   }
+
+  async function loadAdminPins() {
+    const { data } = await supabase.rpc("list_admin_pins");
+    setAdminPins((data as AdminPinRow[]) ?? []);
+  }
+
+  useEffect(() => {
+    if (tab === "admins") loadAdminPins();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   async function markCoachPaid(id: string) {
     supabase.rpc("refresh_admin_session"); // keep the idle-timeout session alive
@@ -117,11 +137,57 @@ function Club2CoachAdmin() {
     await supabase.from("admin_settings").update({ weights: newWeights }).eq("id", settings.id);
   }
 
-  const unpaidCoaches = coachListings.filter((l) => !l.paid);
-  const unpaidVacancies = vacancies.filter((v) => !v.paid);
-  const activeCoaches = coachListings.filter((l) => l.paid && l.status !== "placed");
+  async function deleteListing(table: "club2coach_coach_listings" | "club2coach_club_vacancies", id: string) {
+    if (!window.confirm("Delete this listing? It will be hidden from the owner and from matching — this can be undone from this tab.")) {
+      return;
+    }
+    supabase.rpc("refresh_admin_session");
+    await supabase.from(table).update({ deleted_at: new Date().toISOString() }).eq("id", id);
+    await loadAll();
+  }
+
+  async function restoreListing(table: "club2coach_coach_listings" | "club2coach_club_vacancies", id: string) {
+    supabase.rpc("refresh_admin_session");
+    await supabase.from(table).update({ deleted_at: null }).eq("id", id);
+    await loadAll();
+  }
+
+  async function addAdminPin(e: React.FormEvent) {
+    e.preventDefault();
+    setStatus(null);
+    supabase.rpc("refresh_admin_session");
+    const { error } = await supabase.rpc("add_admin_pin", {
+      new_pin: newPin,
+      new_label: newPinLabel || null,
+    });
+    if (error) setStatus(error.message);
+    else {
+      setStatus("New admin PIN added.");
+      setNewPin("");
+      setNewPinLabel("");
+      await loadAdminPins();
+    }
+  }
+
+  async function revokeAdminPin(id: string, label: string | null) {
+    if (!window.confirm(`Revoke ${label || "this"} admin PIN? They'll lose admin access immediately.`)) {
+      return;
+    }
+    setStatus(null);
+    supabase.rpc("refresh_admin_session");
+    const { error } = await supabase.rpc("revoke_admin_pin", { target_id: id });
+    if (error) setStatus(error.message);
+    else {
+      setStatus("PIN revoked.");
+      await loadAdminPins();
+    }
+  }
+
+  const unpaidCoaches = coachListings.filter((l) => !l.paid && !l.deleted_at);
+  const unpaidVacancies = vacancies.filter((v) => !v.paid && !v.deleted_at);
+  const activeCoaches = coachListings.filter((l) => l.paid && l.status !== "placed" && !l.deleted_at);
   const activeVacancies = vacancies.filter(
-    (v) => v.paid && v.status !== "filled" && v.status !== "expired"
+    (v) => v.paid && v.status !== "filled" && v.status !== "expired" && !v.deleted_at
   );
   const sharedPairs = new Set(shares.map((s) => `${s.coach_listing_id}:${s.club_vacancy_id}`));
 
@@ -147,8 +213,8 @@ function Club2CoachAdmin() {
         </p>
       </div>
 
-      <div className="mt-4 flex gap-2 border-b">
-        {(["unpaid", "matches", "weighting"] as Tab[]).map((t) => (
+      <div className="mt-4 flex flex-wrap gap-2 border-b">
+        {(["unpaid", "matches", "weighting", "listings", "admins"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -179,12 +245,20 @@ function Club2CoachAdmin() {
                       <p className="text-xs text-gray-500">{l.role_sought}</p>
                       {l.notes && <p className="mt-1 text-xs italic text-gray-400">Notes: {l.notes}</p>}
                     </div>
-                    <button
-                      onClick={() => markCoachPaid(l.id)}
-                      className="btn-accent rounded-lg px-3 py-1.5 text-sm font-semibold"
-                    >
-                      Mark paid (${ROLE_PRICES_AUD.club2coach_coach})
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => markCoachPaid(l.id)}
+                        className="btn-accent rounded-lg px-3 py-1.5 text-sm font-semibold"
+                      >
+                        Mark paid (${ROLE_PRICES_AUD.club2coach_coach})
+                      </button>
+                      <button
+                        onClick={() => deleteListing("club2coach_coach_listings", l.id)}
+                        className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -206,12 +280,20 @@ function Club2CoachAdmin() {
                       </p>
                       {v.notes && <p className="mt-1 text-xs italic text-gray-400">Notes: {v.notes}</p>}
                     </div>
-                    <button
-                      onClick={() => markVacancyPaid(v.id)}
-                      className="btn-accent rounded-lg px-3 py-1.5 text-sm font-semibold"
-                    >
-                      Mark paid (${ROLE_PRICES_AUD.club2coach_club})
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => markVacancyPaid(v.id)}
+                        className="btn-accent rounded-lg px-3 py-1.5 text-sm font-semibold"
+                      >
+                        Mark paid (${ROLE_PRICES_AUD.club2coach_club})
+                      </button>
+                      <button
+                        onClick={() => deleteListing("club2coach_club_vacancies", v.id)}
+                        className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -300,6 +382,144 @@ function Club2CoachAdmin() {
               />
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === "listings" && (
+        <div className="mt-6 flex flex-col gap-6">
+          <div>
+            <h2 className="font-semibold">All coach listings ({coachListings.length})</h2>
+            <div className="mt-2 flex flex-col gap-2">
+              {coachListings.map((l) => (
+                <div
+                  key={l.id}
+                  className={`flex items-center justify-between rounded-lg border bg-white p-3 ${l.deleted_at ? "opacity-50" : ""}`}
+                >
+                  <div>
+                    <p className="text-sm font-medium">
+                      {people[l.person_id]?.full_name ?? "Unknown"}
+                      {l.deleted_at && <span className="ml-2 text-xs font-normal text-red-500">(deleted)</span>}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {l.role_sought} · {l.paid ? "Paid" : "Unpaid"} · {l.status}
+                    </p>
+                  </div>
+                  {l.deleted_at ? (
+                    <button
+                      onClick={() => restoreListing("club2coach_coach_listings", l.id)}
+                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                    >
+                      Restore
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => deleteListing("club2coach_coach_listings", l.id)}
+                      className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="font-semibold">All vacancies ({vacancies.length})</h2>
+            <div className="mt-2 flex flex-col gap-2">
+              {vacancies.map((v) => (
+                <div
+                  key={v.id}
+                  className={`flex items-center justify-between rounded-lg border bg-white p-3 ${v.deleted_at ? "opacity-50" : ""}`}
+                >
+                  <div>
+                    <p className="text-sm font-medium">
+                      {v.club_name} — {v.role_being_recruited}
+                      {v.deleted_at && <span className="ml-2 text-xs font-normal text-red-500">(deleted)</span>}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {people[v.person_id]?.full_name ?? "Unknown"} · {v.paid ? "Paid" : "Unpaid"} · {v.status}
+                    </p>
+                  </div>
+                  {v.deleted_at ? (
+                    <button
+                      onClick={() => restoreListing("club2coach_club_vacancies", v.id)}
+                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                    >
+                      Restore
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => deleteListing("club2coach_club_vacancies", v.id)}
+                      className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "admins" && (
+        <div className="mt-6 max-w-xl">
+          <p className="text-sm text-gray-600">
+            Anyone with a valid PIN below gets a 2-hour admin session —
+            this applies across both Club 2 Coach and Coach 2 Mentor, not
+            just this page.
+          </p>
+
+          <div className="mt-4 flex flex-col gap-2">
+            {adminPins.map((p) => (
+              <div key={p.id} className="flex items-center justify-between rounded-lg border bg-white p-3">
+                <div>
+                  <p className="text-sm font-medium">{p.label || "Unlabelled PIN"}</p>
+                  <p className="text-xs text-gray-500">
+                    Added {new Date(p.created_at).toLocaleDateString("en-GB")}
+                  </p>
+                </div>
+                <button
+                  onClick={() => revokeAdminPin(p.id, p.label)}
+                  className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                >
+                  Revoke
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <form onSubmit={addAdminPin} className="mt-6 flex flex-col gap-3 rounded-xl border bg-white p-4">
+            <h3 className="text-sm font-semibold">Add a new admin PIN</h3>
+            <div>
+              <label className="text-xs font-semibold uppercase text-gray-500">Label (who is this for?)</label>
+              <input
+                value={newPinLabel}
+                onChange={(e) => setNewPinLabel(e.target.value)}
+                placeholder="e.g. Sarah"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase text-gray-500">6-digit PIN</label>
+              <input
+                required
+                pattern="[0-9]{6}"
+                maxLength={6}
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value)}
+                placeholder="123456"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
+            </div>
+            <button
+              type="submit"
+              className="btn-accent self-start rounded-lg px-5 py-2 text-sm font-semibold"
+            >
+              Add admin PIN
+            </button>
+          </form>
         </div>
       )}
     </div>
