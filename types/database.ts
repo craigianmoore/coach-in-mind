@@ -193,3 +193,14 @@ export interface AdminSettings {
   salary_benchmarks: Record<string, SalaryBenchmark>;
   updated_at: string;
 }
+
+export interface SupportQuery {
+  id: string;
+  person_id: string | null;
+  name: string;
+  email: string;
+  message: string;
+  status: "open" | "resolved";
+  admin_notes: string | null;
+  created_at: string;
+}
