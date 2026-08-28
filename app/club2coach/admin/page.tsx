@@ -43,6 +43,11 @@ function Club2CoachAdmin() {
 
   const [supportQueries, setSupportQueries] = useState<SupportQuery[]>([]);
 
+  const [supportFilter, setSupportFilter] = useState<"open" | "resolved" | "all">("open");
+  const [listingsPaidFilter, setListingsPaidFilter] = useState<"all" | "paid" | "unpaid">("all");
+  const [listingsDeletedFilter, setListingsDeletedFilter] = useState<"active" | "all">("active");
+  const [matchesFilter, setMatchesFilter] = useState<"all" | "unshared" | "shared">("all");
+
   useEffect(() => {
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -246,6 +251,52 @@ function Club2CoachAdmin() {
       ).sort((a, b) => b.breakdown.total - a.breakdown.total)
     : [];
 
+  const filteredMatches = computedMatches.filter(({ coach, vacancy }) => {
+    if (matchesFilter === "all") return true;
+    const shared = sharedPairs.has(`${coach.id}:${vacancy.id}`);
+    return matchesFilter === "shared" ? shared : !shared;
+  });
+
+  const filteredSupportQueries = supportQueries.filter(
+    (q) => supportFilter === "all" || q.status === supportFilter
+  );
+
+  function passesListingsFilter(l: { paid: boolean; deleted_at: string | null }) {
+    if (listingsDeletedFilter === "active" && l.deleted_at) return false;
+    if (listingsPaidFilter === "paid" && !l.paid) return false;
+    if (listingsPaidFilter === "unpaid" && l.paid) return false;
+    return true;
+  }
+
+  const filteredCoachListingsForListingsTab = coachListings.filter(passesListingsFilter);
+  const filteredVacanciesForListingsTab = vacancies.filter(passesListingsFilter);
+
+  function FilterPills<T extends string>({
+    value,
+    onChange,
+    options,
+  }: {
+    value: T;
+    onChange: (v: T) => void;
+    options: { value: T; label: string }[];
+  }) {
+    return (
+      <div className="flex gap-2">
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => onChange(opt.value)}
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              value === opt.value ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
   if (loading) return <p className="py-8 text-sm text-gray-500">Loading…</p>;
 
   return (
@@ -351,13 +402,26 @@ function Club2CoachAdmin() {
 
       {tab === "matches" && (
         <div className="mt-6">
-          {computedMatches.length === 0 ? (
+          <div className="mb-4">
+            <FilterPills
+              value={matchesFilter}
+              onChange={setMatchesFilter}
+              options={[
+                { value: "all", label: "All" },
+                { value: "unshared", label: "Not yet shared" },
+                { value: "shared", label: "Shared" },
+              ]}
+            />
+          </div>
+          {filteredMatches.length === 0 ? (
             <p className="text-sm text-gray-500">
-              No active, paid listings on both sides yet — nothing to match.
+              {computedMatches.length === 0
+                ? "No active, paid listings on both sides yet — nothing to match."
+                : "No matches for this filter."}
             </p>
           ) : (
             <div className="flex flex-col gap-2">
-              {computedMatches.slice(0, 50).map(({ coach, vacancy, breakdown }) => {
+              {filteredMatches.slice(0, 50).map(({ coach, vacancy, breakdown }) => {
                 const key = `${coach.id}:${vacancy.id}`;
                 const alreadyShared = sharedPairs.has(key);
                 return (
@@ -434,10 +498,32 @@ function Club2CoachAdmin() {
 
       {tab === "listings" && (
         <div className="mt-6 flex flex-col gap-6">
+          <div className="flex flex-wrap items-center gap-4">
+            <FilterPills
+              value={listingsPaidFilter}
+              onChange={setListingsPaidFilter}
+              options={[
+                { value: "all", label: "All payment statuses" },
+                { value: "paid", label: "Paid" },
+                { value: "unpaid", label: "Unpaid" },
+              ]}
+            />
+            <FilterPills
+              value={listingsDeletedFilter}
+              onChange={setListingsDeletedFilter}
+              options={[
+                { value: "active", label: "Hide deleted" },
+                { value: "all", label: "Show deleted" },
+              ]}
+            />
+          </div>
+
           <div>
-            <h2 className="font-semibold">All coach listings ({coachListings.length})</h2>
+            <h2 className="font-semibold">
+              Coach listings ({filteredCoachListingsForListingsTab.length} of {coachListings.length})
+            </h2>
             <div className="mt-2 flex flex-col gap-2">
-              {coachListings.map((l) => (
+              {filteredCoachListingsForListingsTab.map((l) => (
                 <div
                   key={l.id}
                   className={`flex items-center justify-between rounded-lg border bg-white p-3 ${l.deleted_at ? "opacity-50" : ""}`}
@@ -472,9 +558,11 @@ function Club2CoachAdmin() {
           </div>
 
           <div>
-            <h2 className="font-semibold">All vacancies ({vacancies.length})</h2>
+            <h2 className="font-semibold">
+              Vacancies ({filteredVacanciesForListingsTab.length} of {vacancies.length})
+            </h2>
             <div className="mt-2 flex flex-col gap-2">
-              {vacancies.map((v) => (
+              {filteredVacanciesForListingsTab.map((v) => (
                 <div
                   key={v.id}
                   className={`flex items-center justify-between rounded-lg border bg-white p-3 ${v.deleted_at ? "opacity-50" : ""}`}
@@ -605,10 +693,23 @@ function Club2CoachAdmin() {
       )}
       {tab === "support" && (
         <div className="mt-6 flex flex-col gap-3">
-          {supportQueries.length === 0 ? (
-            <p className="text-sm text-gray-500">No queries or complaints have been submitted.</p>
+          <FilterPills
+            value={supportFilter}
+            onChange={setSupportFilter}
+            options={[
+              { value: "open", label: "Open" },
+              { value: "resolved", label: "Resolved" },
+              { value: "all", label: "All" },
+            ]}
+          />
+          {filteredSupportQueries.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              {supportQueries.length === 0
+                ? "No queries or complaints have been submitted."
+                : "Nothing matches this filter."}
+            </p>
           ) : (
-            supportQueries.map((q) => (
+            filteredSupportQueries.map((q) => (
               <div
                 key={q.id}
                 className={`rounded-lg border bg-white p-4 ${q.status === "resolved" ? "opacity-60" : ""}`}
