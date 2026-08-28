@@ -15,6 +15,7 @@ import {
   ROLE_PRICES_AUD,
 } from "@/lib/constants";
 import type { Club, Club2CoachClubVacancy, Club2CoachShare, Person } from "@/types/database";
+import { notifyAdmin } from "@/lib/notify";
 
 const PRIORITY_HINTS = [
   "Accreditation",
@@ -302,6 +303,11 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     closeForm();
 
     if (isNew) {
+      notifyAdmin(
+        "new vacancy advertised",
+        `${matchedClub.name} — ${form.roleBeingRecruited}\nAdvertised by: ${person.full_name} (${person.email}, ${person.mobile})\nCompetition: ${form.competitionLevel} · ${form.ageGroup} · ${form.region}`
+      );
+
       // Club-scoped, not person-scoped: this counts every open vacancy
       // at this club regardless of who advertised it, via a function
       // that returns a number only — never the underlying rows, so no
