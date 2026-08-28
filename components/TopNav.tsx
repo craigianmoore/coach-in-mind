@@ -36,6 +36,9 @@ export default function TopNav() {
           <Link href="/profile" className="hover:text-brand-goldLight">
             My Profile
           </Link>
+          <Link href="/support" className="hover:text-brand-goldLight">
+            Report an Issue
+          </Link>
           <button onClick={handleLogout} className="hover:text-brand-goldLight">
             Log out
           </button>
