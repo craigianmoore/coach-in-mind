@@ -140,7 +140,7 @@ function SupportForm() {
         <button
           type="submit"
           disabled={sending}
-          className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
+          className="self-start rounded-lg bg-brand-navy px-6 py-2 font-semibold text-white hover:bg-brand-navyLight disabled:opacity-50"
         >
           {sending ? "Sending…" : "Send"}
         </button>
