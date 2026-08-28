@@ -71,6 +71,7 @@ export interface Club2CoachClubVacancy {
   price_aud: number | null;
   shared_at: string | null; // set when the first coach is introduced; starts the 1-month contact window
   filled_at: string | null; // set when the club marks this vacancy as filled
+  included_introductions: number | null; // package size (2, 3, or 5) set when marked paid — how many coach introductions this payment covers
   deleted_at: string | null; // soft-delete: set instead of removing the row, so payment history stays intact
   created_at: string;
   updated_at: string;
@@ -144,6 +145,7 @@ export interface Coach2MentorRequest {
   mentor_listing_id: string;
   status: "pending" | "accepted" | "declined";
   message: string | null;
+  score: number | null; // compatibility score captured when the request was sent
   created_at: string;
   responded_at: string | null;
 }
