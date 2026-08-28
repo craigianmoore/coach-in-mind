@@ -41,6 +41,7 @@ export interface Club2CoachCoachListing {
   paid_at: string | null;
   price_aud: number | null;
   included_introductions: number | null; // package size (1, 2, or 3) — how many club introductions this coach has paid for
+  topup_requested: number | null; // set by the coach when they want to buy more introductions after using their quota — admin confirms and clears this
   deleted_at: string | null; // soft-delete: set instead of removing the row, so payment history stays intact
   created_at: string;
   updated_at: string;
