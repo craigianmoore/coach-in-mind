@@ -49,11 +49,28 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function resetForm() {
+    setExisting(null);
+    setPreferredMentorGender("");
+    setAvailability("Either");
+    setCareerStage(CAREER_STAGES[0]);
+    setSupportAreas([]);
+    setMeetMin("");
+    setMeetMax("");
+    setBudgetMin("");
+    setBudgetMax("");
+    setGoals("");
+    setNotes("");
+    setMentors([]);
+    setRequests([]);
+  }
+
   async function load() {
     const { data } = await supabase
       .from("coach2mentor_coach_listings")
       .select("*")
       .eq("person_id", person.id)
+      .is("deleted_at", null)
       .maybeSingle();
 
     if (data) {
@@ -80,6 +97,8 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
         setRequests((r as Coach2MentorRequest[]) ?? []);
         setWeights((st as AdminSettings | null)?.weights as Coach2MentorWeights | null ?? null);
       }
+    } else {
+      resetForm();
     }
     setLoading(false);
   }
@@ -119,6 +138,19 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
 
     await load();
     setSaving(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function handleDelete() {
+    if (!existing) return;
+    if (!window.confirm("Delete your mentor-seeking profile? You can create a new one afterwards if you change your mind.")) {
+      return;
+    }
+    await supabase
+      .from("coach2mentor_coach_listings")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", existing.id);
+    await load();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -299,13 +331,24 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
-        >
-          {saving ? "Saving…" : existing ? "Save changes" : "Save profile"}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={saving}
+            className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
+          >
+            {saving ? "Saving…" : existing ? "Save changes" : "Save profile"}
+          </button>
+          {existing && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="self-start rounded-lg border border-red-200 px-6 py-2 font-semibold text-red-600 hover:bg-red-50"
+            >
+              Delete profile
+            </button>
+          )}
+        </div>
       </form>
 
       {existing?.paid && (
