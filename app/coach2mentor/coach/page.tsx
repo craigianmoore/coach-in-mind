@@ -20,6 +20,7 @@ import type {
   Person,
   AdminSettings,
 } from "@/types/database";
+import { notifyAdmin } from "@/lib/notify";
 
 function Coach2MentorCoachForm({ person }: { person: Person }) {
   const supabase = createClient();
@@ -139,6 +140,13 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
     await load();
     setSaving(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
+
+    if (!existing) {
+      notifyAdmin(
+        "new coach profile (Coach 2 Mentor)",
+        `${person.full_name} (${person.email}, ${person.mobile})\nCareer stage: ${careerStage}`
+      );
+    }
   }
 
   async function handleDelete() {
@@ -154,12 +162,13 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function sendRequest(mentorListingId: string) {
+  async function sendRequest(mentorListingId: string, score: number | null) {
     if (!existing) return;
     setStatus(null);
     const { error: reqError } = await supabase.from("coach2mentor_requests").insert({
       coach_listing_id: existing.id,
       mentor_listing_id: mentorListingId,
+      score,
     });
     if (reqError) setStatus(reqError.message);
     else {
@@ -396,7 +405,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
                         </span>
                       ) : (
                         <button
-                          onClick={() => sendRequest(mentor.id)}
+                          onClick={() => sendRequest(mentor.id, breakdown ? breakdown.total : null)}
                           className="btn-accent w-full rounded-lg px-4 py-2 text-sm font-semibold"
                         >
                           Request this mentor
