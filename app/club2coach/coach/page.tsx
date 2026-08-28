@@ -37,6 +37,9 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   const [notes, setNotes] = useState("");
   const [authoriseShare, setAuthoriseShare] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(1);
+  const [introductionsUsed, setIntroductionsUsed] = useState(0);
+  const [topupPackage, setTopupPackage] = useState(1);
+  const [requestingTopup, setRequestingTopup] = useState(false);
 
   useEffect(() => {
     load();
@@ -86,6 +89,17 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       setNotes(l.notes ?? "");
       setAuthoriseShare(l.authorise_share);
       setSelectedPackage(l.included_introductions ?? 1);
+
+      if (l.paid) {
+        // RLS already restricts this to only rows that are actually
+        // approved (i.e. genuinely used, not just suggested) — so a
+        // plain count is exactly "how many introductions used".
+        const { count } = await supabase
+          .from("club2coach_shares")
+          .select("*", { count: "exact", head: true })
+          .eq("coach_listing_id", l.id);
+        setIntroductionsUsed(count ?? 0);
+      }
     } else {
       resetForm();
     }
@@ -141,6 +155,17 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     }
   }
 
+  async function requestTopup() {
+    if (!existing) return;
+    setRequestingTopup(true);
+    await supabase
+      .from("club2coach_coach_listings")
+      .update({ topup_requested: topupPackage })
+      .eq("id", existing.id);
+    await load();
+    setRequestingTopup(false);
+  }
+
   async function handleDelete() {
     if (!existing) return;
     if (!window.confirm("Delete your coach listing? You can create a new one afterwards if you change your mind.")) {
@@ -172,8 +197,11 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
             <>
               ✓ Your listing is active and included in matching — you're set up for{" "}
               {existing.included_introductions ?? "?"} club introduction
-              {existing.included_introductions === 1 ? "" : "s"}. Once you've used them all, you'll
-              need to top up with another package to keep being matched.
+              {existing.included_introductions === 1 ? "" : "s"}
+              {existing.included_introductions != null && (
+                <> ({introductionsUsed} of {existing.included_introductions} used)</>
+              )}
+              .
             </>
           ) : (
             <>
@@ -185,6 +213,58 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           )}
         </div>
       )}
+
+      {existing?.paid &&
+        existing.included_introductions != null &&
+        introductionsUsed >= existing.included_introductions && (
+          <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm font-semibold text-blue-900">
+              You've used all {existing.included_introductions} of your introductions
+            </p>
+            {existing.topup_requested != null ? (
+              <p className="mt-2 text-sm text-blue-800">
+                Top-up request sent ({existing.topup_requested} more introduction
+                {existing.topup_requested === 1 ? "" : "s"}) — Coach In Mind will be in touch about
+                payment. You'll be back in matching as soon as it's confirmed.
+              </p>
+            ) : (
+              <>
+                <p className="mt-1 text-sm text-blue-800">
+                  To keep being matched with clubs, buy another package below.
+                </p>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  {Object.entries(CLUB2COACH_COACH_PACKAGES).map(([count, price]) => (
+                    <label
+                      key={count}
+                      className={`flex-1 cursor-pointer rounded-lg border-2 p-3 text-center ${
+                        topupPackage === Number(count) ? "border-brand-navy bg-brand-navy/5" : "border-gray-200 bg-white"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="topup-package"
+                        className="sr-only"
+                        checked={topupPackage === Number(count)}
+                        onChange={() => setTopupPackage(Number(count))}
+                      />
+                      <p className="font-semibold">
+                        {count} introduction{count === "1" ? "" : "s"}
+                      </p>
+                      <p className="text-sm text-gray-500">${price} AUD</p>
+                    </label>
+                  ))}
+                </div>
+                <button
+                  onClick={requestTopup}
+                  disabled={requestingTopup}
+                  className="btn-accent mt-3 rounded-lg px-5 py-2 text-sm font-semibold disabled:opacity-50"
+                >
+                  {requestingTopup ? "Sending…" : "Request top-up"}
+                </button>
+              </>
+            )}
+          </div>
+        )}
 
       {!existing?.paid && (
         <div className="mt-4 rounded-xl border bg-white p-4">
