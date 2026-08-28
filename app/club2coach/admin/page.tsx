@@ -52,6 +52,7 @@ function Club2CoachAdmin() {
   const [vacancyAmount, setVacancyAmount] = useState<Record<string, string>>({});
   const [coachPackage, setCoachPackage] = useState<Record<string, number>>({});
   const [coachAmount, setCoachAmount] = useState<Record<string, string>>({});
+  const [topupAmount, setTopupAmount] = useState<Record<string, string>>({});
   const [autoMatching, setAutoMatching] = useState(false);
 
   useEffect(() => {
@@ -107,6 +108,23 @@ function Club2CoachAdmin() {
     supabase.rpc("refresh_admin_session");
     await supabase.from("support_queries").update({ status: "resolved" }).eq("id", id);
     await loadSupportQueries();
+  }
+
+  async function confirmTopup(id: string, requested: number) {
+    supabase.rpc("refresh_admin_session");
+    setStatus(null);
+    const amount = Number(topupAmount[id] ?? CLUB2COACH_COACH_PACKAGES[requested]);
+    const { error } = await supabase.rpc("confirm_club2coach_coach_topup", {
+      target_listing_id: id,
+      amount,
+      additional_introductions: requested,
+    });
+    if (error) {
+      setStatus(error.message);
+      return;
+    }
+    setStatus(`Top-up confirmed — ${requested} more introduction${requested === 1 ? "" : "s"} added.`);
+    await loadAll();
   }
 
   async function markCoachPaid(id: string) {
@@ -372,6 +390,7 @@ function Club2CoachAdmin() {
   }
 
   const unpaidCoaches = coachListings.filter((l) => !l.paid && !l.deleted_at);
+  const topupRequests = coachListings.filter((l) => l.topup_requested != null && !l.deleted_at);
   const unpaidVacancies = vacancies.filter((v) => !v.paid && !v.deleted_at);
   // Excludes coaches who've used up their own paid introduction quota
   // — once shared to as many clubs as they paid for, they stop being
@@ -500,7 +519,7 @@ function Club2CoachAdmin() {
             style={tab === t ? { borderColor: "var(--accent-dark)", color: "var(--accent-dark)" } : {}}
           >
             {t === "unpaid"
-              ? `Unpaid (${unpaidCoaches.length + unpaidVacancies.length})`
+              ? `Unpaid (${unpaidCoaches.length + unpaidVacancies.length + topupRequests.length})`
               : t === "support"
               ? `Support (${supportQueries.filter((q) => q.status === "open").length})`
               : t === "people"
@@ -514,6 +533,40 @@ function Club2CoachAdmin() {
 
       {tab === "unpaid" && (
         <div className="mt-6 flex flex-col gap-6">
+          {topupRequests.length > 0 && (
+            <div>
+              <h2 className="font-semibold">Coaches requesting a top-up</h2>
+              <div className="mt-2 flex flex-col gap-2">
+                {topupRequests.map((l) => (
+                  <div key={l.id} className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3">
+                    <div>
+                      <p className="text-sm font-medium">{people[l.person_id]?.full_name ?? "Unknown"}</p>
+                      <p className="text-xs text-blue-700">
+                        Wants {l.topup_requested} more introduction{l.topup_requested === 1 ? "" : "s"} — currently
+                        has {l.included_introductions ?? 0}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        placeholder={`$${CLUB2COACH_COACH_PACKAGES[l.topup_requested ?? 1]}`}
+                        value={topupAmount[l.id] ?? ""}
+                        onChange={(e) => setTopupAmount((prev) => ({ ...prev, [l.id]: e.target.value }))}
+                        className="w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                      />
+                      <button
+                        onClick={() => confirmTopup(l.id, l.topup_requested as number)}
+                        className="btn-accent rounded-lg px-3 py-1.5 text-sm font-semibold"
+                      >
+                        Confirm top-up
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <h2 className="font-semibold">Coach listings awaiting payment</h2>
             {unpaidCoaches.length === 0 ? (
