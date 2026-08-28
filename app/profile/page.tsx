@@ -7,6 +7,7 @@ import AuthGuard from "@/components/AuthGuard";
 import { createClient } from "@/lib/supabase/client";
 import { REGIONS, ACCREDITATION_LEVELS, GENDER_OPTIONS } from "@/lib/constants";
 import type { Person } from "@/types/database";
+import { notifyAdmin } from "@/lib/notify";
 
 function ProfileForm() {
   const router = useRouter();
@@ -105,6 +106,8 @@ function ProfileForm() {
     // confirmation shown, saved again), a plain insert would fail with
     // a "duplicate key" error instead of just updating the row. Upsert
     // keyed on user_id makes saving idempotent — safe to click twice.
+    const wasNewSignup = !existing;
+
     const { data: saved, error: saveError } = await supabase
       .from("people")
       .upsert(payload, { onConflict: "user_id" })
@@ -121,6 +124,13 @@ function ProfileForm() {
     setSavedMessage("Profile saved.");
     setTimeout(() => setSavedMessage(null), 3000);
     window.scrollTo({ top: 0, behavior: "smooth" });
+
+    if (wasNewSignup) {
+      notifyAdmin(
+        "new signup",
+        `${fullName} — ${email}, ${mobile}\nRegion: ${region || "not set"} · Accreditation: ${currentLicence}`
+      );
+    }
 
     if (next) {
       router.push(next);
