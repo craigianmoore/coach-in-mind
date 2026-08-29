@@ -18,13 +18,18 @@
   --header-text: #191B41;
 }
 
-/* Coach2Mentor section theme: deep navy header, orange accent */
+/* Coach2Mentor section theme: deep navy header, orange accent, light
+   silver body — gives the section its own visual identity beyond just
+   the header, so it reads as a distinct space at a glance, not just a
+   different nav label. */
 .theme-coach2mentor {
   --accent: #E8791A;
   --accent-dark: #B85A0C;
   --accent-contrast: #ffffff;
   --header-bg: #191B41;
   --header-text: #ffffff;
+  background-color: #ECEEF1;
+  min-height: 100vh;
 }
 
 body {
