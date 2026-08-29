@@ -31,10 +31,22 @@ export default function HelpPage() {
 
         <section className="rounded-xl border bg-white p-6">
           <h2 className="font-semibold">Coaching resources</h2>
-          <p className="mt-1 text-sm text-gray-500">
-            [Add links or notes here for anything useful beyond the app itself — accreditation
-            pathways, Working With Children Check information, useful external coaching
-            resources.]
+          <p className="mt-1 text-sm text-gray-600">
+            <a
+              href="/coach-influence-manual.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-brand-navy underline"
+            >
+              Navigating Difficult Conversations &amp; Scenarios
+            </a>{" "}
+            — a practical guide covering parents, players, committees, sponsors, other coaches,
+            new coaches, female coaches, goalkeeping coaches, weather calls, officials, club
+            expectations, and keeping a healthy balance.
+          </p>
+          <p className="mt-2 text-sm text-gray-500">
+            [Add further resources here — accreditation pathways, Working With Children Check
+            information, and other useful links.]
           </p>
         </section>
 
