@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import PinGate from "@/components/PinGate";
 import { createClient } from "@/lib/supabase/client";
 import { scoreClub2CoachMatch } from "@/lib/scoring";
-import { CLUB2COACH_COACH_PACKAGES, CLUB2COACH_CLUB_PACKAGES } from "@/lib/constants";
+import { CLUB2COACH_COACH_PACKAGES, CLUB2COACH_CLUB_PACKAGES, STATE_LABELS } from "@/lib/constants";
 import type {
   Club2CoachCoachListing,
   Club2CoachClubVacancy,
@@ -51,6 +51,7 @@ function Club2CoachAdmin() {
   const [listingsDeletedFilter, setListingsDeletedFilter] = useState<"active" | "all">("active");
   const [matchesFilter, setMatchesFilter] = useState<"all" | "unshared" | "shared">("all");
   const [matchesClubFilter, setMatchesClubFilter] = useState<string>("all");
+  const [matchesStateFilter, setMatchesStateFilter] = useState<string>("all");
   const [vacancyPackage, setVacancyPackage] = useState<Record<string, number>>({});
   const [vacancyAmount, setVacancyAmount] = useState<Record<string, string>>({});
   const [coachPackage, setCoachPackage] = useState<Record<string, number>>({});
@@ -443,6 +444,7 @@ function Club2CoachAdmin() {
 
   const vacancyGroups = activeVacancies
     .filter((v) => matchesClubFilter === "all" || v.club_name === matchesClubFilter)
+    .filter((v) => matchesStateFilter === "all" || v.state === matchesStateFilter)
     .map((vacancy) => {
       const vacancyShares = shares.filter((s) => s.club_vacancy_id === vacancy.id);
       const approvedCount = vacancyShares.filter((s) => s.status === "approved").length;
@@ -774,6 +776,15 @@ function Club2CoachAdmin() {
                 </option>
               ))}
             </select>
+            <select
+              value={matchesStateFilter}
+              onChange={(e) => setMatchesStateFilter(e.target.value)}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+            >
+              <option value="all">All states</option>
+              <option value="VIC">Victoria</option>
+              <option value="TAS">Tasmania</option>
+            </select>
             <button
               onClick={() => runAutoMatchSweep()}
               disabled={autoMatching}
@@ -805,7 +816,13 @@ function Club2CoachAdmin() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="text-sm font-semibold">
-                        {vacancy.club_name} — {vacancy.role_being_recruited}
+                        {vacancy.club_name}
+                        {vacancy.state && (
+                          <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+                            {STATE_LABELS[vacancy.state]}
+                          </span>
+                        )}{" "}
+                        — {vacancy.role_being_recruited}
                       </p>
                       <p className="text-xs text-gray-500">
                         {vacancy.competition_level} · {vacancy.region} · Advertised{" "}
