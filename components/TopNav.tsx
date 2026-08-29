@@ -19,10 +19,18 @@ export default function TopNav() {
   return (
     <div className="border-b border-white/10 bg-brand-navy text-sm text-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-2">
-        <Link href="/" className="font-semibold tracking-wide">
+        <Link href="/help" className="font-semibold tracking-wide hover:text-brand-goldLight">
           Coach In Mind
         </Link>
         <nav className="flex items-center gap-4">
+          <a
+            href="/how-to-use.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-brand-goldLight"
+          >
+            How To Use
+          </a>
           {!isLandingPage && (
             <>
               <Link href="/club2coach" className="hover:text-brand-goldLight">
