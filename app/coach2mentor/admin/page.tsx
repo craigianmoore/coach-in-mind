@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import PinGate from "@/components/PinGate";
 import { createClient } from "@/lib/supabase/client";
 import { scoreCoach2MentorMatch } from "@/lib/scoring";
-import { ROLE_PRICES_AUD, CLUB2COACH_COACH_PACKAGES } from "@/lib/constants";
+import { CLUB2COACH_COACH_PACKAGES, COACH2MENTOR_MENTOR_CAPACITY_PACKAGES } from "@/lib/constants";
 import type {
   Coach2MentorCoachListing,
   Coach2MentorMentorListing,
@@ -64,6 +64,8 @@ function Coach2MentorAdmin() {
   const [coachPackage, setCoachPackage] = useState<Record<string, number>>({});
   const [coachAmount, setCoachAmount] = useState<Record<string, string>>({});
   const [topupAmount, setTopupAmount] = useState<Record<string, string>>({});
+  const [mentorCapacity, setMentorCapacity] = useState<Record<string, number>>({});
+  const [mentorAmount, setMentorAmount] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadAll();
@@ -133,15 +135,19 @@ function Coach2MentorAdmin() {
   async function markMentorPaid(id: string) {
     supabase.rpc("refresh_admin_session");
     setStatus(null);
+    const capacity = mentorCapacity[id] ?? 1;
+    const amount = Number(mentorAmount[id] ?? COACH2MENTOR_MENTOR_CAPACITY_PACKAGES[capacity]);
     const { error } = await supabase.rpc("mark_coach2mentor_mentor_paid", {
       target_listing_id: id,
-      amount: ROLE_PRICES_AUD.coach2mentor_mentor,
+      amount,
+      capacity,
     });
-    if (error) setStatus(error.message);
-    else {
-      setStatus("Marked as paid.");
-      await loadAll();
+    if (error) {
+      setStatus(error.message);
+      return;
     }
+    setStatus(`Marked as paid — capacity for ${capacity} mentee${capacity === 1 ? "" : "s"}.`);
+    await loadAll();
   }
 
   async function updateWeight(key: keyof Coach2MentorWeights, value: number) {
@@ -448,14 +454,39 @@ function Coach2MentorAdmin() {
                   <div key={l.id} className="flex items-center justify-between rounded-lg border bg-white p-3">
                     <div>
                       <p className="text-sm font-medium">{people[l.person_id]?.full_name ?? "Unknown"}</p>
+                      {l.max_mentees != null && (
+                        <p className="text-xs text-blue-600">Requested capacity: {l.max_mentees} mentee{l.max_mentees === 1 ? "" : "s"}</p>
+                      )}
                       {l.notes && <p className="mt-1 text-xs italic text-gray-400">Notes: {l.notes}</p>}
                     </div>
                     <div className="flex items-center gap-2">
+                      <select
+                        value={mentorCapacity[l.id] ?? l.max_mentees ?? 1}
+                        onChange={(e) => {
+                          const n = Number(e.target.value);
+                          setMentorCapacity((prev) => ({ ...prev, [l.id]: n }));
+                          setMentorAmount((prev) => ({ ...prev, [l.id]: String(COACH2MENTOR_MENTOR_CAPACITY_PACKAGES[n]) }));
+                        }}
+                        className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                      >
+                        {Object.keys(COACH2MENTOR_MENTOR_CAPACITY_PACKAGES).map((n) => (
+                          <option key={n} value={n}>
+                            {n} mentee{n === "1" ? "" : "s"}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        placeholder={`$${COACH2MENTOR_MENTOR_CAPACITY_PACKAGES[mentorCapacity[l.id] ?? l.max_mentees ?? 1]}`}
+                        value={mentorAmount[l.id] ?? ""}
+                        onChange={(e) => setMentorAmount((prev) => ({ ...prev, [l.id]: e.target.value }))}
+                        className="w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                      />
                       <button
                         onClick={() => markMentorPaid(l.id)}
                         className="btn-accent rounded-lg px-3 py-1.5 text-sm font-semibold"
                       >
-                        Mark paid (${ROLE_PRICES_AUD.coach2mentor_mentor})
+                        Mark paid
                       </button>
                       <button
                         onClick={() => deleteListing("coach2mentor_mentor_listings", l.id)}
