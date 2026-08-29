@@ -17,6 +17,7 @@ export type ListingStatus = "draft" | "active" | "paused" | "placed" | "filled" 
 export interface Club {
   id: string;
   name: string;
+  state: "VIC" | "TAS";
   created_at: string;
 }
 
@@ -29,6 +30,7 @@ export interface Club2CoachCoachListing {
   preferred_competition_levels: string[];
   preferred_age_groups: string[];
   preferred_regions: string[];
+  state_preference: "VIC" | "TAS" | "either"; // which state(s) this coach is open to coaching in — gates geography scoring in matching
   open_to_relocating: boolean;
   salary_min: number | null;
   salary_max: number | null;
@@ -52,6 +54,7 @@ export interface Club2CoachClubVacancy {
   person_id: string;
   club_id: string | null; // FK to clubs — null only on pre-migration rows
   club_name: string; // denormalised from clubs.name at time of creation, for display
+  state: "VIC" | "TAS" | null; // denormalised from clubs.state at time of creation — used to gate geography scoring
   role_being_recruited: string;
   competition_level: string;
   age_group: string;
