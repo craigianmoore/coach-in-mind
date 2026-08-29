@@ -13,6 +13,18 @@ export default function HelpPage() {
       </p>
 
       <div className="mt-8 flex flex-col gap-6">
+        <section className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+          <h2 className="font-semibold">Disclaimer — Club 2 Coach &amp; Coach 2 Mentor</h2>
+          <p className="mt-2 text-sm">
+            These tools help facilitate potential matches only — they do not guarantee a coach
+            will find a role or mentor, a club will find a coach, or a mentor will find a mentee.
+            Once a match is approved, it is up to the people involved to make contact, verify each
+            other's details, and reach their own arrangement. Coach In Mind takes no
+            responsibility or liability for the accuracy of information entered by users, or for
+            the conduct, decisions, or outcomes of anyone using it.
+          </p>
+        </section>
+
         <section className="rounded-xl border bg-white p-6">
           <h2 className="font-semibold">Frequently asked questions</h2>
           <p className="mt-1 text-sm text-gray-500">
