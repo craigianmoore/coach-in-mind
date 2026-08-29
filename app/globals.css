@@ -16,6 +16,8 @@
   --accent-contrast: #191B41;
   --header-bg: #D4AF6A;
   --header-text: #191B41;
+  background-color: #F7EFDD;
+  min-height: 100vh;
 }
 
 /* Coach2Mentor section theme: deep navy header, orange accent, light
