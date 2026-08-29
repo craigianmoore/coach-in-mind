@@ -107,6 +107,9 @@ export interface Coach2MentorCoachListing {
   paid: boolean;
   paid_at: string | null;
   price_aud: number | null;
+  personal_weights: Coach2MentorWeights | null; // this coach's own priorities — falls back to the admin's global Coach2Mentor weights when null
+  included_introductions: number | null; // package size (1, 2, or 3) — how many mentor introductions this coach has paid for
+  topup_requested: number | null; // set by the coach when they want to buy more introductions after using their quota
   deleted_at: string | null; // soft-delete: set instead of removing the row, so payment history stays intact
   created_at: string;
   updated_at: string;
@@ -147,9 +150,10 @@ export interface Coach2MentorRequest {
   id: string;
   coach_listing_id: string;
   mentor_listing_id: string;
-  status: "pending" | "accepted" | "declined";
+  status: "suggested" | "pending" | "accepted" | "declined"; // suggested = admin-only, invisible to both parties; pending = admin-approved, awaiting the mentor's decision; accepted = contact details revealed
   message: string | null;
-  score: number | null; // compatibility score captured when the request was sent
+  score: number | null; // compatibility score captured when the request was created
+  admin_notes: string | null; // e.g. "Auto-matched (top score)" vs a manual admin pick
   created_at: string;
   responded_at: string | null;
 }
@@ -211,3 +215,4 @@ export interface SupportQuery {
   admin_notes: string | null;
   created_at: string;
 }
+
