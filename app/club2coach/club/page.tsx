@@ -13,6 +13,7 @@ import {
   GENDER_OPTIONS,
   ACCREDITATION_LEVELS,
   CLUB2COACH_CLUB_PACKAGES,
+  STATE_LABELS,
 } from "@/lib/constants";
 import type { Club, Club2CoachClubVacancy, Club2CoachShare, Person } from "@/types/database";
 import { notifyAdmin } from "@/lib/notify";
@@ -269,6 +270,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
       person_id: person.id,
       club_id: matchedClub.id,
       club_name: matchedClub.name, // canonical spelling/casing from the master list
+      state: matchedClub.state,
       role_being_recruited: form.roleBeingRecruited,
       competition_level: form.competitionLevel,
       age_group: form.ageGroup,
@@ -362,7 +364,13 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 >
                   <button type="button" onClick={() => openEditForm(v)} className="flex-1 text-left">
                     <p className="font-semibold">
-                      {v.club_name} — {v.role_being_recruited}
+                      {v.club_name}
+                      {v.state && (
+                        <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+                          {STATE_LABELS[v.state]}
+                        </span>
+                      )}{" "}
+                      — {v.role_being_recruited}
                     </p>
                     <p className="mt-0.5 text-sm text-gray-500">
                       {v.competition_level} · {v.age_group} · {v.region}
