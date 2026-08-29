@@ -39,6 +39,19 @@ export default function HelpPage() {
               </p>
             </div>
             <div>
+              <p className="font-medium text-gray-800">What does a match percentage actually mean?</p>
+              <p className="mt-1 text-gray-600">
+                It's not a school grade — very few matches hit the high 90s, because it takes
+                every single factor lining up at once to get there. As a rough guide: <b>70%+</b>{" "}
+                is a strong, obvious fit; <b>50–70%</b> is solid and workable, usually with one or
+                two factors neutral rather than wrong; <b>30–50%</b> means there are real gaps
+                worth a closer look; and <b>under 30%</b> usually means several things don't line
+                up. A lower score doesn't always mean a weak candidate either — sometimes it's one
+                specific mismatch (like being in the wrong state) pulling down an otherwise great
+                fit.
+              </p>
+            </div>
+            <div>
               <p className="font-medium text-gray-800">What am I actually paying for?</p>
               <p className="mt-1 text-gray-600">
                 A package of introductions (1–3 for coaches and mentors, 1–5 for clubs) or, for
