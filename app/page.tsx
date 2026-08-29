@@ -20,7 +20,7 @@ export default function HomePage() {
           on &amp; off the pitch
         </h1>
         <p className="max-w-xl text-white/80">
-          Coach In Mind connects Victorian football coaches, clubs, and
+          Coach In Mind connects football coaches, clubs, and
           mentors — one login, two ways to find the right match.
         </p>
 
