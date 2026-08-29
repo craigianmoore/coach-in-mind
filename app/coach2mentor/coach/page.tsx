@@ -4,23 +4,30 @@ import { useEffect, useState } from "react";
 import RequireProfile from "@/components/RequireProfile";
 import CheckboxGroup from "@/components/CheckboxGroup";
 import { createClient } from "@/lib/supabase/client";
-import { scoreCoach2MentorMatch } from "@/lib/scoring";
 import {
   GENDER_OPTIONS,
   AVAILABILITY_OPTIONS,
   CAREER_STAGES,
   MENTOR_SPECIALISMS,
-  ROLE_PRICES_AUD,
+  CLUB2COACH_COACH_PACKAGES,
 } from "@/lib/constants";
 import type {
   Coach2MentorCoachListing,
-  Coach2MentorMentorListing,
   Coach2MentorRequest,
   Coach2MentorWeights,
   Person,
   AdminSettings,
 } from "@/types/database";
 import { notifyAdmin } from "@/lib/notify";
+
+const WEIGHT_LABELS: Record<keyof Coach2MentorWeights, string> = {
+  specialism_overlap: "Specialism overlap",
+  career_stage: "Career stage fit",
+  geography: "Geography",
+  availability: "Availability",
+  budget_fit: "Budget fit",
+  gender: "Gender preference",
+};
 
 function Coach2MentorCoachForm({ person }: { person: Person }) {
   const supabase = createClient();
@@ -39,11 +46,15 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
   const [budgetMax, setBudgetMax] = useState("");
   const [goals, setGoals] = useState("");
   const [notes, setNotes] = useState("");
+  const [selectedPackage, setSelectedPackage] = useState(1);
 
-  const [mentors, setMentors] = useState<Coach2MentorMentorListing[]>([]);
-  const [requests, setRequests] = useState<Coach2MentorRequest[]>([]);
-  const [weights, setWeights] = useState<Coach2MentorWeights | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
+  const [globalWeights, setGlobalWeights] = useState<Coach2MentorWeights | null>(null);
+  const [personalWeights, setPersonalWeights] = useState<Coach2MentorWeights | null>(null);
+
+  const [matches, setMatches] = useState<(Coach2MentorRequest & { mentorName?: string; mentorBio?: string })[]>([]);
+  const [introductionsUsed, setIntroductionsUsed] = useState(0);
+  const [topupPackage, setTopupPackage] = useState(1);
+  const [requestingTopup, setRequestingTopup] = useState(false);
 
   useEffect(() => {
     load();
@@ -62,11 +73,20 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
     setBudgetMax("");
     setGoals("");
     setNotes("");
-    setMentors([]);
-    setRequests([]);
+    setSelectedPackage(1);
+    setPersonalWeights(null);
+    setMatches([]);
   }
 
   async function load() {
+    const { data: settingsData } = await supabase
+      .from("admin_settings")
+      .select("*")
+      .eq("product", "coach2mentor")
+      .maybeSingle();
+    const global = (settingsData as AdminSettings | null)?.weights as Coach2MentorWeights | undefined;
+    if (global) setGlobalWeights(global);
+
     const { data } = await supabase
       .from("coach2mentor_coach_listings")
       .select("*")
@@ -87,25 +107,66 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
       setBudgetMax(l.budget_max?.toString() ?? "");
       setGoals(l.goals ?? "");
       setNotes(l.notes ?? "");
+      setSelectedPackage(l.included_introductions ?? 1);
+      setPersonalWeights(l.personal_weights ?? global ?? null);
+
+      // Fetch this coach's matches. RLS already hides 'suggested' rows
+      // entirely — only pending/accepted/declined ever come back.
+      const { data: reqs } = await supabase
+        .from("coach2mentor_requests")
+        .select("*")
+        .eq("coach_listing_id", l.id)
+        .order("created_at", { ascending: false });
+
+      const requestRows = (reqs as Coach2MentorRequest[]) ?? [];
+
+      // For accepted matches, the mentor's contact record is visible
+      // via RLS now — pull their name. For pending ones, only the
+      // listing content (not contact) is visible, so no name yet.
+      const enriched = await Promise.all(
+        requestRows.map(async (r) => {
+          const { data: mentorListing } = await supabase
+            .from("coach2mentor_mentor_listings")
+            .select("bio, person_id")
+            .eq("id", r.mentor_listing_id)
+            .maybeSingle();
+
+          let mentorName: string | undefined;
+          if (r.status === "accepted" && mentorListing?.person_id) {
+            const { data: mentorPerson } = await supabase
+              .from("people")
+              .select("full_name")
+              .eq("id", mentorListing.person_id)
+              .maybeSingle();
+            mentorName = mentorPerson?.full_name;
+          }
+
+          return { ...r, mentorName, mentorBio: mentorListing?.bio ?? undefined };
+        })
+      );
+      setMatches(enriched);
 
       if (l.paid) {
-        const [{ data: m }, { data: r }, { data: st }] = await Promise.all([
-          supabase.from("coach2mentor_mentor_listings").select("*"),
-          supabase.from("coach2mentor_requests").select("*").eq("coach_listing_id", l.id),
-          supabase.from("admin_settings").select("*").eq("product", "coach2mentor").maybeSingle(),
-        ]);
-        setMentors((m as Coach2MentorMentorListing[]) ?? []);
-        setRequests((r as Coach2MentorRequest[]) ?? []);
-        setWeights((st as AdminSettings | null)?.weights as Coach2MentorWeights | null ?? null);
+        const { count } = await supabase
+          .from("coach2mentor_requests")
+          .select("*", { count: "exact", head: true })
+          .eq("coach_listing_id", l.id)
+          .neq("status", "declined");
+        setIntroductionsUsed(count ?? 0);
       }
     } else {
       resetForm();
+      setPersonalWeights(global ?? null);
     }
     setLoading(false);
   }
 
   function toggleArea(value: string) {
     setSupportAreas((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
+  }
+
+  function updatePersonalWeight(key: keyof Coach2MentorWeights, value: number) {
+    setPersonalWeights((prev) => ({ ...(prev as Coach2MentorWeights), [key]: value }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -125,7 +186,11 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
       budget_max: budgetMax ? Number(budgetMax) : null,
       goals,
       notes,
+      personal_weights: personalWeights,
+      included_introductions: selectedPackage, // the coach's chosen package — admin confirms this when marking paid
     };
+
+    const isNew = !existing;
 
     const { error: saveError } = existing
       ? await supabase.from("coach2mentor_coach_listings").update(payload).eq("id", existing.id)
@@ -141,7 +206,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
     setSaving(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
 
-    if (!existing) {
+    if (isNew) {
       notifyAdmin(
         "new coach profile (Coach 2 Mentor)",
         `${person.full_name} (${person.email}, ${person.mobile})\nCareer stage: ${careerStage}`
@@ -149,41 +214,26 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
     }
   }
 
-  async function handleDelete() {
+  async function requestTopup() {
     if (!existing) return;
-    if (!window.confirm("Delete your mentor-seeking profile? You can create a new one afterwards if you change your mind.")) {
-      return;
-    }
+    setRequestingTopup(true);
     await supabase
       .from("coach2mentor_coach_listings")
-      .update({ deleted_at: new Date().toISOString() })
+      .update({ topup_requested: topupPackage })
       .eq("id", existing.id);
     await load();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  async function sendRequest(mentorListingId: string, score: number | null) {
-    if (!existing) return;
-    setStatus(null);
-    const { error: reqError } = await supabase.from("coach2mentor_requests").insert({
-      coach_listing_id: existing.id,
-      mentor_listing_id: mentorListingId,
-      score,
-    });
-    if (reqError) setStatus(reqError.message);
-    else {
-      setStatus("Request sent.");
-      await load();
-    }
+    setRequestingTopup(false);
   }
 
   if (loading) return <p className="py-8 text-sm text-gray-500">Loading…</p>;
 
-  const requestedIds = new Set(requests.map((r) => r.mentor_listing_id));
-
   return (
     <div className="py-8">
       <h1 className="text-xl font-bold">Find a Mentor — Your Profile</h1>
+      <p className="mt-1 text-sm text-gray-600">
+        Coach In Mind reviews mentors on your behalf and introduces you to your best matches —
+        there's no browsing required.
+      </p>
 
       {existing && (
         <div
@@ -194,15 +244,129 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
           }`}
         >
           {existing.paid ? (
-            <>✓ Your profile is active — browse mentors below.</>
+            <>
+              ✓ Your profile is active — you're set up for {existing.included_introductions ?? "?"} mentor
+              introduction{existing.included_introductions === 1 ? "" : "s"}
+              {existing.included_introductions != null && (
+                <> ({introductionsUsed} of {existing.included_introductions} used)</>
+              )}
+              . Coach In Mind will introduce you to your top matches.
+            </>
           ) : (
             <>
-              <strong>Payment required (${ROLE_PRICES_AUD.coach2mentor_coach} AUD):</strong> save
+              <strong>Payment required (${CLUB2COACH_COACH_PACKAGES[selectedPackage]} AUD):</strong> save
               your profile, then Coach In Mind will be in touch about how
-              to pay. Once confirmed, you'll be able to browse and
-              request mentors.
+              to pay. Once confirmed, we'll start matching you with mentors.
             </>
           )}
+        </div>
+      )}
+
+      {existing?.paid && existing.included_introductions != null && introductionsUsed >= existing.included_introductions && (
+        <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <p className="text-sm font-semibold text-blue-900">
+            You've used all {existing.included_introductions} of your introductions
+          </p>
+          {existing.topup_requested != null ? (
+            <p className="mt-2 text-sm text-blue-800">
+              Top-up request sent ({existing.topup_requested} more introduction
+              {existing.topup_requested === 1 ? "" : "s"}) — Coach In Mind will be in touch about
+              payment.
+            </p>
+          ) : (
+            <>
+              <p className="mt-1 text-sm text-blue-800">
+                To be introduced to more mentors, buy another package below.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                {Object.entries(CLUB2COACH_COACH_PACKAGES).map(([count, price]) => (
+                  <label
+                    key={count}
+                    className={`flex-1 cursor-pointer rounded-lg border-2 p-3 text-center ${
+                      topupPackage === Number(count) ? "border-brand-navy bg-brand-navy/5" : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="topup-package"
+                      className="sr-only"
+                      checked={topupPackage === Number(count)}
+                      onChange={() => setTopupPackage(Number(count))}
+                    />
+                    <p className="font-semibold">
+                      {count} introduction{count === "1" ? "" : "s"}
+                    </p>
+                    <p className="text-sm text-gray-500">${price} AUD</p>
+                  </label>
+                ))}
+              </div>
+              <button
+                onClick={requestTopup}
+                disabled={requestingTopup}
+                className="btn-accent mt-3 rounded-lg px-5 py-2 text-sm font-semibold disabled:opacity-50"
+              >
+                {requestingTopup ? "Sending…" : "Request top-up"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {!existing?.paid && (
+        <div className="mt-4 rounded-xl border bg-white p-4">
+          <p className="text-xs font-semibold uppercase text-gray-500">
+            How many mentor introductions do you want?
+          </p>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+            {Object.entries(CLUB2COACH_COACH_PACKAGES).map(([count, price]) => (
+              <label
+                key={count}
+                className={`flex-1 cursor-pointer rounded-lg border-2 p-3 text-center ${
+                  selectedPackage === Number(count) ? "border-brand-navy bg-brand-navy/5" : "border-gray-200"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="package"
+                  className="sr-only"
+                  checked={selectedPackage === Number(count)}
+                  onChange={() => setSelectedPackage(Number(count))}
+                />
+                <p className="font-semibold">
+                  {count} introduction{count === "1" ? "" : "s"}
+                </p>
+                <p className="text-sm text-gray-500">${price} AUD</p>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {existing && matches.length > 0 && (
+        <div className="mt-4 rounded-xl border bg-white p-4">
+          <h2 className="text-sm font-semibold text-gray-700">Your matches</h2>
+          <div className="mt-2 flex flex-col gap-2">
+            {matches.map((m) => (
+              <div key={m.id} className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                <div>
+                  <p className="text-sm font-medium">
+                    {m.status === "accepted" ? m.mentorName ?? "A mentor" : "A potential mentor"}
+                  </p>
+                  {m.mentorBio && m.status !== "declined" && (
+                    <p className="text-xs text-gray-500 line-clamp-1">{m.mentorBio}</p>
+                  )}
+                  <p className="text-xs text-gray-400 capitalize">
+                    {m.status === "pending" ? "Awaiting mentor's response" : m.status}
+                  </p>
+                </div>
+                {m.score != null && (
+                  <span className="text-sm font-bold" style={{ color: "var(--accent-dark)" }}>
+                    {Math.round(m.score * 100)}%
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -328,6 +492,35 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
           />
         </div>
 
+        {personalWeights && (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <p className="text-xs font-semibold uppercase text-gray-500">
+              What matters most to you in a mentor?
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              Rate each factor from 1 (least important) to 10 (most important). This is personal to
+              you — it shapes who Coach In Mind prioritises introducing you to, on top of the
+              standard matching criteria.
+            </p>
+            {(Object.keys(personalWeights) as (keyof Coach2MentorWeights)[]).map((key) => (
+              <div key={key} className="mt-3">
+                <div className="flex justify-between text-sm">
+                  <span>{WEIGHT_LABELS[key]}</span>
+                  <span>{personalWeights[key]}</span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={10}
+                  value={personalWeights[key]}
+                  onChange={(e) => updatePersonalWeight(key, Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
         <div>
           <label className="text-xs font-semibold uppercase text-gray-500">Notes for Coach In Mind admin (private — not shown publicly)</label>
           <textarea
@@ -340,84 +533,14 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={saving}
-            className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
-          >
-            {saving ? "Saving…" : existing ? "Save changes" : "Save profile"}
-          </button>
-          {existing && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="self-start rounded-lg border border-red-200 px-6 py-2 font-semibold text-red-600 hover:bg-red-50"
-            >
-              Delete profile
-            </button>
-          )}
-        </div>
+        <button
+          type="submit"
+          disabled={saving}
+          className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
+        >
+          {saving ? "Saving…" : existing ? "Save changes" : "Save profile"}
+        </button>
       </form>
-
-      {existing?.paid && (
-        <div className="mt-8">
-          <h2 className="text-lg font-bold">Browse Mentors</h2>
-          {status && <p className="mt-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">{status}</p>}
-          {mentors.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-500">No mentors listed yet — check back soon.</p>
-          ) : (
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {mentors
-                .map((m) => ({
-                  mentor: m,
-                  breakdown: weights ? scoreCoach2MentorMatch(existing, person.region, m, weights) : null,
-                }))
-                .sort((a, b) => (b.breakdown?.total ?? 0) - (a.breakdown?.total ?? 0))
-                .map(({ mentor, breakdown }) => (
-                  <div key={mentor.id} className="rounded-xl border bg-white p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm font-semibold">{mentor.career_stage}</p>
-                        <p className="text-xs text-gray-500">{mentor.licence}</p>
-                      </div>
-                      {breakdown && (
-                        <span className="text-sm font-bold" style={{ color: "var(--accent-dark)" }}>
-                          {Math.round(breakdown.total * 100)}%
-                        </span>
-                      )}
-                    </div>
-                    {mentor.bio && <p className="mt-2 text-sm text-gray-700">{mentor.bio}</p>}
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {mentor.specialisms.map((s) => (
-                        <span key={s} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs">
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-                    <p className="mt-2 text-xs text-gray-500">
-                      {mentor.rate_type === "free" ? "Free / volunteer" : `$${mentor.rate_amount} AUD ${mentor.rate_unit}`}
-                    </p>
-                    <div className="mt-4 border-t pt-3">
-                      {requestedIds.has(mentor.id) ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-sm font-semibold text-green-700">
-                          ✓ Request sent
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => sendRequest(mentor.id, breakdown ? breakdown.total : null)}
-                          className="btn-accent w-full rounded-lg px-4 py-2 text-sm font-semibold"
-                        >
-                          Request this mentor
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
