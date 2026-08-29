@@ -3,8 +3,8 @@ import Image from "next/image";
 
 export default function HomePage() {
   return (
-    <div className="bg-brand-navy pb-20 pt-16 text-white">
-      <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 px-4 text-center">
+    <div className="bg-brand-navy pb-16 pt-8 text-white">
+      <div className="mx-auto flex max-w-4xl flex-col items-center gap-5 px-4 text-center">
         <div className="rounded-xl bg-white p-4 shadow-lg">
           <Image
             src="/coach-in-mind-logo.png"
@@ -24,15 +24,15 @@ export default function HomePage() {
           mentors — one login, two ways to find the right match.
         </p>
 
-        <div className="mt-4 grid w-full grid-cols-1 gap-6 text-left sm:grid-cols-2">
+        <div className="mt-6 grid w-full grid-cols-1 gap-8 text-left sm:grid-cols-2">
           <Link
             href="/club2coach"
-            className="rounded-xl border border-white/10 bg-brand-goldLight/95 p-6 text-brand-navy shadow-lg transition hover:brightness-105"
+            className="flex min-h-[240px] flex-col justify-center rounded-2xl border-2 border-white/10 bg-brand-goldLight/95 p-8 text-brand-navy shadow-xl transition hover:scale-[1.02] hover:brightness-105"
           >
-            <h2 className="text-center text-2xl font-bold">
+            <h2 className="text-center text-3xl font-bold sm:text-4xl">
               Club <span className="text-white">2</span> Coach
             </h2>
-            <p className="mt-1 text-sm">
+            <p className="mt-3 text-center text-base">
               Clubs advertise coaching roles. Coaches list themselves as
               available. We match on accreditation, level, location, and
               more — then introduce you.
@@ -40,12 +40,12 @@ export default function HomePage() {
           </Link>
           <Link
             href="/coach2mentor"
-            className="rounded-xl border border-white/10 bg-white p-6 text-brand-navy shadow-lg transition hover:brightness-105"
+            className="flex min-h-[240px] flex-col justify-center rounded-2xl border-2 border-white/10 bg-white p-8 text-brand-navy shadow-xl transition hover:scale-[1.02] hover:brightness-105"
           >
-            <h2 className="text-center text-2xl font-bold">
+            <h2 className="text-center text-3xl font-bold sm:text-4xl">
               Coach <span className="text-orange-600">2</span> Mentor
             </h2>
-            <p className="mt-1 text-sm">
+            <p className="mt-3 text-center text-base">
               Find an experienced mentor to guide your coaching journey, or
               offer your own experience as a mentor to others.
             </p>
