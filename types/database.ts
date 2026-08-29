@@ -216,3 +216,13 @@ export interface SupportQuery {
   created_at: string;
 }
 
+export interface CoachCreditRequest {
+  id: string;
+  person_id: string;
+  total_package: number;
+  club2coach_count: number;
+  coach2mentor_count: number;
+  status: "pending" | "confirmed";
+  created_at: string;
+  confirmed_at: string | null;
+}
