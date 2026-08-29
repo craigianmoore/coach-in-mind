@@ -27,18 +27,100 @@ export default function HelpPage() {
 
         <section className="rounded-xl border bg-white p-6">
           <h2 className="font-semibold">Frequently asked questions</h2>
-          <p className="mt-1 text-sm text-gray-500">
-            [Add your FAQ content here — e.g. how matching works, payment questions, how long
-            introductions take, what happens if a match doesn't work out.]
-          </p>
+          <div className="mt-3 flex flex-col gap-4 text-sm">
+            <div>
+              <p className="font-medium text-gray-800">How does matching work?</p>
+              <p className="mt-1 text-gray-600">
+                Coach In Mind reviews and curates every match — there's no public browsing on
+                either side. When you pay for a package, we score you against active vacancies,
+                mentors, or coaches (depending on your role) and suggest the best fits. Every
+                suggestion is reviewed before it goes live — contact details are only shared once
+                a match is approved.
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-800">What am I actually paying for?</p>
+              <p className="mt-1 text-gray-600">
+                A package of introductions (1–3 for coaches and mentors, 1–5 for clubs) or, for
+                mentors, a capacity package based on how many mentees you can take on. You're
+                paying for a curated introduction, not a guaranteed outcome — what happens after
+                you're introduced is between you and the other party.
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-800">How long does an introduction take?</p>
+              <p className="mt-1 text-gray-600">
+                It depends on how many active, paid listings there are to match against on the
+                other side. Once you're paid and active, Coach In Mind reviews matches regularly —
+                if there's nothing to match against yet, you'll be matched as soon as a suitable
+                listing appears.
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-800">What happens if a match doesn't work out?</p>
+              <p className="mt-1 text-gray-600">
+                For clubs and coaches on Club 2 Coach, if a role isn't filled within the one-month
+                contact window, the vacancy simply expires — you can advertise it again. If you run
+                out of introductions before finding the right fit, you can top up for more
+                directly from your own profile or listing page at any time.
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-800">
+                Can I change my criteria if I'm not getting good matches?
+              </p>
+              <p className="mt-1 text-gray-600">
+                Yes — you can edit your vacancy or profile criteria at any time. Coach In Mind will
+                reassess against your updated details next time matching runs.
+              </p>
+            </div>
+          </div>
         </section>
 
         <section className="rounded-xl border bg-white p-6">
           <h2 className="font-semibold">Getting started guides</h2>
-          <p className="mt-1 text-sm text-gray-500">
-            [Add step-by-step guidance here for each role — e.g. "Setting up your coach profile",
-            "Advertising your first vacancy", "What to expect after you're matched".]
-          </p>
+          <div className="mt-3 flex flex-col gap-4 text-sm">
+            <div>
+              <p className="font-medium text-gray-800">Setting up your profile</p>
+              <p className="mt-1 text-gray-600">
+                After creating your account, fill in your profile on the "My Profile" page — this
+                shared identity is used whether you're a coach, club, or mentor. Then choose which
+                service you want from the options shown: Club 2 Coach or Coach 2 Mentor.
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-800">Advertising a vacancy (clubs)</p>
+              <p className="mt-1 text-gray-600">
+                From Club 2 Coach, click "Advertise a Vacancy," fill in your requirements, and
+                choose a package. Coach In Mind will be in touch about payment — once confirmed,
+                your vacancy activates and matching begins automatically.
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-800">Finding a role or mentor (coaches)</p>
+              <p className="mt-1 text-gray-600">
+                Set up your profile with what you're looking for, choose a package, and once
+                payment's confirmed, Coach In Mind will introduce you to your best-fitting matches.
+                On Coach 2 Mentor, you can also set your own personal priorities to shape how
+                you're matched.
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-800">Offering to mentor</p>
+              <p className="mt-1 text-gray-600">
+                Set up your mentor profile, choose your mentee capacity, and once paid, you'll
+                start receiving match requests on your own dashboard — accept or decline each one
+                individually.
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-800">What to expect after you're matched</p>
+              <p className="mt-1 text-gray-600">
+                Once a match is approved, you'll be able to see each other's contact details.
+                From there, it's up to you both — Coach In Mind's role ends at the introduction.
+              </p>
+            </div>
+          </div>
         </section>
 
         <section className="rounded-xl border bg-white p-6">
