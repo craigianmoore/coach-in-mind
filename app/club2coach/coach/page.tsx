@@ -12,6 +12,8 @@ import {
   REGIONS,
   GENDER_OPTIONS,
   CLUB2COACH_COACH_PACKAGES,
+  STATE_OPTIONS,
+  STATE_LABELS,
 } from "@/lib/constants";
 import type { Club2CoachCoachListing, Person } from "@/types/database";
 import { notifyAdmin } from "@/lib/notify";
@@ -29,6 +31,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   const [competitionLevels, setCompetitionLevels] = useState<string[]>([]);
   const [ageGroups, setAgeGroups] = useState<string[]>([]);
   const [regions, setRegions] = useState<string[]>([]);
+  const [statePreference, setStatePreference] = useState<string>("either");
   const [openToRelocating, setOpenToRelocating] = useState(false);
   const [salaryMin, setSalaryMin] = useState("");
   const [salaryMax, setSalaryMax] = useState("");
@@ -54,6 +57,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     setCompetitionLevels([]);
     setAgeGroups([]);
     setRegions([]);
+    setStatePreference("either");
     setOpenToRelocating(false);
     setSalaryMin("");
     setSalaryMax("");
@@ -81,6 +85,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       setCompetitionLevels(l.preferred_competition_levels ?? []);
       setAgeGroups(l.preferred_age_groups ?? []);
       setRegions(l.preferred_regions ?? []);
+      setStatePreference(l.state_preference ?? "either");
       setOpenToRelocating(l.open_to_relocating);
       setSalaryMin(l.salary_min?.toString() ?? "");
       setSalaryMax(l.salary_max?.toString() ?? "");
@@ -124,6 +129,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       preferred_age_groups: ageGroups,
       preferred_regions: regions,
       open_to_relocating: openToRelocating,
+      state_preference: statePreference,
       salary_min: salaryMin ? Number(salaryMin) : null,
       salary_max: salaryMax ? Number(salaryMax) : null,
       salary_negotiable: salaryNegotiable,
@@ -353,6 +359,29 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
               onToggle={(v) => toggle(ageGroups, setAgeGroups, v)}
             />
           </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold uppercase text-gray-500">
+            Which state(s) are you open to coaching in?
+          </label>
+          <div className="mt-1 flex gap-3">
+            {[...STATE_OPTIONS, "either"].map((opt) => (
+              <label key={opt} className="flex items-center gap-1.5 text-sm">
+                <input
+                  type="radio"
+                  name="state-preference"
+                  checked={statePreference === opt}
+                  onChange={() => setStatePreference(opt)}
+                />
+                {opt === "either" ? "Either" : STATE_LABELS[opt]}
+              </label>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-gray-500">
+            This is a hard preference, not just a nice-to-have — if you pick one state, roles in
+            the other won't be matched to you.
+          </p>
         </div>
 
         <div>
