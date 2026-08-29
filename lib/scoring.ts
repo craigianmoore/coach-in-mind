@@ -37,6 +37,17 @@ function overlapScore(preferred: string[], target: string | null | undefined): n
   return preferred.includes(target) ? 1 : 0;
 }
 
+// State acts as a hard gate ahead of regional scoring, not just another
+// soft preference — being in the wrong state matters far more than
+// which region within a state, since this is in-person coaching. A
+// coach who said "either" or a vacancy with no state recorded (legacy
+// rows) never gets gated; only an explicit VIC/TAS mismatch does.
+function stateFitOk(coachPreference: string, vacancyState: string | null): boolean {
+  if (coachPreference === "either") return true;
+  if (!vacancyState) return true;
+  return coachPreference === vacancyState;
+}
+
 function rangeOverlapScore(
   aMin: number | null,
   aMax: number | null,
@@ -91,9 +102,13 @@ export function scoreClub2CoachMatch(
   const ability = overlapScore(coach.ability_levels, vacancy.required_ability_level);
   const competition_level = overlapScore(coach.preferred_competition_levels, vacancy.competition_level);
   const age_group = overlapScore(coach.preferred_age_groups, vacancy.age_group);
-  const geography = coach.open_to_relocating
+
+  const geography = !stateFitOk(coach.state_preference, vacancy.state)
+    ? 0
+    : coach.open_to_relocating
     ? 1
     : overlapScore(coach.preferred_regions, vacancy.region);
+
   const salary = rangeOverlapScore(
     coach.salary_min,
     coach.salary_max,
@@ -150,6 +165,10 @@ export function scoreCoach2MentorMatch(
     career_stage = mentorStageIdx >= coachStageIdx ? 1 : 0.4;
   }
 
+  // Not gated by state like Club2Coach — mentoring only truly needs
+  // geographic proximity when it's in-person. Either side offering
+  // Virtual/Either already makes cross-region (and so cross-state)
+  // mentoring perfectly workable.
   const isRemoteFriendly =
     coach.availability === "Virtual" ||
     coach.availability === "Either" ||
