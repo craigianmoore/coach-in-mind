@@ -19,7 +19,16 @@ export const REGIONS = [
   "Shepparton",
   "South West",
   "Sunraysia",
+  "North (TAS)",
+  "North-West (TAS)",
+  "South (TAS)",
 ] as const;
+
+export const STATE_OPTIONS = ["VIC", "TAS"] as const;
+export const STATE_LABELS: Record<string, string> = {
+  VIC: "Victoria",
+  TAS: "Tasmania",
+};
 
 // The accreditation ladder, lowest to highest. Used for both "what do you
 // hold" and "what's required" fields, and for match scoring (a coach's
