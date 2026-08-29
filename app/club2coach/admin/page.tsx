@@ -13,6 +13,7 @@ import type {
   Person,
   AdminSettings,
   SupportQuery,
+  CoachCreditRequest,
 } from "@/types/database";
 
 type Tab = "unpaid" | "matches" | "weighting" | "listings" | "admins" | "support" | "people";
@@ -42,6 +43,8 @@ function Club2CoachAdmin() {
   const [editingLabelValue, setEditingLabelValue] = useState("");
 
   const [supportQueries, setSupportQueries] = useState<SupportQuery[]>([]);
+  const [creditRequests, setCreditRequests] = useState<CoachCreditRequest[]>([]);
+  const [creditAmount, setCreditAmount] = useState<Record<string, string>>({});
 
   const [supportFilter, setSupportFilter] = useState<"open" | "resolved" | "all">("open");
   const [listingsPaidFilter, setListingsPaidFilter] = useState<"all" | "paid" | "unpaid">("all");
@@ -73,13 +76,14 @@ function Club2CoachAdmin() {
     // support_queries is loaded here too — not just lazily on tab
     // click — so the "Support (N)" badge count is correct the moment
     // the page loads, not just after you've already opened that tab.
-    const [{ data: cl }, { data: cv }, { data: ppl }, { data: sh }, { data: st }, { data: sq }] = await Promise.all([
+    const [{ data: cl }, { data: cv }, { data: ppl }, { data: sh }, { data: st }, { data: sq }, { data: cr }] = await Promise.all([
       supabase.from("club2coach_coach_listings").select("*"),
       supabase.from("club2coach_club_vacancies").select("*"),
       supabase.from("people").select("*"),
       supabase.from("club2coach_shares").select("*"),
       supabase.from("admin_settings").select("*").eq("product", "club2coach").maybeSingle(),
       supabase.from("support_queries").select("*").order("created_at", { ascending: false }),
+      supabase.from("coach_credit_requests").select("*").eq("status", "pending"),
     ]);
 
     setCoachListings((cl as Club2CoachCoachListing[]) ?? []);
@@ -89,6 +93,7 @@ function Club2CoachAdmin() {
     setPeople(peopleMap);
     setShares((sh as Club2CoachShare[]) ?? []);
     setSettings(st as AdminSettings | null);
+    setCreditRequests((cr as CoachCreditRequest[]) ?? []);
     setSupportQueries((sq as SupportQuery[]) ?? []);
     setLoading(false);
   }
@@ -108,6 +113,24 @@ function Club2CoachAdmin() {
     supabase.rpc("refresh_admin_session");
     await supabase.from("support_queries").update({ status: "resolved" }).eq("id", id);
     await loadSupportQueries();
+  }
+
+  async function confirmCreditSplit(req: CoachCreditRequest) {
+    supabase.rpc("refresh_admin_session");
+    setStatus(null);
+    const amount = Number(creditAmount[req.id] ?? CLUB2COACH_COACH_PACKAGES[req.total_package]);
+    const { error } = await supabase.rpc("confirm_coach_credit_split", {
+      request_id: req.id,
+      amount,
+    });
+    if (error) {
+      setStatus(error.message);
+      return;
+    }
+    setStatus(
+      `Combined package confirmed — ${req.club2coach_count} Club2Coach + ${req.coach2mentor_count} Coach2Mentor.`
+    );
+    await loadAll();
   }
 
   async function confirmTopup(id: string, requested: number) {
@@ -519,7 +542,7 @@ function Club2CoachAdmin() {
             style={tab === t ? { borderColor: "var(--accent-dark)", color: "var(--accent-dark)" } : {}}
           >
             {t === "unpaid"
-              ? `Unpaid (${unpaidCoaches.length + unpaidVacancies.length + topupRequests.length})`
+              ? `Unpaid (${unpaidCoaches.length + unpaidVacancies.length + topupRequests.length + creditRequests.length})`
               : t === "support"
               ? `Support (${supportQueries.filter((q) => q.status === "open").length})`
               : t === "people"
@@ -533,6 +556,40 @@ function Club2CoachAdmin() {
 
       {tab === "unpaid" && (
         <div className="mt-6 flex flex-col gap-6">
+          {creditRequests.length > 0 && (
+            <div>
+              <h2 className="font-semibold">Coaches requesting a combined Club2Coach + Coach2Mentor package</h2>
+              <div className="mt-2 flex flex-col gap-2">
+                {creditRequests.map((req) => (
+                  <div key={req.id} className="flex items-center justify-between rounded-lg border border-purple-200 bg-purple-50 p-3">
+                    <div>
+                      <p className="text-sm font-medium">{people[req.person_id]?.full_name ?? "Unknown"}</p>
+                      <p className="text-xs text-purple-700">
+                        {req.total_package} total — {req.club2coach_count} Club2Coach,{" "}
+                        {req.coach2mentor_count} Coach2Mentor
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        placeholder={`$${CLUB2COACH_COACH_PACKAGES[req.total_package]}`}
+                        value={creditAmount[req.id] ?? ""}
+                        onChange={(e) => setCreditAmount((prev) => ({ ...prev, [req.id]: e.target.value }))}
+                        className="w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                      />
+                      <button
+                        onClick={() => confirmCreditSplit(req)}
+                        className="btn-accent rounded-lg px-3 py-1.5 text-sm font-semibold"
+                      >
+                        Confirm split
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {topupRequests.length > 0 && (
             <div>
               <h2 className="font-semibold">Coaches requesting a top-up</h2>
