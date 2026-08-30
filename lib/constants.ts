@@ -25,6 +25,10 @@ export const REGIONS_BY_STATE: Record<string, readonly string[]> = {
     "Sunraysia",
   ],
   TAS: ["North", "North-West", "South"],
+  // Northern NSW Football's actual catchment — the Hunter Region.
+  // Football NSW (Sydney and the rest of the state) is a separate
+  // Member Federation and isn't covered by this yet.
+  NNSW: ["Newcastle", "Lake Macquarie", "Maitland", "Cessnock", "Port Stephens", "Singleton", "Muswellbrook", "Mid Coast"],
 };
 
 export const STATE_OPTIONS = Object.keys(REGIONS_BY_STATE);
@@ -39,6 +43,7 @@ export const REGIONS = Object.values(REGIONS_BY_STATE).flat();
 export const STATE_LABELS: Record<string, string> = {
   VIC: "Victoria",
   TAS: "Tasmania",
+  NNSW: "Northern NSW",
 };
 
 // The actual governing body name for each state/territory — used
@@ -48,6 +53,7 @@ export const STATE_LABELS: Record<string, string> = {
 export const MEMBER_FEDERATIONS: Record<string, string> = {
   VIC: "Football Victoria",
   TAS: "Football Tasmania",
+  NNSW: "Northern NSW Football",
 };
 
 // The accreditation ladder, lowest to highest. Used for both "what do you
@@ -115,6 +121,17 @@ export const COMPETITION_LEVELS_BY_STATE: Record<string, readonly string[]> = {
     "Southern Social League 2",
     "Southern Social League 3",
     "Social League Over 35s",
+  ],
+  // Cleaned from the 2026-season data — sponsor prefixes (e.g. "Cardiff
+  // Motor Group", "HIT106.9") and roster-status notes dropped since
+  // they're not part of the actual level name.
+  NNSW: [
+    "NPL Men's NNSW",
+    "NPL Women's NNSW",
+    "Northern League One",
+    "Zone League One",
+    "Zone League Two",
+    "Zone League Three",
   ],
 };
 
