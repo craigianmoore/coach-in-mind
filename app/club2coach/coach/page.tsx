@@ -10,6 +10,7 @@ import {
   COMPETITION_LEVELS,
   AGE_GROUPS,
   REGIONS,
+  REGIONS_BY_STATE,
   GENDER_OPTIONS,
   CLUB2COACH_COACH_PACKAGES,
   STATE_OPTIONS,
@@ -186,6 +187,12 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   }
 
   if (loading) return <p className="py-8 text-sm text-gray-500">Loading…</p>;
+
+  // Only show regions relevant to whichever state(s) they said they're
+  // open to — "either" shows every region across all states.
+  const regionOptions =
+    statePreference === "either" ? REGIONS : REGIONS_BY_STATE[statePreference] ?? REGIONS;
+
 
   return (
     <div className="py-8">
@@ -372,7 +379,14 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
                   type="radio"
                   name="state-preference"
                   checked={statePreference === opt}
-                  onChange={() => setStatePreference(opt)}
+                  onChange={() => {
+                    setStatePreference(opt);
+                    // Drop any previously-selected regions that don't
+                    // belong to the newly chosen state(s), so nothing
+                    // stale lingers invisibly in the background.
+                    const stillValid = opt === "either" ? REGIONS : REGIONS_BY_STATE[opt] ?? REGIONS;
+                    setRegions((prev) => prev.filter((r) => stillValid.includes(r)));
+                  }}
                 />
                 {opt === "either" ? "Either" : STATE_LABELS[opt]}
               </label>
@@ -388,7 +402,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           <label className="text-xs font-semibold uppercase text-gray-500">Preferred regions</label>
           <div className="mt-1">
             <CheckboxGroup
-              options={REGIONS}
+              options={regionOptions}
               selected={regions}
               onToggle={(v) => toggle(regions, setRegions, v)}
             />
