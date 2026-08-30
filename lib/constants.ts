@@ -67,13 +67,13 @@ export const STATE_LABELS: Record<string, string> = {
 // that's the real term clubs and coaches will recognise. Add more
 // entries here as more states come on board.
 export const MEMBER_FEDERATIONS: Record<string, string> = {
-  VIC: "Football Victoria",
-  TAS: "Football Tasmania",
-  NNSW: "Northern NSW Football",
-  SA: "Football South Australia",
   ACT: "Capital Football",
   NT: "Football NT",
+  SA: "Football South Australia",
+  TAS: "Football Tasmania",
+  VIC: "Football Victoria",
   WA: "Football West",
+  NNSW: "Northern NSW Football",
 };
 
 // The accreditation ladder, lowest to highest. Used for both "what do you
