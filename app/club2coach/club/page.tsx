@@ -10,6 +10,7 @@ import {
   COMPETITION_LEVELS,
   AGE_GROUPS,
   REGIONS,
+  REGIONS_BY_STATE,
   GENDER_OPTIONS,
   ACCREDITATION_LEVELS,
   CLUB2COACH_CLUB_PACKAGES,
@@ -328,6 +329,15 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
   if (loading) return <p className="py-8 text-sm text-gray-500">Loading…</p>;
 
+  // Reacts to whatever's currently typed in the club field — before a
+  // valid club is picked (or submitted), show every region across all
+  // states so the field stays usable while typing.
+  const typedClub = clubs.find(
+    (c) => c.name.trim().toLowerCase() === form.clubName.trim().toLowerCase()
+  );
+  const regionOptions = typedClub ? REGIONS_BY_STATE[typedClub.state] ?? REGIONS : REGIONS;
+
+
   if (!showForm) {
     return (
       <div className="py-8">
@@ -604,7 +614,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
               onChange={(e) => setForm((f) => ({ ...f, region: e.target.value }))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             >
-              {REGIONS.map((r) => (
+              {regionOptions.map((r) => (
                 <option key={r} value={r}>
                   {r}
                 </option>
