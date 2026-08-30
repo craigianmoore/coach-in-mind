@@ -42,10 +42,10 @@ function overlapScore(preferred: string[], target: string | null | undefined): n
 // which region within a state, since this is in-person coaching. A
 // coach who said "either" or a vacancy with no state recorded (legacy
 // rows) never gets gated; only an explicit VIC/TAS mismatch does.
-function stateFitOk(coachPreference: string, vacancyState: string | null): boolean {
-  if (coachPreference === "either") return true;
+function stateFitOk(coachPreferences: string[], vacancyState: string | null): boolean {
+  if (!coachPreferences || coachPreferences.length === 0) return true; // open to all states, including future ones
   if (!vacancyState) return true;
-  return coachPreference === vacancyState;
+  return coachPreferences.includes(vacancyState);
 }
 
 function rangeOverlapScore(
@@ -103,7 +103,7 @@ export function scoreClub2CoachMatch(
   const competition_level = overlapScore(coach.preferred_competition_levels, vacancy.competition_level);
   const age_group = overlapScore(coach.preferred_age_groups, vacancy.age_group);
 
-  const geography = !stateFitOk(coach.state_preference, vacancy.state)
+  const geography = !stateFitOk(coach.state_preferences, vacancy.state)
     ? 0
     : coach.open_to_relocating
     ? 1
