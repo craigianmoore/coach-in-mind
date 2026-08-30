@@ -30,7 +30,7 @@ export interface Club2CoachCoachListing {
   preferred_competition_levels: string[];
   preferred_age_groups: string[];
   preferred_regions: string[];
-  state_preference: "VIC" | "TAS" | "either"; // which state(s) this coach is open to coaching in — gates geography scoring in matching
+  state_preferences: string[]; // which state(s) this coach is open to — empty array means open to all states (including ones added later); gates geography scoring in matching
   open_to_relocating: boolean;
   salary_min: number | null;
   salary_max: number | null;
