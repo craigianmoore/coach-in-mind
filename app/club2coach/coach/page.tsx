@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import RequireProfile from "@/components/RequireProfile";
 import CheckboxGroup from "@/components/CheckboxGroup";
+import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
 import {
   COACHING_ROLES,
@@ -421,6 +422,17 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
             />
             Open to relocating outside preferred regions
           </label>
+        </div>
+
+        <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+          <p className="mb-2 text-xs font-semibold uppercase text-gray-500">
+            Not sure which region? Here's roughly where each one sits.
+          </p>
+          <div className="flex flex-wrap gap-4">
+            {(statePreferences.length === 0 ? STATE_OPTIONS : statePreferences).map((s) => (
+              <RegionMap key={s} state={s} />
+            ))}
+          </div>
         </div>
 
         <div>
