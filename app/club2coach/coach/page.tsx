@@ -32,7 +32,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   const [competitionLevels, setCompetitionLevels] = useState<string[]>([]);
   const [ageGroups, setAgeGroups] = useState<string[]>([]);
   const [regions, setRegions] = useState<string[]>([]);
-  const [statePreference, setStatePreference] = useState<string>("either");
+  const [statePreferences, setStatePreferences] = useState<string[]>([]);
   const [openToRelocating, setOpenToRelocating] = useState(false);
   const [salaryMin, setSalaryMin] = useState("");
   const [salaryMax, setSalaryMax] = useState("");
@@ -58,7 +58,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     setCompetitionLevels([]);
     setAgeGroups([]);
     setRegions([]);
-    setStatePreference("either");
+    setStatePreferences([]);
     setOpenToRelocating(false);
     setSalaryMin("");
     setSalaryMax("");
@@ -86,7 +86,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       setCompetitionLevels(l.preferred_competition_levels ?? []);
       setAgeGroups(l.preferred_age_groups ?? []);
       setRegions(l.preferred_regions ?? []);
-      setStatePreference(l.state_preference ?? "either");
+      setStatePreferences(l.state_preferences ?? []);
       setOpenToRelocating(l.open_to_relocating);
       setSalaryMin(l.salary_min?.toString() ?? "");
       setSalaryMax(l.salary_max?.toString() ?? "");
@@ -130,7 +130,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       preferred_age_groups: ageGroups,
       preferred_regions: regions,
       open_to_relocating: openToRelocating,
-      state_preference: statePreference,
+      state_preferences: statePreferences,
       salary_min: salaryMin ? Number(salaryMin) : null,
       salary_max: salaryMax ? Number(salaryMax) : null,
       salary_negotiable: salaryNegotiable,
@@ -191,7 +191,9 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   // Only show regions relevant to whichever state(s) they said they're
   // open to — "either" shows every region across all states.
   const regionOptions =
-    statePreference === "either" ? REGIONS : REGIONS_BY_STATE[statePreference] ?? REGIONS;
+    statePreferences.length === 0
+      ? REGIONS
+      : statePreferences.flatMap((s) => REGIONS_BY_STATE[s] ?? []);
 
 
   return (
@@ -372,29 +374,33 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           <label className="text-xs font-semibold uppercase text-gray-500">
             Which state(s) are you open to coaching in?
           </label>
-          <div className="mt-1 flex gap-3">
-            {[...STATE_OPTIONS, "either"].map((opt) => (
+          <div className="mt-1 flex flex-wrap gap-3">
+            {STATE_OPTIONS.map((opt) => (
               <label key={opt} className="flex items-center gap-1.5 text-sm">
                 <input
-                  type="radio"
-                  name="state-preference"
-                  checked={statePreference === opt}
+                  type="checkbox"
+                  checked={statePreferences.includes(opt)}
                   onChange={() => {
-                    setStatePreference(opt);
-                    // Drop any previously-selected regions that don't
-                    // belong to the newly chosen state(s), so nothing
-                    // stale lingers invisibly in the background.
-                    const stillValid = opt === "either" ? REGIONS : REGIONS_BY_STATE[opt] ?? REGIONS;
+                    const next = statePreferences.includes(opt)
+                      ? statePreferences.filter((s) => s !== opt)
+                      : [...statePreferences, opt];
+                    setStatePreferences(next);
+                    // Drop any previously-selected regions that no
+                    // longer belong to the currently chosen state(s),
+                    // so nothing stale lingers invisibly in the
+                    // background.
+                    const stillValid = next.length === 0 ? REGIONS : next.flatMap((s) => REGIONS_BY_STATE[s] ?? []);
                     setRegions((prev) => prev.filter((r) => stillValid.includes(r)));
                   }}
                 />
-                {opt === "either" ? "Either" : STATE_LABELS[opt]}
+                {STATE_LABELS[opt]}
               </label>
             ))}
           </div>
           <p className="mt-1 text-xs text-gray-500">
-            This is a hard preference, not just a nice-to-have — if you pick one state, roles in
-            the other won't be matched to you.
+            This is a hard preference, not just a nice-to-have — roles outside your selected
+            state(s) won't be matched to you. Leave everything unchecked to stay open to every
+            state, including any added later.
           </p>
         </div>
 
