@@ -40,7 +40,7 @@ export default function HomePage() {
           </Link>
           <Link
             href="/coach2mentor"
-            className="flex min-h-[240px] flex-col justify-center rounded-2xl border-2 border-white/10 bg-[#ECEEF1] p-8 text-brand-navy shadow-xl transition hover:scale-[1.02] hover:brightness-105"
+            className="flex min-h-[240px] flex-col justify-center rounded-2xl border-2 border-white/10 bg-[#D5D9E0] p-8 text-brand-navy shadow-xl transition hover:scale-[1.02] hover:brightness-105"
           >
             <h2 className="text-center text-3xl font-bold sm:text-4xl">
               Coach <span className="text-orange-600">2</span> Mentor
