@@ -41,6 +41,9 @@ export const REGIONS_BY_STATE: Record<string, readonly string[]> = {
   // All current WA clubs are Perth metro or Mandurah — grouped into
   // Perth's standard suburb zones, same pattern as Melbourne's.
   WA: ["Northern Suburbs", "Eastern Suburbs", "Southern Suburbs", "Western Suburbs", "Mandurah / Peel"],
+  // Real Football Queensland zone names — genuinely spread across the
+  // whole state, unlike most of the others so far.
+  QLD: ["Metro", "South Coast", "Sunshine Coast", "Northern", "Wide Bay", "Central Coast", "Darling Downs", "Far North & Gulf", "Whitsunday Coast", "South Coast (NSW)"],
 };
 
 export const STATE_OPTIONS = Object.keys(REGIONS_BY_STATE);
@@ -60,6 +63,7 @@ export const STATE_LABELS: Record<string, string> = {
   ACT: "ACT",
   NT: "Northern Territory",
   WA: "Western Australia",
+  QLD: "Queensland",
 };
 
 // The actual governing body name for each state/territory — used
@@ -69,6 +73,7 @@ export const STATE_LABELS: Record<string, string> = {
 export const MEMBER_FEDERATIONS: Record<string, string> = {
   ACT: "Capital Football",
   NT: "Football NT",
+  QLD: "Football Queensland",
   SA: "Football South Australia",
   TAS: "Football Tasmania",
   VIC: "Football Victoria",
@@ -161,6 +166,22 @@ export const COMPETITION_LEVELS_BY_STATE: Record<string, readonly string[]> = {
   // Cleaned of result/promotion annotations from the 2026-season data
   // ("2025 Premiers", "promoted via play-off", etc).
   WA: ["NPL WA (Men's)", "NPL WA (Women's)", "State League 1"],
+  // Cleaned of the region names baked into some raw values (e.g.
+  // "FQPL3 Central Coast" — redundant given the separate Region field)
+  // and result/promotion annotations from the 2026-season data.
+  QLD: [
+    "NPL Queensland (Men's)",
+    "NPL Queensland (Women's)",
+    "FQPL1 (Men's)",
+    "FQPL2 (Men's, statewide)",
+    "FQPL3",
+    "FQPL4",
+    "FQPL (Regional)",
+    "Metro Divisional 3",
+    "Metro Divisional 4",
+    "Metro Divisional 5",
+    "Metro Divisional 6",
+  ],
 };
 
 export const COMPETITION_LEVELS = Object.values(COMPETITION_LEVELS_BY_STATE).flat();
