@@ -92,10 +92,10 @@ export const COACHING_ROLES = [
 export const ABILITY_LEVELS = [
   "Grassroots",
   "Junior Development",
-  "Professional / Elite",
-  "Semi-Professional",
-  "Senior Amateur",
   "Youth Talent Pathway",
+  "Senior Amateur",
+  "Semi-Professional",
+  "Professional / Elite",
 ] as const;
 
 // Competition levels, grouped by state — same pattern as
