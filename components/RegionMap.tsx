@@ -255,9 +255,93 @@ function SAMap() {
   );
 }
 
+function NTMap() {
+  return (
+    <svg viewBox="0 0 220 260" className="w-full max-w-sm">
+      {/* Zoomed to Darwin metro, not the full Northern Territory —
+          every current NT club is Darwin/Casuarina/Palmerston, and a
+          full-territory view would leave the whole map empty except
+          one tiny corner. Built from general geographic knowledge,
+          not traced from a source image at this zoom level. */}
+      <path
+        d="M 90 20 Q 130 15, 150 40 Q 175 55, 170 85
+           Q 195 105, 190 135 Q 210 160, 195 190
+           Q 200 220, 170 235 Q 150 250, 120 240
+           Q 90 245, 70 220 Q 45 210, 45 180
+           Q 20 165, 30 135 Q 15 110, 35 85
+           Q 30 55, 60 40 Q 65 20, 90 20 Z"
+        fill="#F7EFDD"
+        stroke="#B8935A"
+        strokeWidth={2}
+      />
+
+      <ellipse cx={91} cy={61} rx={26} ry={20.8} fill="#191B41" fillOpacity={0.08} />
+      <RegionLabel x={91} y={61} name="Darwin" />
+
+      <ellipse cx={141} cy={81} rx={26} ry={20.8} fill="#E8791A" fillOpacity={0.15} />
+      <RegionLabel x={141} y={81} name="Casuarina" anchor="start" />
+
+      <ellipse cx={151} cy={161} rx={26} ry={20.8} fill="#191B41" fillOpacity={0.06} />
+      <RegionLabel x={151} y={161} name="Palmerston" />
+
+      <text x={110} y={252} fontSize={10} fill="#9CA3AF" textAnchor="middle" fontStyle="italic">
+        Schematic reference only — Darwin metro, not the full NT
+      </text>
+    </svg>
+  );
+}
+
+function WAMap() {
+  return (
+    <svg viewBox="0 0 220 350" className="w-full max-w-sm">
+      {/* Zoomed to Perth metro, not the full state — every current WA
+          club is Perth metro or Mandurah, and a full-state view would
+          leave the whole map empty except one tiny corner in the far
+          south. Built from general geographic knowledge, not traced
+          from a source image at this zoom level. */}
+      <path
+        d="M 100 15 Q 140 12, 155 40 Q 180 55, 175 85
+           Q 195 105, 185 135 Q 200 160, 180 190
+           Q 190 220, 165 245 Q 175 275, 145 295
+           Q 150 320, 120 330 Q 90 335, 75 310
+           Q 50 300, 55 270 Q 30 255, 40 225
+           Q 15 205, 35 175 Q 20 145, 45 120
+           Q 35 90, 60 70 Q 55 40, 85 25 Q 90 15, 100 15 Z"
+        fill="#F7EFDD"
+        stroke="#B8935A"
+        strokeWidth={2}
+      />
+
+      <ellipse cx={111} cy={61} rx={26} ry={20.8} fill="#E8791A" fillOpacity={0.15} />
+      <RegionLabel x={111} y={61} name="Northern Suburbs" />
+
+      <ellipse cx={156} cy={141} rx={26} ry={20.8} fill="#191B41" fillOpacity={0.06} />
+      <RegionLabel x={156} y={141} name="Eastern Suburbs" />
+
+      <Dot x={101} y={161} />
+      <CityLabel x={101} y={182} name="Perth" anchor="middle" />
+
+      <ellipse cx={61} cy={151} rx={26} ry={20.8} fill="#E8791A" fillOpacity={0.15} />
+      <RegionLabel x={61} y={117} name="Western Suburbs" />
+
+      <ellipse cx={101} cy={231} rx={26} ry={20.8} fill="#191B41" fillOpacity={0.06} />
+      <RegionLabel x={101} y={231} name="Southern Suburbs" />
+
+      <ellipse cx={111} cy={301} rx={26} ry={20.8} fill="#E8791A" fillOpacity={0.15} />
+      <RegionLabel x={111} y={301} name="Mandurah / Peel" />
+
+      <text x={110} y={342} fontSize={10} fill="#9CA3AF" textAnchor="middle" fontStyle="italic">
+        Schematic reference only — Perth metro, not the full state
+      </text>
+    </svg>
+  );
+}
+
 export default function RegionMap({ state }: { state: string }) {
   if (state === "NNSW") return <NNSWMap />;
   if (state === "SA") return <SAMap />;
+  if (state === "NT") return <NTMap />;
+  if (state === "WA") return <WAMap />;
   if (state === "VIC") return <VictoriaMap />;
   if (state === "TAS") return <TasmaniaMap />;
   return null;
