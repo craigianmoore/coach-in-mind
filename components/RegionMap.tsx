@@ -145,7 +145,73 @@ function TasmaniaMap() {
   );
 }
 
+function NNSWMap() {
+  return (
+    <svg viewBox="0 0 260 240" className="w-full max-w-sm">
+      {/* Built from general geographic knowledge of the Hunter Region,
+          not traced from a source image like the VIC/TAS maps — this
+          is NNSWF's actual catchment, a small corner of the state, not
+          all of NSW (Football NSW covers Sydney and the rest). */}
+      <path
+        d="M 60 15
+           Q 110 5, 150 20
+           Q 190 30, 200 60
+           Q 215 85, 210 115
+           Q 225 140, 210 165
+           Q 195 190, 165 195
+           Q 140 210, 110 195
+           Q 80 200, 65 175
+           Q 40 165, 35 135
+           Q 15 115, 25 85
+           Q 20 50, 45 30
+           Q 45 15, 60 15 Z"
+        fill="#F7EFDD"
+        stroke="#B8935A"
+        strokeWidth={2}
+      />
+
+      <ellipse cx={175} cy={140} rx={30} ry={26} fill="#191B41" fillOpacity={0.08} />
+      <RegionLabel x={175} y={122} name="Newcastle" />
+      <Dot x={175} y={140} />
+      <CityLabel x={182} y={144} name="Newcastle" />
+
+      <ellipse cx={155} cy={180} rx={28} ry={20} fill="#E8791A" fillOpacity={0.15} />
+      <RegionLabel x={155} y={178} name="Lake Macquarie" />
+      <Dot x={155} y={188} />
+
+      <ellipse cx={195} cy={95} rx={26} ry={20} fill="#E8791A" fillOpacity={0.15} />
+      <RegionLabel x={195} y={78} name="Port Stephens" />
+      <Dot x={195} y={95} />
+
+      <ellipse cx={185} cy={40} rx={30} ry={22} fill="#191B41" fillOpacity={0.06} />
+      <RegionLabel x={185} y={35} name="Mid Coast" />
+      <Dot x={185} y={45} />
+
+      <ellipse cx={115} cy={130} rx={28} ry={22} fill="#E8791A" fillOpacity={0.15} />
+      <RegionLabel x={115} y={128} name="Maitland" />
+      <Dot x={115} y={138} />
+
+      <ellipse cx={75} cy={150} rx={26} ry={22} fill="#191B41" fillOpacity={0.06} />
+      <RegionLabel x={75} y={148} name="Cessnock" />
+      <Dot x={75} y={158} />
+
+      <ellipse cx={90} cy={90} rx={26} ry={22} fill="#E8791A" fillOpacity={0.15} />
+      <RegionLabel x={90} y={88} name="Singleton" />
+      <Dot x={90} y={98} />
+
+      <ellipse cx={70} cy={45} rx={28} ry={22} fill="#191B41" fillOpacity={0.06} />
+      <RegionLabel x={70} y={43} name="Muswellbrook" />
+      <Dot x={70} y={53} />
+
+      <text x={130} y={228} fontSize={10} fill="#9CA3AF" textAnchor="middle" fontStyle="italic">
+        Schematic reference only — NNSWF catchment, not all of NSW
+      </text>
+    </svg>
+  );
+}
+
 export default function RegionMap({ state }: { state: string }) {
+  if (state === "NNSW") return <NNSWMap />;
   if (state === "VIC") return <VictoriaMap />;
   if (state === "TAS") return <TasmaniaMap />;
   return null;
