@@ -6,25 +6,36 @@
 
 export const STATE = "VIC" as const;
 
-export const REGIONS = [
-  "Melbourne (North)",
-  "Melbourne (South)",
-  "Melbourne (East)",
-  "Melbourne (West)",
-  "Geelong",
-  "Greater Ballarat",
-  "Greater Bendigo",
-  "Gippsland",
-  "Latrobe Valley",
-  "Shepparton",
-  "South West",
-  "Sunraysia",
-  "North (TAS)",
-  "North-West (TAS)",
-  "South (TAS)",
-] as const;
+// Regions, grouped by state. Adding a new state later is just a new
+// entry here — everything else (state options, region pickers) is
+// derived from this, not hardcoded separately.
+export const REGIONS_BY_STATE: Record<string, readonly string[]> = {
+  VIC: [
+    "Melbourne (North)",
+    "Melbourne (South)",
+    "Melbourne (East)",
+    "Melbourne (West)",
+    "Geelong",
+    "Greater Ballarat",
+    "Greater Bendigo",
+    "Gippsland",
+    "Latrobe Valley",
+    "Shepparton",
+    "South West",
+    "Sunraysia",
+  ],
+  TAS: ["North", "North-West", "South"],
+};
 
-export const STATE_OPTIONS = ["VIC", "TAS"] as const;
+export const STATE_OPTIONS = Object.keys(REGIONS_BY_STATE);
+
+// Flat combined list — for anywhere that genuinely wants "all regions
+// regardless of state" (the shared Profile page's own region field,
+// Coach2Mentor's forms, which don't need the state-gating Club2Coach
+// vacancies do). Most Club2Coach-specific pickers should use
+// REGIONS_BY_STATE[state] instead, to only show relevant regions.
+export const REGIONS = Object.values(REGIONS_BY_STATE).flat();
+
 export const STATE_LABELS: Record<string, string> = {
   VIC: "Victoria",
   TAS: "Tasmania",
