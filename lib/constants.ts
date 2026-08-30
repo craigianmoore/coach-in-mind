@@ -82,16 +82,43 @@ export const ABILITY_LEVELS = [
   "Youth Talent Pathway",
 ] as const;
 
-export const COMPETITION_LEVELS = [
-  "NPL Victoria",
-  "VPL1 & VPL2",
-  "NPL/VPL Development (U20-23)",
-  "State League 1 & 2",
-  "State League 3-7",
-  "Metropolitan League",
-  "Regional League",
-  "Community / Junior",
-] as const;
+// Competition levels, grouped by state — same pattern as
+// REGIONS_BY_STATE. Add a new state's ladder here as it comes on
+// board.
+export const COMPETITION_LEVELS_BY_STATE: Record<string, readonly string[]> = {
+  VIC: [
+    "NPL Victoria",
+    "VPL1 & VPL2",
+    "NPL/VPL Development (U20-23)",
+    "State League 1 & 2",
+    "State League 3-7",
+    "Metropolitan League",
+    "Regional League",
+    "Community / Junior",
+  ],
+  // Cleaned up from the actual 2026-season competitions clubs listed —
+  // gender is handled by the separate Team Gender field already on
+  // the form, so gendered qualifiers (M+W / Women / Men) have been
+  // dropped here to avoid duplicating that.
+  TAS: [
+    "NPL",
+    "NPL U21s",
+    "WSL",
+    "Northern Championship",
+    "Southern Championship",
+    "Northern Youth Premier League",
+    "Northern Youth Premier League U16s",
+    "Southern Youth Premier League",
+    "Northern Social League 1",
+    "Northern Social League 2",
+    "Southern Social League 1",
+    "Southern Social League 2",
+    "Southern Social League 3",
+    "Social League Over 35s",
+  ],
+};
+
+export const COMPETITION_LEVELS = Object.values(COMPETITION_LEVELS_BY_STATE).flat();
 
 export const AGE_GROUPS = [
   "U6-U8",
