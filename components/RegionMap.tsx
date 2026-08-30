@@ -47,8 +47,8 @@ function VictoriaMap() {
         strokeWidth={2}
       />
 
-      <ellipse cx={43} cy={40} rx={28} ry={24} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={43} y={36} name="Sunraysia" />
+      <ellipse cx={43} cy={39} rx={21.1} ry={18} fill="#E8791A" fillOpacity={0.15} />
+      <RegionLabel x={43} y={35} name="Sunraysia" />
       <Dot x={43} y={21} />
       <CityLabel x={48} y={24} name="Mildura" />
 
@@ -57,40 +57,40 @@ function VictoriaMap() {
       <Dot x={148} y={132} />
       <CityLabel x={154} y={136} name="Bendigo" />
 
-      <ellipse cx={218} cy={120} rx={32} ry={24} fill="#E8791A" fillOpacity={0.15} />
+      <ellipse cx={218} cy={120} rx={21.3} ry={16} fill="#E8791A" fillOpacity={0.15} />
       <RegionLabel x={218} y={103} name="Shepparton" />
       <Dot x={218} y={120} />
       <CityLabel x={195} y={95} name="Wangaratta area" />
 
-      <circle cx={171} cy={185} r={28} fill="#191B41" fillOpacity={0.08} />
+      <circle cx={171} cy={185} r={17} fill="#191B41" fillOpacity={0.08} />
       <RegionLabel x={171} y={168} name="Melbourne" />
       <Dot x={171} y={185} />
       <CityLabel x={177} y={188} name="Melbourne CBD" />
 
-      <ellipse cx={105} cy={165} rx={26} ry={22} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={105} y={148} name="Ballarat" />
+      <ellipse cx={112} cy={172} rx={26} ry={22} fill="#E8791A" fillOpacity={0.15} />
+      <RegionLabel x={112} y={155} name="Ballarat" />
       <Dot x={112} y={172} />
-      <CityLabel x={70} y={172} name="Ballarat" />
+      <CityLabel x={72} y={172} name="Ballarat" />
 
-      <ellipse cx={125} cy={202} rx={26} ry={18} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={125} y={200} name="Geelong" />
+      <ellipse cx={119} cy={193} rx={25.9} ry={18} fill="#E8791A" fillOpacity={0.15} />
+      <RegionLabel x={119} y={188} name="Geelong" />
       <Dot x={125} y={202} />
       <CityLabel x={107} y={216} name="Geelong" />
 
-      <ellipse cx={65} cy={195} rx={26} ry={20} fill="#191B41" fillOpacity={0.06} />
-      <RegionLabel x={65} y={178} name="South West" />
+      <ellipse cx={79} cy={193} rx={23.4} ry={18} fill="#191B41" fillOpacity={0.06} />
+      <RegionLabel x={79} y={190} name="South West" />
       <Dot x={79} y={211} />
-      <CityLabel x={20} y={222} name="Warrnambool" />
+      <CityLabel x={30} y={224} name="Warrnambool" />
 
-      <ellipse cx={248} cy={172} rx={32} ry={24} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={248} y={155} name="Gippsland" />
+      <ellipse cx={240} cy={182} rx={16} ry={12} fill="#E8791A" fillOpacity={0.15} />
+      <RegionLabel x={240} y={165} name="Gippsland" />
       <Dot x={240} y={182} />
-      <CityLabel x={245} y={200} name="Bairnsdale" />
+      <CityLabel x={247} y={185} name="Bairnsdale" />
 
-      <ellipse cx={210} cy={205} rx={24} ry={16} fill="#191B41" fillOpacity={0.1} />
-      <RegionLabel x={195} y={225} name="Latrobe Valley" />
+      <ellipse cx={215} cy={191} rx={24} ry={16} fill="#191B41" fillOpacity={0.1} />
+      <RegionLabel x={215} y={225} name="Latrobe Valley" />
       <Dot x={218} y={203} />
-      <CityLabel x={175} y={200} name="Traralgon" />
+      <CityLabel x={180} y={200} name="Traralgon" />
 
       <text x={175} y={238} fontSize={10} fill="#9CA3AF" textAnchor="middle" fontStyle="italic">
         Schematic reference only — not to scale
@@ -113,7 +113,7 @@ function TasmaniaMap() {
         strokeWidth={2}
       />
 
-      <ellipse cx={100} cy={45} rx={48} ry={28} fill="#191B41" fillOpacity={0.1} />
+      <ellipse cx={86} cy={64} rx={39.1} ry={23} fill="#191B41" fillOpacity={0.1} />
       <RegionLabel x={100} y={28} name="North-West" />
       <Dot x={92} y={44} />
       <CityLabel x={68} y={57} name="Burnie" />
@@ -122,12 +122,12 @@ function TasmaniaMap() {
       <Dot x={121} y={53} />
       <CityLabel x={127} y={50} name="Devonport" />
 
-      <ellipse cx={195} cy={65} rx={45} ry={30} fill="#191B41" fillOpacity={0.1} />
+      <ellipse cx={196} cy={72} rx={45} ry={30} fill="#191B41" fillOpacity={0.1} />
       <RegionLabel x={195} y={47} name="North" />
       <Dot x={172} y={74} />
       <CityLabel x={178} y={70} name="Launceston" />
 
-      <ellipse cx={148} cy={160} rx={75} ry={65} fill="#191B41" fillOpacity={0.05} />
+      <ellipse cx={148} cy={160} rx={69} ry={60} fill="#191B41" fillOpacity={0.05} />
       <RegionLabel x={148} y={150} name="South" />
       <Dot x={70} y={125} />
       <CityLabel x={30} y={122} name="Queenstown" />
@@ -170,36 +170,36 @@ function NNSWMap() {
         strokeWidth={2}
       />
 
-      <ellipse cx={175} cy={140} rx={30} ry={26} fill="#191B41" fillOpacity={0.08} />
+      <ellipse cx={175} cy={140} rx={29.9} ry={26} fill="#191B41" fillOpacity={0.08} />
       <RegionLabel x={175} y={122} name="Newcastle" />
       <Dot x={175} y={140} />
       <CityLabel x={182} y={144} name="Newcastle" />
 
-      <ellipse cx={155} cy={180} rx={28} ry={20} fill="#E8791A" fillOpacity={0.15} />
+      <ellipse cx={155} cy={188} rx={14} ry={10} fill="#E8791A" fillOpacity={0.15} />
       <RegionLabel x={155} y={178} name="Lake Macquarie" />
       <Dot x={155} y={188} />
 
-      <ellipse cx={195} cy={95} rx={26} ry={20} fill="#E8791A" fillOpacity={0.15} />
+      <ellipse cx={195} cy={95} rx={15.6} ry={12} fill="#E8791A" fillOpacity={0.15} />
       <RegionLabel x={195} y={78} name="Port Stephens" />
       <Dot x={195} y={95} />
 
-      <ellipse cx={185} cy={40} rx={30} ry={22} fill="#191B41" fillOpacity={0.06} />
-      <RegionLabel x={185} y={35} name="Mid Coast" />
+      <ellipse cx={168} cy={55} rx={27.2} ry={20} fill="#191B41" fillOpacity={0.06} />
+      <RegionLabel x={168} y={48} name="Mid Coast" />
       <Dot x={185} y={45} />
 
-      <ellipse cx={115} cy={130} rx={28} ry={22} fill="#E8791A" fillOpacity={0.15} />
+      <ellipse cx={115} cy={138} rx={27.9} ry={22} fill="#E8791A" fillOpacity={0.15} />
       <RegionLabel x={115} y={128} name="Maitland" />
       <Dot x={115} y={138} />
 
-      <ellipse cx={75} cy={150} rx={26} ry={22} fill="#191B41" fillOpacity={0.06} />
+      <ellipse cx={75} cy={158} rx={22.4} ry={19} fill="#191B41" fillOpacity={0.06} />
       <RegionLabel x={75} y={148} name="Cessnock" />
       <Dot x={75} y={158} />
 
-      <ellipse cx={90} cy={90} rx={26} ry={22} fill="#E8791A" fillOpacity={0.15} />
+      <ellipse cx={90} cy={98} rx={26} ry={22} fill="#E8791A" fillOpacity={0.15} />
       <RegionLabel x={90} y={88} name="Singleton" />
       <Dot x={90} y={98} />
 
-      <ellipse cx={70} cy={45} rx={28} ry={22} fill="#191B41" fillOpacity={0.06} />
+      <ellipse cx={70} cy={53} rx={27.9} ry={22} fill="#191B41" fillOpacity={0.06} />
       <RegionLabel x={70} y={43} name="Muswellbrook" />
       <Dot x={70} y={53} />
 
