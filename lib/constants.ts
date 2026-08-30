@@ -29,6 +29,12 @@ export const REGIONS_BY_STATE: Record<string, readonly string[]> = {
   // Football NSW (Sydney and the rest of the state) is a separate
   // Member Federation and isn't covered by this yet.
   NNSW: ["Newcastle", "Lake Macquarie", "Maitland", "Cessnock", "Port Stephens", "Singleton", "Muswellbrook", "Mid Coast"],
+  // Grouped from suburb-level club data into Adelaide's standard
+  // metro zones — no clean LGA-style field was provided for SA.
+  SA: ["Adelaide CBD", "Northern Adelaide", "North Eastern Adelaide", "Eastern Adelaide", "Southern Adelaide", "Western Adelaide"],
+  // Canberra's real district names, plus Queanbeyan — geographically
+  // NSW, but home to two clubs that play in Capital Football.
+  ACT: ["ACT-wide"],
 };
 
 export const STATE_OPTIONS = Object.keys(REGIONS_BY_STATE);
@@ -44,6 +50,8 @@ export const STATE_LABELS: Record<string, string> = {
   VIC: "Victoria",
   TAS: "Tasmania",
   NNSW: "Northern NSW",
+  SA: "South Australia",
+  ACT: "ACT",
 };
 
 // The actual governing body name for each state/territory — used
@@ -54,6 +62,8 @@ export const MEMBER_FEDERATIONS: Record<string, string> = {
   VIC: "Football Victoria",
   TAS: "Football Tasmania",
   NNSW: "Northern NSW Football",
+  SA: "Football South Australia",
+  ACT: "Capital Football",
 };
 
 // The accreditation ladder, lowest to highest. Used for both "what do you
@@ -133,6 +143,10 @@ export const COMPETITION_LEVELS_BY_STATE: Record<string, readonly string[]> = {
     "Zone League Two",
     "Zone League Three",
   ],
+  // Cleaned of sponsor prefixes ("RAA", "HPG Homes", "Apex Steel") and
+  // promotion/relegation/result annotations from the 2026-season data.
+  SA: ["NPL SA (Men's)", "NPL SA (Women's)", "State League 1"],
+  ACT: ["NPL Men's", "NPL Women's"],
 };
 
 export const COMPETITION_LEVELS = Object.values(COMPETITION_LEVELS_BY_STATE).flat();
