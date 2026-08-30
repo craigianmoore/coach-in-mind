@@ -176,7 +176,7 @@ export const AGE_GROUPS = [
   "Masters",
 ] as const;
 
-export const GENDER_OPTIONS = ["Male", "Female", "No preference"] as const;
+export const GENDER_OPTIONS = ["Female", "Male", "No preference"] as const;
 
 // Coach2Mentor specific
 export const MENTOR_SPECIALISMS = [
