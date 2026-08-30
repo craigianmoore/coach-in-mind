@@ -15,6 +15,7 @@ import {
   ACCREDITATION_LEVELS,
   CLUB2COACH_CLUB_PACKAGES,
   STATE_LABELS,
+  MEMBER_FEDERATIONS,
 } from "@/lib/constants";
 import type { Club, Club2CoachClubVacancy, Club2CoachShare, Person } from "@/types/database";
 import { notifyAdmin } from "@/lib/notify";
@@ -146,6 +147,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
   const [vacancies, setVacancies] = useState<Club2CoachClubVacancy[]>([]);
   const [clubs, setClubs] = useState<Club[]>([]);
+  const [memberFederation, setMemberFederation] = useState<string>("");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null); // null while showForm=false; "new" or a vacancy id while true
   const [form, setForm] = useState<FormState>(emptyForm());
@@ -199,6 +201,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     setOpenCountMessage(null);
     setError(null);
     setActivity(null);
+    setMemberFederation("");
   }
 
   async function openEditForm(v: Club2CoachClubVacancy) {
@@ -208,6 +211,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     setOpenCountMessage(null);
     setError(null);
     setActivity(null);
+    setMemberFederation(v.state ?? "");
 
     const { data } = await supabase
       .from("club2coach_shares")
@@ -221,6 +225,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     setShowForm(false);
     setEditingId(null);
     setActivity(null);
+    setMemberFederation("");
   }
 
   function toggleHint(value: string) {
@@ -257,11 +262,19 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     e.preventDefault();
     setError(null);
 
+    if (!memberFederation) {
+      setError("Please select your Member Federation first.");
+      return;
+    }
     const matchedClub = clubs.find(
-      (c) => c.name.trim().toLowerCase() === form.clubName.trim().toLowerCase()
+      (c) =>
+        c.state === memberFederation &&
+        c.name.trim().toLowerCase() === form.clubName.trim().toLowerCase()
     );
     if (!matchedClub) {
-      setError("Please select a club from the suggestions list — start typing and choose a match.");
+      setError(
+        "Please select a club from the suggestions list — start typing and choose a match. If your club doesn't appear, double-check you've selected the right Member Federation above."
+      );
       return;
     }
 
@@ -332,7 +345,12 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   // Reacts to whatever's currently typed in the club field — before a
   // valid club is picked (or submitted), show every region across all
   // states so the field stays usable while typing.
-  const typedClub = clubs.find(
+  // Only clubs within the chosen Member Federation — closes the "two
+  // clubs with the same name in different states" collision risk, and
+  // keeps the suggestions list relevant instead of nationwide.
+  const clubsInFederation = memberFederation ? clubs.filter((c) => c.state === memberFederation) : [];
+
+  const typedClub = clubsInFederation.find(
     (c) => c.name.trim().toLowerCase() === form.clubName.trim().toLowerCase()
   );
   const regionOptions = typedClub ? REGIONS_BY_STATE[typedClub.state] ?? REGIONS : REGIONS;
@@ -540,18 +558,45 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
         <div>
+          <label className="text-xs font-semibold uppercase text-gray-500">Member Federation *</label>
+          <select
+            required
+            value={memberFederation}
+            onChange={(e) => {
+              setMemberFederation(e.target.value);
+              // Previously-typed club name may belong to a different
+              // federation — clear it so nothing mismatched sticks
+              // around silently.
+              setForm((f) => ({ ...f, clubName: "" }));
+            }}
+            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+          >
+            <option value="">Select your Member Federation…</option>
+            {Object.entries(MEMBER_FEDERATIONS).map(([code, label]) => (
+              <option key={code} value={code}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-500">
+            This narrows the club list below to just your federation's clubs.
+          </p>
+        </div>
+
+        <div>
           <label className="text-xs font-semibold uppercase text-gray-500">Club name *</label>
           <input
             required
+            disabled={!memberFederation}
             list="club-options"
             autoComplete="off"
             value={form.clubName}
             onChange={(e) => setForm((f) => ({ ...f, clubName: e.target.value }))}
-            placeholder="Start typing your club name…"
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+            placeholder={memberFederation ? "Start typing your club name…" : "Select your Member Federation first"}
+            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-100 disabled:text-gray-400"
           />
           <datalist id="club-options">
-            {clubs.map((c) => (
+            {clubsInFederation.map((c) => (
               <option key={c.id} value={c.name} />
             ))}
           </datalist>
