@@ -3,16 +3,16 @@
 import { useEffect, useState } from "react";
 import RequireProfile from "@/components/RequireProfile";
 import CheckboxGroup from "@/components/CheckboxGroup";
+import GroupedRegionCheckboxGroup from "@/components/GroupedRegionCheckboxGroup";
 import { createClient } from "@/lib/supabase/client";
 import {
   GENDER_OPTIONS,
   AVAILABILITY_OPTIONS,
-  REGIONS,
   ACCREDITATION_LEVELS,
   CAREER_STAGES,
   MENTOR_SPECIALISMS,
   RATE_UNITS,
-  ROLE_PRICES_AUD,
+  COACH2MENTOR_MENTOR_CAPACITY_PACKAGES,
 } from "@/lib/constants";
 import type { Coach2MentorMentorListing, Coach2MentorRequest, Person } from "@/types/database";
 import { notifyAdmin } from "@/lib/notify";
@@ -41,7 +41,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
   const [rateNegotiable, setRateNegotiable] = useState(false);
   const [inPersonDiffers, setInPersonDiffers] = useState(false);
   const [inPersonAmount, setInPersonAmount] = useState("");
-  const [maxMentees, setMaxMentees] = useState("");
+  const [selectedCapacity, setSelectedCapacity] = useState(1);
   const [currentlyOpen, setCurrentlyOpen] = useState(true);
   const [bio, setBio] = useState("");
   const [notes, setNotes] = useState("");
@@ -70,7 +70,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
     setRateNegotiable(false);
     setInPersonDiffers(false);
     setInPersonAmount("");
-    setMaxMentees("");
+    setSelectedCapacity(1);
     setCurrentlyOpen(true);
     setBio("");
     setNotes("");
@@ -103,7 +103,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       setRateNegotiable(l.rate_negotiable);
       setInPersonDiffers(l.in_person_rate_differs);
       setInPersonAmount(l.in_person_rate_amount?.toString() ?? "");
-      setMaxMentees(l.max_mentees?.toString() ?? "");
+      setSelectedCapacity(l.max_mentees ?? 1);
       setCurrentlyOpen(l.currently_open);
       setBio(l.bio ?? "");
       setNotes(l.notes ?? "");
@@ -150,7 +150,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       rate_negotiable: rateNegotiable,
       in_person_rate_differs: inPersonDiffers,
       in_person_rate_amount: inPersonDiffers && inPersonAmount ? Number(inPersonAmount) : null,
-      max_mentees: maxMentees ? Number(maxMentees) : null,
+      max_mentees: selectedCapacity,
       currently_open: currentlyOpen,
       bio,
       notes,
@@ -216,15 +216,54 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           }`}
         >
           {existing.paid ? (
-            <>✓ Your profile is active and visible to coaches searching for a mentor.</>
+            <>
+              ✓ Your profile is active — Coach In Mind will introduce you to up to{" "}
+              {existing.max_mentees} coach{existing.max_mentees === 1 ? "" : "es"} based on your
+              capacity.
+            </>
           ) : (
             <>
-              <strong>Payment required (${ROLE_PRICES_AUD.coach2mentor_mentor} AUD):</strong> save
-              your profile, then Coach In Mind will be in touch about how
-              to pay. Once confirmed, coaches will be able to find and
-              request you.
+              <strong>
+                Payment required (${COACH2MENTOR_MENTOR_CAPACITY_PACKAGES[selectedCapacity]} AUD):
+              </strong>{" "}
+              save your profile, then Coach In Mind will be in touch about how to pay. Once
+              confirmed, we'll start introducing you to coaches.
             </>
           )}
+        </div>
+      )}
+
+      {!existing?.paid && (
+        <div className="mt-4 rounded-xl border bg-white p-4">
+          <p className="text-xs font-semibold uppercase text-gray-500">
+            How many mentees can you take on?
+          </p>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {Object.entries(COACH2MENTOR_MENTOR_CAPACITY_PACKAGES).map(([count, price]) => (
+              <label
+                key={count}
+                className={`cursor-pointer rounded-lg border-2 p-3 text-center ${
+                  selectedCapacity === Number(count) ? "border-brand-navy bg-brand-navy/5" : "border-gray-200"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="capacity"
+                  className="sr-only"
+                  checked={selectedCapacity === Number(count)}
+                  onChange={() => setSelectedCapacity(Number(count))}
+                />
+                <p className="font-semibold">
+                  {count} mentee{count === "1" ? "" : "s"}
+                </p>
+                <p className="text-sm text-gray-500">${price} AUD</p>
+              </label>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-gray-500">
+            More capacity costs more upfront, but most mentors recoup it within a session or two
+            at their own rate.
+          </p>
         </div>
       )}
 
@@ -266,7 +305,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
             Regions you can serve — select all that apply
           </label>
           <div className="mt-1">
-            <CheckboxGroup options={REGIONS} selected={regionsServed} onToggle={toggleRegion} />
+            <GroupedRegionCheckboxGroup selected={regionsServed} onToggle={toggleRegion} />
           </div>
         </div>
 
@@ -326,21 +365,15 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           </p>
         </div>
 
-        <div>
-          <label className="text-xs font-semibold uppercase text-gray-500">
-            How many mentees can you take on?
-          </label>
-          <input
-            type="number"
-            value={maxMentees}
-            onChange={(e) => setMaxMentees(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            As a guide, most mentors take on 2–4 mentees at a time to give
-            each one proper attention.
-          </p>
-        </div>
+        {existing?.paid && (
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">Mentee capacity</label>
+            <p className="mt-1 text-sm text-gray-700">
+              {selectedCapacity} mentee{selectedCapacity === 1 ? "" : "s"} — to change this, contact
+              Coach In Mind about upgrading your package.
+            </p>
+          </div>
+        )}
 
         <div>
           <p className="text-xs font-semibold uppercase text-gray-500">Rate</p>
@@ -517,8 +550,8 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           </div>
           {requests.length === 0 ? (
             <p className="mt-3 text-sm text-gray-500">
-              No requests yet — coaches browsing Coach2Mentor will find you here once your
-              profile's live.
+              No introductions yet — Coach In Mind reviews coaches looking for a mentor and will
+              put suitable matches in front of you here once your profile's live.
             </p>
           ) : (
             <div className="mt-4 flex flex-col gap-2">
