@@ -9,6 +9,7 @@ import {
   COACHING_ROLES,
   ABILITY_LEVELS,
   COMPETITION_LEVELS,
+  COMPETITION_LEVELS_BY_STATE,
   AGE_GROUPS,
   REGIONS,
   REGIONS_BY_STATE,
@@ -351,10 +352,13 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   // keeps the suggestions list relevant instead of nationwide.
   const clubsInFederation = memberFederation ? clubs.filter((c) => c.state === memberFederation) : [];
 
-  const typedClub = clubsInFederation.find(
-    (c) => c.name.trim().toLowerCase() === form.clubName.trim().toLowerCase()
-  );
-  const regionOptions = typedClub ? REGIONS_BY_STATE[typedClub.state] ?? REGIONS : REGIONS;
+  // Scoped directly off the chosen federation — doesn't wait on a
+  // specific club being typed, since the federation alone is enough
+  // to know which region/competition ladder applies.
+  const regionOptions = memberFederation ? REGIONS_BY_STATE[memberFederation] ?? REGIONS : REGIONS;
+  const competitionLevelOptions = memberFederation
+    ? COMPETITION_LEVELS_BY_STATE[memberFederation] ?? COMPETITION_LEVELS
+    : COMPETITION_LEVELS;
 
 
   if (!showForm) {
@@ -564,11 +568,23 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             required
             value={memberFederation}
             onChange={(e) => {
-              setMemberFederation(e.target.value);
-              // Previously-typed club name may belong to a different
-              // federation — clear it so nothing mismatched sticks
-              // around silently.
-              setForm((f) => ({ ...f, clubName: "" }));
+              const newState = e.target.value;
+              setMemberFederation(newState);
+              // Previously-typed club name, region, and competition
+              // level may all belong to a different federation —
+              // reset them to valid defaults for the new one rather
+              // than leaving a stale, invalid value sitting silently
+              // in the form.
+              const newRegions = newState ? REGIONS_BY_STATE[newState] ?? REGIONS : REGIONS;
+              const newLevels = newState
+                ? COMPETITION_LEVELS_BY_STATE[newState] ?? COMPETITION_LEVELS
+                : COMPETITION_LEVELS;
+              setForm((f) => ({
+                ...f,
+                clubName: "",
+                region: newRegions[0],
+                competitionLevel: newLevels[0],
+              }));
             }}
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
           >
@@ -629,7 +645,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
               onChange={(e) => setForm((f) => ({ ...f, competitionLevel: e.target.value }))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             >
-              {COMPETITION_LEVELS.map((c) => (
+              {competitionLevelOptions.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
