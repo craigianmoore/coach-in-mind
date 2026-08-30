@@ -44,6 +44,34 @@ export const REGIONS_BY_STATE: Record<string, readonly string[]> = {
   // Real Football Queensland zone names — genuinely spread across the
   // whole state, unlike most of the others so far.
   QLD: ["Metro", "South Coast", "Sunshine Coast", "Northern", "Wide Bay", "Central Coast", "Darling Downs", "Far North & Gulf", "Whitsunday Coast", "South Coast (NSW)"],
+  // Almost every current Football NSW club is Sydney metro with no
+  // suburb-level detail provided — same call as Capital Football:
+  // one region rather than inventing sub-areas the data doesn't support.
+  // Real Football NSW association/branch regions — genuinely
+  // available now that per-club data confirmed this structure (13
+  // metro association areas + 3 regional branches). Most currently
+  // loaded clubs (the NPL/League tier) are only known generically as
+  // "Sydney metro" and aren't pre-assigned to one of these specific
+  // areas — this list is for whoever's advertising a vacancy or
+  // profile to pick the one that's actually accurate for them.
+  NSW: [
+    "Central Coast",
+    "Eastern Sydney",
+    "Hills District",
+    "Illawarra/South Coast",
+    "Inner-West/South Sydney",
+    "North Sydney",
+    "North-West Sydney",
+    "Northern Beaches",
+    "South-West Sydney",
+    "Southern Sydney",
+    "St George",
+    "Sutherland Shire",
+    "Western Sydney",
+    "Central-West NSW",
+    "Riverina (Albury/Wagga/Griffith)",
+    "Southern NSW (Shoalhaven/Highlands/South Coast)",
+  ],
 };
 
 export const STATE_OPTIONS = Object.keys(REGIONS_BY_STATE);
@@ -64,6 +92,7 @@ export const STATE_LABELS: Record<string, string> = {
   NT: "Northern Territory",
   WA: "Western Australia",
   QLD: "Queensland",
+  NSW: "New South Wales",
 };
 
 // The actual governing body name for each state/territory — used
@@ -72,6 +101,7 @@ export const STATE_LABELS: Record<string, string> = {
 // entries here as more states come on board.
 export const MEMBER_FEDERATIONS: Record<string, string> = {
   ACT: "Capital Football",
+  NSW: "Football NSW",
   NT: "Football NT",
   QLD: "Football Queensland",
   SA: "Football South Australia",
@@ -181,6 +211,18 @@ export const COMPETITION_LEVELS_BY_STATE: Record<string, readonly string[]> = {
     "Metro Divisional 4",
     "Metro Divisional 5",
     "Metro Divisional 6",
+  ],
+  // Corrected against Football NSW's confirmed 2026 structure:
+  // League One runs separate Men's/Women's tiers, but League Two is
+  // Men's only — the women's pyramid has just 3 levels (NPL, League
+  // One, then SAFL/amateur), not 4.
+  NSW: [
+    "NPL NSW (Men's)",
+    "NPL NSW (Women's)",
+    "Football NSW League One (Men's)",
+    "Football NSW League One (Women's)",
+    "Football NSW League Two (Men's)",
+    "Sydney Amateur Football League (Premier/Championship)",
   ],
 };
 
