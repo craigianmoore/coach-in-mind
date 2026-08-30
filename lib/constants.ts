@@ -41,6 +41,15 @@ export const STATE_LABELS: Record<string, string> = {
   TAS: "Tasmania",
 };
 
+// The actual governing body name for each state/territory — used
+// specifically for the "which Member Federation" picker, since
+// that's the real term clubs and coaches will recognise. Add more
+// entries here as more states come on board.
+export const MEMBER_FEDERATIONS: Record<string, string> = {
+  VIC: "Football Victoria",
+  TAS: "Football Tasmania",
+};
+
 // The accreditation ladder, lowest to highest. Used for both "what do you
 // hold" and "what's required" fields, and for match scoring (a coach's
 // index in this list must meet or exceed the requirement).
