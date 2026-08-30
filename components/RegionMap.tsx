@@ -210,8 +210,54 @@ function NNSWMap() {
   );
 }
 
+function SAMap() {
+  return (
+    <svg viewBox="0 0 220 260" className="w-full max-w-sm">
+      {/* Built from general geographic knowledge of Adelaide metro,
+          not traced from a source image — no reference map was
+          available for this one, unlike VIC/TAS. Coast runs down the
+          west side, Adelaide Hills form the uneven eastern edge. */}
+      <path
+        d="M 100 10 Q 130 8, 150 25 Q 175 40, 170 70 Q 190 90, 175 115
+           Q 195 140, 175 165 Q 190 190, 165 210 Q 175 235, 145 245
+           Q 110 250, 90 230 Q 60 225, 55 195 Q 30 180, 40 150
+           Q 15 130, 30 100 Q 20 70, 45 50 Q 40 25, 70 15 Q 85 8, 100 10 Z"
+        fill="#F7EFDD"
+        stroke="#B8935A"
+        strokeWidth={2}
+      />
+
+      <ellipse cx={100} cy={130} rx={24} ry={19.2} fill="#191B41" fillOpacity={0.08} />
+      <RegionLabel x={100} y={130} name="Adelaide CBD" />
+
+      <ellipse cx={100} cy={42} rx={24} ry={19.2} fill="#E8791A" fillOpacity={0.15} />
+      <RegionLabel x={100} y={42} name="Northern Adelaide" />
+
+      <ellipse cx={155} cy={72} rx={16} ry={12.8} fill="#191B41" fillOpacity={0.06} />
+      <RegionLabel x={155} y={72} name="North Eastern Adelaide" anchor="end" />
+
+      <ellipse cx={150} cy={150} rx={24} ry={19.2} fill="#E8791A" fillOpacity={0.15} />
+      <RegionLabel x={150} y={160} name="Eastern Adelaide" />
+
+      <ellipse cx={100} cy={222} rx={12} ry={9.6} fill="#191B41" fillOpacity={0.06} />
+      <RegionLabel x={100} y={222} name="Southern Adelaide" />
+
+      <ellipse cx={58} cy={148} rx={20} ry={16} fill="#E8791A" fillOpacity={0.15} />
+      <RegionLabel x={58} y={182} name="Western Adelaide" anchor="start" />
+
+      <text x={110} y={13} fontSize={9.5} fill="#9CA3AF" textAnchor="middle">
+        Gulf St Vincent →
+      </text>
+      <text x={110} y={252} fontSize={10} fill="#9CA3AF" textAnchor="middle" fontStyle="italic">
+        Schematic reference only — not to scale
+      </text>
+    </svg>
+  );
+}
+
 export default function RegionMap({ state }: { state: string }) {
   if (state === "NNSW") return <NNSWMap />;
+  if (state === "SA") return <SAMap />;
   if (state === "VIC") return <VictoriaMap />;
   if (state === "TAS") return <TasmaniaMap />;
   return null;
