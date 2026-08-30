@@ -145,194 +145,168 @@ function TasmaniaMap() {
   );
 }
 
+// Shared NSW outline — contour-traced and smoothed from a real
+// reference map, used by both NNSWMap and NSWMap since Northern NSW
+// Football and Football NSW are both geographically within NSW, just
+// different federations covering different parts of it.
+const NSW_OUTLINE_PATH =
+  "M 292.0 52.5 Q 299.2 8.6, 282.7 11.1 Q 266.2 13.5, 264.9 9.8 Q 263.5 6.2, 259.1 17.7 " +
+  "Q 254.6 29.2, 232.3 21.9 Q 210.1 14.6, 201.6 22.6 Q 193.1 30.5, 104.6 30.5 " +
+  "Q 16.2 30.5, 15.1 101.4 Q 14.0 172.3, 27.9 171.9 Q 41.9 171.5, 43.1 178.2 " +
+  "Q 44.3 185.0, 54.5 184.7 Q 64.8 184.4, 73.4 199.4 Q 82.1 214.4, 89.9 217.8 " +
+  "Q 97.7 221.1, 119.3 220.3 Q 140.9 219.5, 145.9 228.7 Q 150.9 237.9, 154.6 231.0 " +
+  "Q 158.2 224.1, 166.1 224.2 Q 173.9 224.4, 175.7 231.8 Q 177.4 239.2, 197.7 248.4 " +
+  "Q 217.9 257.6, 228.6 215.2 Q 239.2 172.8, 262.0 134.6 Q 284.9 96.4, 292.0 52.5 Z";
+
 function NNSWMap() {
   return (
-    <svg viewBox="0 0 260 240" className="w-full max-w-sm">
-      {/* Built from general geographic knowledge of the Hunter Region,
-          not traced from a source image like the VIC/TAS maps — this
-          is NNSWF's actual catchment, a small corner of the state, not
-          all of NSW (Football NSW covers Sydney and the rest). */}
-      <path
-        d="M 60 15
-           Q 110 5, 150 20
-           Q 190 30, 200 60
-           Q 215 85, 210 115
-           Q 225 140, 210 165
-           Q 195 190, 165 195
-           Q 140 210, 110 195
-           Q 80 200, 65 175
-           Q 40 165, 35 135
-           Q 15 115, 25 85
-           Q 20 50, 45 30
-           Q 45 15, 60 15 Z"
-        fill="#F7EFDD"
-        stroke="#B8935A"
-        strokeWidth={2}
-      />
+    <svg viewBox="0 0 324 258" className="w-full max-w-md">
+      {/* Real NSW outline (contour-traced from a source image), not a
+          zoomed Hunter-only blob like before. The dropdown still has
+          all 8 real Hunter-area names (Newcastle, Lake Macquarie,
+          Maitland, Cessnock, Port Stephens, Singleton, Muswellbrook,
+          Mid Coast) — cramming all 8 onto the map at this scale isn't
+          legible, so it shows the two that anchor the real spread. */}
+      <path d={NSW_OUTLINE_PATH} fill="#F7EFDD" stroke="#B8935A" strokeWidth={2} />
 
-      <ellipse cx={175} cy={140} rx={29.9} ry={26} fill="#191B41" fillOpacity={0.08} />
-      <RegionLabel x={175} y={122} name="Newcastle" />
-      <Dot x={175} y={140} />
-      <CityLabel x={182} y={144} name="Newcastle" />
+      <ellipse cx={242} cy={127} rx={16} ry={13.6} fill="#191B41" fillOpacity={0.08} />
+      <Dot x={242} y={127} />
+      <RegionLabel x={242} y={113} name="Hunter Region" anchor="end" />
 
-      <ellipse cx={155} cy={188} rx={14} ry={10} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={155} y={178} name="Lake Macquarie" />
-      <Dot x={155} y={188} />
+      <ellipse cx={260} cy={102} rx={10} ry={8.5} fill="#E8791A" fillOpacity={0.15} />
+      <Dot x={260} y={102} />
+      <RegionLabel x={260} y={88} name="Mid Coast" />
+    </svg>
+  );
+}
 
-      <ellipse cx={195} cy={95} rx={15.6} ry={12} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={195} y={78} name="Port Stephens" />
-      <Dot x={195} y={95} />
+function NSWMap() {
+  return (
+    <svg viewBox="0 0 324 258" className="w-full max-w-md">
+      {/* Same real traced NSW outline as NNSWMap. Sydney metro's 13
+          association-level regions aren't individually shown — too
+          dense to fit legibly at this scale — but the three regional
+          branches and Sydney's overall position are all real. */}
+      <path d={NSW_OUTLINE_PATH} fill="#F7EFDD" stroke="#B8935A" strokeWidth={2} />
 
-      <ellipse cx={168} cy={55} rx={27.2} ry={20} fill="#191B41" fillOpacity={0.06} />
-      <RegionLabel x={150} y={22} name="Mid Coast" />
-      <Dot x={185} y={45} />
+      <ellipse cx={227} cy={175} rx={14} ry={11.9} fill="#191B41" fillOpacity={0.08} />
+      <Dot x={227} y={175} />
+      <RegionLabel x={227} y={161} name="Sydney" />
 
-      <ellipse cx={115} cy={138} rx={27.9} ry={22} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={115} y={128} name="Maitland" />
-      <Dot x={115} y={138} />
+      <ellipse cx={159} cy={109} rx={16} ry={13.6} fill="#E8791A" fillOpacity={0.15} />
+      <Dot x={159} y={109} />
+      <RegionLabel x={159} y={95} name="Central-West NSW" />
 
-      <ellipse cx={75} cy={158} rx={22.4} ry={19} fill="#191B41" fillOpacity={0.06} />
-      <RegionLabel x={75} y={148} name="Cessnock" />
-      <Dot x={75} y={158} />
+      <ellipse cx={133} cy={197} rx={16} ry={13.6} fill="#191B41" fillOpacity={0.06} />
+      <Dot x={133} y={197} />
+      <RegionLabel x={133} y={183} name="Riverina" />
 
-      <ellipse cx={90} cy={98} rx={26} ry={22} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={90} y={88} name="Singleton" />
-      <Dot x={90} y={98} />
-
-      <ellipse cx={70} cy={53} rx={27.9} ry={22} fill="#191B41" fillOpacity={0.06} />
-      <RegionLabel x={70} y={43} name="Muswellbrook" />
-      <Dot x={70} y={53} />
-
-      <text x={130} y={228} fontSize={10} fill="#9CA3AF" textAnchor="middle" fontStyle="italic">
-        Schematic reference only — NNSWF catchment, not all of NSW
-      </text>
+      <ellipse cx={219} cy={199} rx={12} ry={10.2} fill="#E8791A" fillOpacity={0.15} />
+      <Dot x={219} y={199} />
+      <RegionLabel x={233} y={199} name="Southern NSW" anchor="start" />
     </svg>
   );
 }
 
 function SAMap() {
   return (
-    <svg viewBox="0 0 220 260" className="w-full max-w-sm">
-      {/* Built from general geographic knowledge of Adelaide metro,
-          not traced from a source image — no reference map was
-          available for this one, unlike VIC/TAS. Coast runs down the
-          west side, Adelaide Hills form the uneven eastern edge. */}
+    <svg viewBox="0 0 300 260" className="w-full max-w-md">
+      {/* Real SA outline (contour-traced from a source image), not
+          the general-knowledge shape used before. Adelaide's 6 metro
+          sub-regions aren't individually shown — this corner is too
+          narrow (a peninsula tip) to fit them legibly — but they're
+          still all real, selectable options in the dropdown. */}
       <path
-        d="M 100 10 Q 130 8, 150 25 Q 175 40, 170 70 Q 190 90, 175 115
-           Q 195 140, 175 165 Q 190 190, 165 210 Q 175 235, 145 245
-           Q 110 250, 90 230 Q 60 225, 55 195 Q 30 180, 40 150
-           Q 15 130, 30 100 Q 20 70, 45 50 Q 40 25, 70 15 Q 85 8, 100 10 Z"
+        d="M 152.2 15.8 Q 25.5 16.0, 25.8 84.4 Q 26.0 152.8, 50.0 151.0
+           Q 74.0 149.2, 82.8 155.5 Q 91.5 161.8, 108.0 163.2
+           Q 124.5 164.5, 130.5 169.3 Q 136.5 174.2, 136.7 181.7
+           Q 136.8 189.2, 142.2 190.1 Q 147.5 191.0, 154.2 207.9
+           Q 160.8 224.8, 165.8 225.3 Q 170.8 225.8, 176.3 218.8
+           Q 181.8 211.8, 190.7 206.8 Q 199.5 201.8, 201.3 193.4
+           Q 203.2 185.0, 208.8 185.0 Q 214.5 185.0, 214.0 193.4
+           Q 213.5 201.8, 209.3 208.4 Q 205.2 215.0, 205.0 226.6
+           Q 204.8 238.2, 207.5 238.0 Q 210.2 237.8, 212.6 229.5
+           Q 215.0 221.2, 218.2 221.3 Q 221.5 221.5, 224.5 227.3
+           Q 227.5 233.2, 230.0 233.1 Q 232.5 233.0, 233.3 228.5
+           Q 234.2 224.0, 242.5 224.0 Q 250.8 224.0, 256.6 230.2
+           Q 262.5 236.5, 270.6 236.7 Q 278.8 236.8, 278.9 126.2
+           Q 279.0 15.5, 152.2 15.8 Z"
         fill="#F7EFDD"
         stroke="#B8935A"
         strokeWidth={2}
       />
 
-      <ellipse cx={100} cy={130} rx={24} ry={19.2} fill="#191B41" fillOpacity={0.08} />
-      <RegionLabel x={100} y={130} name="Adelaide CBD" />
-
-      <ellipse cx={100} cy={42} rx={24} ry={19.2} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={100} y={42} name="Northern Adelaide" />
-
-      <ellipse cx={155} cy={72} rx={16} ry={12.8} fill="#191B41" fillOpacity={0.06} />
-      <RegionLabel x={155} y={72} name="North Eastern Adelaide" anchor="end" />
-
-      <ellipse cx={150} cy={150} rx={24} ry={19.2} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={150} y={160} name="Eastern Adelaide" />
-
-      <ellipse cx={100} cy={222} rx={12} ry={9.6} fill="#191B41" fillOpacity={0.06} />
-      <RegionLabel x={100} y={222} name="Southern Adelaide" />
-
-      <ellipse cx={58} cy={148} rx={20} ry={16} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={58} y={182} name="Western Adelaide" anchor="start" />
-
-      <text x={110} y={13} fontSize={9.5} fill="#9CA3AF" textAnchor="middle">
-        Gulf St Vincent →
-      </text>
-      <text x={110} y={252} fontSize={10} fill="#9CA3AF" textAnchor="middle" fontStyle="italic">
-        Schematic reference only — not to scale
-      </text>
+      <ellipse cx={227} cy={210} rx={16} ry={13} fill="#E8791A" fillOpacity={0.15} />
+      <Dot x={227} y={210} />
+      <RegionLabel x={227} y={196} name="Adelaide" />
     </svg>
   );
 }
 
 function NTMap() {
   return (
-    <svg viewBox="0 0 220 260" className="w-full max-w-sm">
-      {/* Zoomed to Darwin metro, not the full Northern Territory —
-          every current NT club is Darwin/Casuarina/Palmerston, and a
-          full-territory view would leave the whole map empty except
-          one tiny corner. Built from general geographic knowledge,
-          not traced from a source image at this zoom level. */}
+    <svg viewBox="0 0 224 285" className="w-full max-w-sm">
+      {/* Real NT outline (contour-traced from a source image), not
+          the general-knowledge shape used before. Casuarina and
+          Palmerston aren't individually shown — Darwin metro is too
+          small a dot on the real territory shape to separate them
+          legibly — but both are still real, selectable regions. */}
       <path
-        d="M 90 20 Q 130 15, 150 40 Q 175 55, 170 85
-           Q 195 105, 190 135 Q 210 160, 195 190
-           Q 200 220, 170 235 Q 150 250, 120 240
-           Q 90 245, 70 220 Q 45 210, 45 180
-           Q 20 165, 30 135 Q 15 110, 35 85
-           Q 30 55, 60 40 Q 65 20, 90 20 Z"
+        d="M 98.4 13.3 Q 94.6 13.4, 92.9 23.9 Q 91.3 34.4, 74.3 34.1
+           Q 57.4 33.9, 52.5 42.5 Q 47.6 51.2, 45.9 63.1
+           Q 44.2 75.0, 40.0 76.7 Q 35.8 78.4, 35.7 173.8
+           Q 35.6 269.1, 109.6 269.5 Q 183.7 269.9, 183.9 186.0
+           Q 184.2 102.2, 164.3 88.8 Q 144.5 75.3, 147.7 60.8
+           Q 150.9 46.2, 155.7 43.8 Q 160.4 41.4, 162.8 34.9
+           Q 165.2 28.3, 153.7 26.6 Q 142.2 24.9, 141.5 27.0
+           Q 140.8 29.1, 133.1 29.1 Q 125.4 29.1, 113.8 21.1
+           Q 102.2 13.2, 98.4 13.3 Z"
         fill="#F7EFDD"
         stroke="#B8935A"
         strokeWidth={2}
       />
 
-      <ellipse cx={91} cy={61} rx={26} ry={20.8} fill="#191B41" fillOpacity={0.08} />
-      <RegionLabel x={91} y={61} name="Darwin" />
-
-      <ellipse cx={141} cy={81} rx={26} ry={20.8} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={141} y={81} name="Casuarina" anchor="start" />
-
-      <ellipse cx={151} cy={161} rx={26} ry={20.8} fill="#191B41" fillOpacity={0.06} />
-      <RegionLabel x={151} y={161} name="Palmerston" />
-
-      <text x={110} y={252} fontSize={10} fill="#9CA3AF" textAnchor="middle" fontStyle="italic">
-        Schematic reference only — Darwin metro, not the full NT
-      </text>
+      <ellipse cx={66} cy={47} rx={14} ry={11.2} fill="#191B41" fillOpacity={0.08} />
+      <Dot x={66} y={30} />
+      <RegionLabel x={74} y={33} name="Darwin" anchor="start" />
     </svg>
   );
 }
 
 function WAMap() {
   return (
-    <svg viewBox="0 0 220 350" className="w-full max-w-sm">
-      {/* Zoomed to Perth metro, not the full state — every current WA
-          club is Perth metro or Mandurah, and a full-state view would
-          leave the whole map empty except one tiny corner in the far
-          south. Built from general geographic knowledge, not traced
-          from a source image at this zoom level. */}
+    <svg viewBox="0 0 250 300" className="w-full max-w-sm">
+      {/* Real WA outline (contour-traced from a source image), not
+          the general-knowledge shape used before. The 4 Perth suburb
+          quadrants aren't individually shown — Perth metro is a small
+          dot in the far SW corner of an enormous state, too small to
+          separate them legibly — but all remain real, selectable
+          regions, along with Mandurah / Peel. */}
       <path
-        d="M 100 15 Q 140 12, 155 40 Q 180 55, 175 85
-           Q 195 105, 185 135 Q 200 160, 180 190
-           Q 190 220, 165 245 Q 175 275, 145 295
-           Q 150 320, 120 330 Q 90 335, 75 310
-           Q 50 300, 55 270 Q 30 255, 40 225
-           Q 15 205, 35 175 Q 20 145, 45 120
-           Q 35 90, 60 70 Q 55 40, 85 25 Q 90 15, 100 15 Z"
+        d="M 208.5 15.2 Q 204.0 9.2, 192.6 14.1 Q 181.2 19.0, 176.2 30.4
+           Q 171.2 41.8, 167.0 42.4 Q 162.8 43.0, 162.2 48.4
+           Q 161.5 53.8, 155.8 50.9 Q 150.0 48.0, 146.5 49.4
+           Q 143.0 50.8, 142.0 58.8 Q 141.0 66.8, 133.9 76.3
+           Q 126.8 85.8, 108.7 91.3 Q 90.5 96.8, 89.8 101.3
+           Q 89.2 105.8, 78.3 104.4 Q 67.5 103.0, 51.9 114.8
+           Q 36.2 126.5, 33.9 138.8 Q 31.5 151.0, 34.1 151.9
+           Q 36.8 152.8, 39.1 161.2 Q 41.5 169.5, 38.9 177.2
+           Q 36.2 185.0, 48.5 218.4 Q 60.8 251.8, 60.4 264.1
+           Q 60.0 276.5, 55.5 279.6 Q 51.0 282.8, 57.4 287.4
+           Q 63.8 292.0, 75.3 293.2 Q 86.8 294.5, 98.9 287.1
+           Q 111.0 279.8, 133.4 279.5 Q 155.8 279.2, 159.9 273.2
+           Q 164.0 267.2, 174.5 262.4 Q 185.0 257.5, 204.1 253.2
+           Q 223.2 249.0, 223.2 135.4 Q 223.2 21.8, 218.1 21.5
+           Q 213.0 21.2, 208.5 15.2 Z"
         fill="#F7EFDD"
         stroke="#B8935A"
         strokeWidth={2}
       />
 
-      <ellipse cx={111} cy={61} rx={26} ry={20.8} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={111} y={61} name="Northern Suburbs" />
-
-      <ellipse cx={156} cy={141} rx={26} ry={20.8} fill="#191B41" fillOpacity={0.06} />
-      <RegionLabel x={156} y={141} name="Eastern Suburbs" />
-
-      <Dot x={101} y={161} />
-      <CityLabel x={101} y={182} name="Perth" anchor="middle" />
-
-      <ellipse cx={61} cy={151} rx={26} ry={20.8} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={61} y={117} name="Western Suburbs" />
-
-      <ellipse cx={101} cy={231} rx={26} ry={20.8} fill="#191B41" fillOpacity={0.06} />
-      <RegionLabel x={101} y={231} name="Southern Suburbs" />
-
-      <ellipse cx={111} cy={301} rx={26} ry={20.8} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={111} y={301} name="Mandurah / Peel" />
-
-      <text x={110} y={342} fontSize={10} fill="#9CA3AF" textAnchor="middle" fontStyle="italic">
-        Schematic reference only — Perth metro, not the full state
-      </text>
+      <ellipse cx={73} cy={252} rx={14} ry={11.9} fill="#E8791A" fillOpacity={0.15} />
+      <Dot x={61} y={254} />
+      <RegionLabel x={65} y={241} name="Perth" anchor="start" />
+      <CityLabel x={45} y={272} name="Mandurah" />
     </svg>
   );
 }
@@ -362,21 +336,21 @@ function QLDMap() {
         strokeWidth={2}
       />
 
-      <ellipse cx={151} cy={113} rx={14} ry={11.9} fill="#E8791A" fillOpacity={0.15} />
-      <Dot x={151} y={113} />
-      <RegionLabel x={151} y={99} name="Far North &amp; Gulf" />
+      <ellipse cx={141} cy={113} rx={10} ry={8.5} fill="#E8791A" fillOpacity={0.15} />
+      <Dot x={141} y={113} />
+      <RegionLabel x={141} y={99} name="Far North &amp; Gulf" />
 
-      <ellipse cx={168} cy={154} rx={14} ry={11.9} fill="#191B41" fillOpacity={0.06} />
-      <Dot x={168} y={154} />
-      <RegionLabel x={168} y={140} name="Northern" />
+      <ellipse cx={164} cy={158} rx={10} ry={8.5} fill="#191B41" fillOpacity={0.06} />
+      <Dot x={164} y={158} />
+      <RegionLabel x={164} y={144} name="Northern" />
 
-      <ellipse cx={207} cy={186} rx={12} ry={10.2} fill="#E8791A" fillOpacity={0.15} />
-      <Dot x={207} y={186} />
-      <RegionLabel x={193} y={186} name="Whitsunday Coast" anchor="end" />
+      <ellipse cx={199} cy={190} rx={9} ry={7.6} fill="#E8791A" fillOpacity={0.15} />
+      <Dot x={199} y={190} />
+      <RegionLabel x={185} y={190} name="Whitsunday Coast" anchor="end" />
 
-      <ellipse cx={225} cy={219} rx={12} ry={10.2} fill="#191B41" fillOpacity={0.06} />
-      <Dot x={225} y={219} />
-      <RegionLabel x={211} y={219} name="Central Coast" anchor="end" />
+      <ellipse cx={223} cy={219} rx={9} ry={7.6} fill="#191B41" fillOpacity={0.06} />
+      <Dot x={223} y={219} />
+      <RegionLabel x={209} y={219} name="Central Coast" anchor="end" />
 
       <ellipse cx={248} cy={254} rx={12} ry={10.2} fill="#E8791A" fillOpacity={0.15} />
       <Dot x={248} y={254} />
@@ -403,6 +377,7 @@ function QLDMap() {
 
 export default function RegionMap({ state }: { state: string }) {
   if (state === "NNSW") return <NNSWMap />;
+  if (state === "NSW") return <NSWMap />;
   if (state === "SA") return <SAMap />;
   if (state === "NT") return <NTMap />;
   if (state === "WA") return <WAMap />;
