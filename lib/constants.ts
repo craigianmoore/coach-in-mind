@@ -35,6 +35,12 @@ export const REGIONS_BY_STATE: Record<string, readonly string[]> = {
   // Canberra's real district names, plus Queanbeyan — geographically
   // NSW, but home to two clubs that play in Capital Football.
   ACT: ["ACT-wide"],
+  // All current NT clubs are Darwin metro — no other clubs to
+  // meaningfully spread regions across yet.
+  NT: ["Darwin", "Casuarina", "Palmerston"],
+  // All current WA clubs are Perth metro or Mandurah — grouped into
+  // Perth's standard suburb zones, same pattern as Melbourne's.
+  WA: ["Northern Suburbs", "Eastern Suburbs", "Southern Suburbs", "Western Suburbs", "Mandurah / Peel"],
 };
 
 export const STATE_OPTIONS = Object.keys(REGIONS_BY_STATE);
@@ -52,6 +58,8 @@ export const STATE_LABELS: Record<string, string> = {
   NNSW: "Northern NSW",
   SA: "South Australia",
   ACT: "ACT",
+  NT: "Northern Territory",
+  WA: "Western Australia",
 };
 
 // The actual governing body name for each state/territory — used
@@ -64,6 +72,8 @@ export const MEMBER_FEDERATIONS: Record<string, string> = {
   NNSW: "Northern NSW Football",
   SA: "Football South Australia",
   ACT: "Capital Football",
+  NT: "Football NT",
+  WA: "Football West",
 };
 
 // The accreditation ladder, lowest to highest. Used for both "what do you
@@ -147,6 +157,10 @@ export const COMPETITION_LEVELS_BY_STATE: Record<string, readonly string[]> = {
   // promotion/relegation/result annotations from the 2026-season data.
   SA: ["NPL SA (Men's)", "NPL SA (Women's)", "State League 1"],
   ACT: ["NPL Men's", "NPL Women's"],
+  NT: ["Men's Premier League (Darwin)", "Women's Premier League (Darwin)"],
+  // Cleaned of result/promotion annotations from the 2026-season data
+  // ("2025 Premiers", "promoted via play-off", etc).
+  WA: ["NPL WA (Men's)", "NPL WA (Women's)", "State League 1"],
 };
 
 export const COMPETITION_LEVELS = Object.values(COMPETITION_LEVELS_BY_STATE).flat();
