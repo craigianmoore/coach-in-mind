@@ -337,11 +337,76 @@ function WAMap() {
   );
 }
 
+function QLDMap() {
+  return (
+    <svg viewBox="0 0 300 335" className="w-full max-w-md">
+      {/* Outline traced from a real reference map (contour-detected
+          and smoothed), same rigour as VIC/TAS. South Coast (NSW) —
+          three border clubs geographically in NSW but playing in
+          Football Queensland's competitions — isn't shown as its own
+          marker; the south-east corner is already at capacity with
+          the other nine zones. */}
+      <path
+        d="M 100.7 16.1 Q 92.4 5.1, 81.8 63.6 Q 71.1 122.1, 61.0 123.2
+           Q 51.0 124.2, 49.4 114.9 Q 47.7 105.6, 36.2 107.7
+           Q 24.6 109.8, 24.8 190.3 Q 24.9 270.9, 48.8 270.9
+           Q 72.6 270.9, 73.3 297.0 Q 74.1 323.1, 150.6 319.5
+           Q 227.1 315.9, 236.4 320.4 Q 245.7 324.9, 259.5 318.3
+           Q 273.3 311.7, 273.0 284.7 Q 272.7 257.7, 253.3 242.4
+           Q 234.0 227.1, 232.5 217.9 Q 231.0 208.8, 222.0 206.9
+           Q 213.0 204.9, 207.2 186.8 Q 201.3 168.6, 180.8 158.6
+           Q 160.2 148.5, 151.5 113.5 Q 142.8 78.6, 130.4 73.3
+           Q 117.9 68.1, 113.4 47.5 Q 108.9 27.0, 100.7 16.1 Z"
+        fill="#F7EFDD"
+        stroke="#B8935A"
+        strokeWidth={2}
+      />
+
+      <ellipse cx={151} cy={113} rx={14} ry={11.9} fill="#E8791A" fillOpacity={0.15} />
+      <Dot x={151} y={113} />
+      <RegionLabel x={151} y={99} name="Far North &amp; Gulf" />
+
+      <ellipse cx={168} cy={154} rx={14} ry={11.9} fill="#191B41" fillOpacity={0.06} />
+      <Dot x={168} y={154} />
+      <RegionLabel x={168} y={140} name="Northern" />
+
+      <ellipse cx={207} cy={186} rx={12} ry={10.2} fill="#E8791A" fillOpacity={0.15} />
+      <Dot x={207} y={186} />
+      <RegionLabel x={193} y={186} name="Whitsunday Coast" anchor="end" />
+
+      <ellipse cx={225} cy={219} rx={12} ry={10.2} fill="#191B41" fillOpacity={0.06} />
+      <Dot x={225} y={219} />
+      <RegionLabel x={211} y={219} name="Central Coast" anchor="end" />
+
+      <ellipse cx={248} cy={254} rx={12} ry={10.2} fill="#E8791A" fillOpacity={0.15} />
+      <Dot x={248} y={254} />
+      <RegionLabel x={248} y={240} name="Wide Bay" />
+
+      <ellipse cx={258} cy={265} rx={10} ry={8.5} fill="#191B41" fillOpacity={0.06} />
+      <Dot x={258} y={265} />
+      <RegionLabel x={238} y={265} name="Sunshine Coast" anchor="end" />
+
+      <ellipse cx={250} cy={285} rx={14} ry={11.9} fill="#E8791A" fillOpacity={0.15} />
+      <Dot x={250} y={285} />
+      <RegionLabel x={236} y={285} name="Metro" anchor="end" />
+
+      <ellipse cx={259} cy={300} rx={10} ry={8.5} fill="#191B41" fillOpacity={0.06} />
+      <Dot x={259} y={300} />
+      <RegionLabel x={259} y={320} name="South Coast" anchor="end" />
+
+      <ellipse cx={220} cy={300} rx={12} ry={10.2} fill="#E8791A" fillOpacity={0.15} />
+      <Dot x={220} y={300} />
+      <RegionLabel x={194} y={300} name="Darling Downs" anchor="end" />
+    </svg>
+  );
+}
+
 export default function RegionMap({ state }: { state: string }) {
   if (state === "NNSW") return <NNSWMap />;
   if (state === "SA") return <SAMap />;
   if (state === "NT") return <NTMap />;
   if (state === "WA") return <WAMap />;
+  if (state === "QLD") return <QLDMap />;
   if (state === "VIC") return <VictoriaMap />;
   if (state === "TAS") return <TasmaniaMap />;
   return null;
