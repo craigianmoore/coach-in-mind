@@ -217,7 +217,7 @@ function Coach2MentorAdmin() {
             .filter((m) => !requestedMentorIds.has(m.id))
             .map((mentor) => {
               const coachPerson = people[coach.person_id];
-              const breakdown = scoreCoach2MentorMatch(coach, coachPerson?.region ?? null, mentor, coachWeights);
+              const breakdown = scoreCoach2MentorMatch(coach, coachPerson?.region ?? null, mentor, coachWeights, coachPerson?.current_licence ?? null);
               return { mentor, breakdown };
             })
             .sort((a, b) => b.breakdown.total - a.breakdown.total)
@@ -229,7 +229,7 @@ function Coach2MentorAdmin() {
           if (!mentor) return null;
           const coachPerson = people[coach.person_id];
           const breakdown = coachWeights
-            ? scoreCoach2MentorMatch(coach, coachPerson?.region ?? null, mentor, coachWeights)
+            ? scoreCoach2MentorMatch(coach, coachPerson?.region ?? null, mentor, coachWeights, coachPerson?.current_licence ?? null)
             : { total: r.score ?? 0 };
           return { mentor, breakdown, requestRow: r };
         })
