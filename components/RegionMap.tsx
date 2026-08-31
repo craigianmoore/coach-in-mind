@@ -91,10 +91,6 @@ function VictoriaMap() {
       <RegionLabel x={225} y={210} name="Latrobe Valley" anchor="start" />
       <Dot x={218} y={203} />
       <CityLabel x={211} y={210} name="Traralgon" anchor="end" />
-
-      <text x={175} y={238} fontSize={10} fill="#9CA3AF" textAnchor="middle" fontStyle="italic">
-        Schematic reference only — not to scale
-      </text>
     </svg>
   );
 }
@@ -137,10 +133,6 @@ function TasmaniaMap() {
       <CityLabel x={162} y={175} name="New Norfolk" anchor="end" />
       <Dot x={234} y={124} />
       <CityLabel x={229} y={121} name="Coles Bay" anchor="end" />
-
-      <text x={140} y={253} fontSize={10} fill="#9CA3AF" textAnchor="middle" fontStyle="italic">
-        Schematic reference only — not to scale
-      </text>
     </svg>
   );
 }
