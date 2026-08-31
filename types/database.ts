@@ -125,6 +125,7 @@ export interface Coach2MentorMentorListing {
   availability: string | null;
   regions_served: string[];
   licence: string | null;
+  fa_number: string | null;
   career_stage: string | null;
   specialisms: string[];
   meet_capacity_per_year: number | null;
