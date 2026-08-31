@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import RequireProfile from "@/components/RequireProfile";
 import CheckboxGroup from "@/components/CheckboxGroup";
-import GroupedRegionCheckboxGroup from "@/components/GroupedRegionCheckboxGroup";
+import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
 import {
   GENDER_OPTIONS,
@@ -13,6 +13,9 @@ import {
   MENTOR_SPECIALISMS,
   RATE_UNITS,
   COACH2MENTOR_MENTOR_CAPACITY_PACKAGES,
+  STATE_OPTIONS,
+  STATE_LABELS,
+  REGIONS_BY_STATE,
 } from "@/lib/constants";
 import type { Coach2MentorMentorListing, Coach2MentorRequest, Person } from "@/types/database";
 import { notifyAdmin } from "@/lib/notify";
@@ -30,6 +33,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
 
   const [preferredCoachGender, setPreferredCoachGender] = useState("");
   const [availability, setAvailability] = useState("Either");
+  const [statePreferences, setStatePreferences] = useState<string[]>([]);
   const [regionsServed, setRegionsServed] = useState<string[]>([]);
   const [faNumber, setFaNumber] = useState("");
   const [licence, setLicence] = useState<string>(person.current_licence ?? ACCREDITATION_LEVELS[0]);
@@ -60,6 +64,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
     setExisting(null);
     setPreferredCoachGender("");
     setAvailability("Either");
+    setStatePreferences([]);
     setRegionsServed([]);
     setFaNumber("");
     setLicence(person.current_licence ?? ACCREDITATION_LEVELS[0]);
@@ -95,6 +100,13 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       setPreferredCoachGender(l.preferred_coach_gender ?? "");
       setAvailability(l.availability ?? "Either");
       setRegionsServed(l.regions_served ?? []);
+      // Regions inherently belong to one state each — derive which
+      // state checkboxes should start ticked from whichever regions
+      // are already saved, rather than needing a separate column.
+      const loadedRegions = l.regions_served ?? [];
+      setStatePreferences(
+        STATE_OPTIONS.filter((s) => (REGIONS_BY_STATE[s] ?? []).some((r) => loadedRegions.includes(r)))
+      );
       setFaNumber(l.fa_number ?? "");
       setLicence(l.licence ?? ACCREDITATION_LEVELS[0]);
       setCareerStage(l.career_stage ?? CAREER_STAGES[0]);
@@ -319,12 +331,70 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
 
         <div>
           <label className="text-xs font-semibold uppercase text-gray-500">
-            Regions you can serve — select all that apply
+            Which state(s) are you open to mentoring in?
           </label>
-          <div className="mt-1">
-            <GroupedRegionCheckboxGroup selected={regionsServed} onToggle={toggleRegion} />
+          <div className="mt-1 flex flex-wrap gap-3">
+            {STATE_OPTIONS.map((opt) => (
+              <label key={opt} className="flex items-center gap-1.5 text-sm">
+                <input
+                  type="checkbox"
+                  checked={statePreferences.includes(opt)}
+                  onChange={() => {
+                    const next = statePreferences.includes(opt)
+                      ? statePreferences.filter((s) => s !== opt)
+                      : [...statePreferences, opt];
+                    setStatePreferences(next);
+                    // Drop any previously-selected regions that no
+                    // longer belong to the currently chosen state(s).
+                    const stillValid = next.flatMap((s) => REGIONS_BY_STATE[s] ?? []);
+                    setRegionsServed((prev) => prev.filter((r) => stillValid.includes(r)));
+                  }}
+                />
+                {STATE_LABELS[opt]}
+              </label>
+            ))}
           </div>
+          <p className="mt-1 text-xs text-gray-500">
+            Leave everything unchecked to stay open to every state, including any added later —
+            though virtual mentoring means state doesn't need to be a limiting factor.
+          </p>
         </div>
+
+        {statePreferences.length > 0 && (
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">
+              Regions you can serve — select all that apply
+            </label>
+            <div className="mt-2 flex flex-col gap-4">
+              {statePreferences.map((s) => (
+                <div key={s}>
+                  <p className="mb-1.5 text-xs font-semibold text-gray-600">{STATE_LABELS[s]}</p>
+                  <CheckboxGroup
+                    options={REGIONS_BY_STATE[s] ?? []}
+                    selected={regionsServed}
+                    onToggle={toggleRegion}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {statePreferences.length > 0 && (
+          <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase text-gray-500">
+              Not sure which region? Here's roughly where each one sits.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              {statePreferences.map((s) => (
+                <div key={s}>
+                  <p className="mb-1.5 text-sm font-bold text-brand-navy">{STATE_LABELS[s]}</p>
+                  <RegionMap state={s} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="text-xs font-semibold uppercase text-gray-500">FA# (8 digits)</label>
