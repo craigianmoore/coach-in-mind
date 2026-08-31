@@ -118,10 +118,10 @@ export const ACCREDITATION_LEVELS = [
   "None / In Progress",
   "Foundation of Football",
   "Foundation of GK",
-  "C Licence",
-  "B Licence",
-  "A Licence",
-  "Pro Diploma",
+  "C Licence/Diploma",
+  "B Licence/Diploma",
+  "A Licence/Diploma",
+  "Pro Licence/Diploma",
 ] as const;
 
 export const COACHING_ROLES = [
