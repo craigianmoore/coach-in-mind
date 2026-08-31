@@ -380,18 +380,20 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           </div>
         )}
 
-        {statePreferences.length > 0 && (
+        {statePreferences.some((s) => s !== "ACT") && (
           <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
             <p className="mb-2 text-xs font-semibold uppercase text-gray-500">
               Not sure which region? Here's roughly where each one sits.
             </p>
             <div className="flex flex-wrap gap-4">
-              {statePreferences.map((s) => (
-                <div key={s}>
-                  <p className="mb-1.5 text-sm font-bold text-brand-navy">{STATE_LABELS[s]}</p>
-                  <RegionMap state={s} />
-                </div>
-              ))}
+              {statePreferences
+                .filter((s) => s !== "ACT") // no map for ACT — it's a single-region federation
+                .map((s) => (
+                  <div key={s}>
+                    <p className="mb-1.5 text-sm font-bold text-brand-navy">{STATE_LABELS[s]}</p>
+                    <RegionMap state={s} />
+                  </div>
+                ))}
             </div>
           </div>
         )}
