@@ -31,6 +31,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
   const [preferredCoachGender, setPreferredCoachGender] = useState("");
   const [availability, setAvailability] = useState("Either");
   const [regionsServed, setRegionsServed] = useState<string[]>([]);
+  const [faNumber, setFaNumber] = useState("");
   const [licence, setLicence] = useState<string>(person.current_licence ?? ACCREDITATION_LEVELS[0]);
   const [careerStage, setCareerStage] = useState<string>(CAREER_STAGES[0]);
   const [specialisms, setSpecialisms] = useState<string[]>([]);
@@ -60,6 +61,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
     setPreferredCoachGender("");
     setAvailability("Either");
     setRegionsServed([]);
+    setFaNumber("");
     setLicence(person.current_licence ?? ACCREDITATION_LEVELS[0]);
     setCareerStage(CAREER_STAGES[0]);
     setSpecialisms([]);
@@ -93,6 +95,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       setPreferredCoachGender(l.preferred_coach_gender ?? "");
       setAvailability(l.availability ?? "Either");
       setRegionsServed(l.regions_served ?? []);
+      setFaNumber(l.fa_number ?? "");
       setLicence(l.licence ?? ACCREDITATION_LEVELS[0]);
       setCareerStage(l.career_stage ?? CAREER_STAGES[0]);
       setSpecialisms(l.specialisms ?? []);
@@ -133,6 +136,19 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!/^\d{8}$/.test(faNumber)) {
+      setError("FA# must be exactly 8 digits.");
+      return;
+    }
+
+    const minMentorIdx = ACCREDITATION_LEVELS.indexOf("B Licence");
+    const licenceIdx = ACCREDITATION_LEVELS.indexOf(licence as any);
+    if (minMentorIdx >= 0 && licenceIdx < minMentorIdx) {
+      setError("You need a B Licence or above to register as a mentor.");
+      return;
+    }
+
     setSaving(true);
 
     const payload = {
@@ -140,6 +156,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       preferred_coach_gender: preferredCoachGender || null,
       availability,
       regions_served: regionsServed,
+      fa_number: faNumber,
       licence,
       career_stage: careerStage,
       specialisms,
@@ -309,6 +326,22 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           </div>
         </div>
 
+        <div>
+          <label className="text-xs font-semibold uppercase text-gray-500">FA# (8 digits)</label>
+          <input
+            type="text"
+            inputMode="numeric"
+            required
+            maxLength={8}
+            pattern="\d{8}"
+            value={faNumber}
+            onChange={(e) => setFaNumber(e.target.value.replace(/\D/g, "").slice(0, 8))}
+            className="mt-1 w-full max-w-xs rounded-lg border border-gray-300 px-3 py-2"
+            placeholder="12345678"
+          />
+          <p className="mt-1 text-xs text-gray-500">Your Football Australia registration number.</p>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Your licence</label>
@@ -323,6 +356,10 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-gray-500">
+              A B Licence or above is required to register as a mentor, and you can only be
+              matched with coaches whose licence is below yours.
+            </p>
           </div>
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Your career stage</label>
@@ -447,6 +484,10 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
                   onChange={(e) => setInPersonAmount(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  As a guide, in-person mentoring is often around $100 AUD per hour — but this is
+                  entirely up to you.
+                </p>
               </div>
             )}
           </>
