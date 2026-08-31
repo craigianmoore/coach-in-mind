@@ -151,9 +151,18 @@ export default function HelpPage() {
             new coaches, female coaches, goalkeeping coaches, weather calls, officials, club
             expectations, and keeping a healthy balance.
           </p>
-          <p className="mt-2 text-sm text-gray-500">
-            [Add further resources here — accreditation pathways, Working With Children Check
-            information, and other useful links.]
+          <p className="mt-3 text-sm text-gray-600">
+            <a
+              href="/coach-interview-checklist.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-brand-navy underline"
+            >
+              Interviewing a Coach — Checklist for Clubs
+            </a>{" "}
+            — a one-page checklist to work through when interviewing a coach: sighting their
+            current Licence/Diploma, confirming a valid WWCC, checking Play Football
+            registration, and asking about any disciplinary history.
           </p>
         </section>
 
