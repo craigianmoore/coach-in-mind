@@ -247,6 +247,7 @@ export const MENTOR_SPECIALISMS = [
   "Female Football",
   "Session Design",
   "Technical Development",
+  "Technical Director",
   "Club Management",
   "Youth Development",
   "Leadership & Culture",
