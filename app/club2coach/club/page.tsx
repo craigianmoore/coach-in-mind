@@ -765,9 +765,16 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           </div>
         </div>
 
+        <div>
+          <p className="text-xs font-semibold uppercase text-gray-500">Package</p>
+          <p className="mt-1 text-xs text-gray-500">
+            This is only indicative — actual pay structures vary a lot by club and level, and
+            this figure is more relevant to NSW &amp; VIC than other states.
+          </p>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Salary offer min (AUD)</label>
+            <label className="text-xs font-semibold uppercase text-gray-500">Package offer min (AUD)</label>
             <input
               type="number"
               value={form.salaryMin}
@@ -776,7 +783,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Salary offer max (AUD)</label>
+            <label className="text-xs font-semibold uppercase text-gray-500">Package offer max (AUD)</label>
             <input
               type="number"
               value={form.salaryMax}
@@ -791,7 +798,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             checked={form.salaryNegotiable}
             onChange={(e) => setForm((f) => ({ ...f, salaryNegotiable: e.target.checked }))}
           />
-          Salary negotiable
+          Package negotiable
         </label>
 
         <div>
