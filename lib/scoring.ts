@@ -31,6 +31,19 @@ function accreditationScore(coachLicence: string | null, requiredLicence: string
   return Math.max(0, 1 - gap / ACCREDITATION_LEVELS.length);
 }
 
+// A mentor's own accreditation must be strictly higher than the
+// coach's — equal or lower is disqualifying, not just a weaker match
+// (mirrors stateFitOk's hard-gate pattern below). If either side's
+// licence is missing/unrecognised, this doesn't block the match —
+// there's nothing to compare, so it falls through to the rest of
+// scoring rather than silently excluding incomplete profiles.
+function mentorAccreditationFitOk(coachLicence: string | null | undefined, mentorLicence: string | null | undefined): boolean {
+  const coachIdx = ACCREDITATION_LEVELS.indexOf((coachLicence as any) ?? "");
+  const mentorIdx = ACCREDITATION_LEVELS.indexOf((mentorLicence as any) ?? "");
+  if (coachIdx < 0 || mentorIdx < 0) return true;
+  return mentorIdx > coachIdx;
+}
+
 function overlapScore(preferred: string[], target: string | null | undefined): number {
   if (!target) return 0.5;
   if (!preferred || preferred.length === 0) return 0.5; // no stated preference = neutral, not a penalty
@@ -142,13 +155,19 @@ export interface Coach2MentorScoreBreakdown {
   availability: number;
   budget_fit: number;
   gender: number;
+  // False when the mentor's accreditation isn't strictly higher than
+  // the coach's — a disqualifying condition, not a weak-match penalty.
+  // total is forced to 0 in this case; callers can also check this
+  // flag directly to filter these pairs out of suggestions entirely.
+  eligible: boolean;
 }
 
 export function scoreCoach2MentorMatch(
   coach: Coach2MentorCoachListing,
   coachRegion: string | null,
   mentor: Coach2MentorMentorListing,
-  weights: Coach2MentorWeights
+  weights: Coach2MentorWeights,
+  coachLicence?: string | null
 ): Coach2MentorScoreBreakdown {
   // Specialism overlap: intersection size relative to what the coach asked for
   const wanted = coach.support_areas ?? [];
@@ -200,14 +219,18 @@ export function scoreCoach2MentorMatch(
 
   const gender = genderPreferenceScore(coach.preferred_mentor_gender, mentor.preferred_coach_gender);
 
-  const total = weightedAverage([
-    { value: specialism_overlap, weight: weights.specialism_overlap },
-    { value: career_stage, weight: weights.career_stage },
-    { value: geography, weight: weights.geography },
-    { value: availability, weight: weights.availability },
-    { value: budget_fit, weight: weights.budget_fit },
-    { value: gender, weight: weights.gender },
-  ]);
+  const eligible = mentorAccreditationFitOk(coachLicence, mentor.licence ?? null);
 
-  return { total, specialism_overlap, career_stage, geography, availability, budget_fit, gender };
+  const total = eligible
+    ? weightedAverage([
+        { value: specialism_overlap, weight: weights.specialism_overlap },
+        { value: career_stage, weight: weights.career_stage },
+        { value: geography, weight: weights.geography },
+        { value: availability, weight: weights.availability },
+        { value: budget_fit, weight: weights.budget_fit },
+        { value: gender, weight: weights.gender },
+      ])
+    : 0;
+
+  return { total, specialism_overlap, career_stage, geography, availability, budget_fit, gender, eligible };
 }
