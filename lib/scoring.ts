@@ -37,10 +37,26 @@ function accreditationScore(coachLicence: string | null, requiredLicence: string
 // licence is missing/unrecognised, this doesn't block the match —
 // there's nothing to compare, so it falls through to the rest of
 // scoring rather than silently excluding incomplete profiles.
+// A mentor's own accreditation must be strictly higher than the
+// coach's — equal or lower is disqualifying, not just a weaker match
+// (mirrors stateFitOk's hard-gate pattern below) — with one specific
+// exception: at the top of the ladder, an A Licence/Diploma coach can
+// be mentored by another A Licence/Diploma mentor, not just a Pro
+// Licence/Diploma one, since those two tiers sit close enough
+// together that same-level mentoring still makes sense there. That
+// exception applies only at that tier — everywhere else still needs
+// strictly higher. If either side's licence is missing/unrecognised,
+// this doesn't block the match — there's nothing to compare, so it
+// falls through to the rest of scoring rather than silently excluding
+// incomplete profiles.
 function mentorAccreditationFitOk(coachLicence: string | null | undefined, mentorLicence: string | null | undefined): boolean {
   const coachIdx = ACCREDITATION_LEVELS.indexOf((coachLicence as any) ?? "");
   const mentorIdx = ACCREDITATION_LEVELS.indexOf((mentorLicence as any) ?? "");
   if (coachIdx < 0 || mentorIdx < 0) return true;
+  const aLevelIdx = ACCREDITATION_LEVELS.indexOf("A Licence/Diploma" as any);
+  if (aLevelIdx >= 0 && coachIdx === aLevelIdx) {
+    return mentorIdx >= aLevelIdx; // A Licence/Diploma or Pro Licence/Diploma mentor
+  }
   return mentorIdx > coachIdx;
 }
 
