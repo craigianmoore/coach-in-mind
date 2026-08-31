@@ -189,13 +189,10 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
 
   if (loading) return <p className="py-8 text-sm text-gray-500">Loading…</p>;
 
-  // Only show regions relevant to whichever state(s) they said they're
-  // open to — "either" shows every region across all states.
-  const regionOptions =
-    statePreferences.length === 0
-      ? REGIONS
-      : statePreferences.flatMap((s) => REGIONS_BY_STATE[s] ?? []);
-
+  // Regions and maps only make sense once at least one state is
+  // picked — before that there's nothing to scope them to, so they
+  // stay hidden rather than showing an unfiltered wall of every
+  // region across every federation.
 
   return (
     <div className="py-8">
@@ -405,35 +402,47 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           </p>
         </div>
 
-        <div>
-          <label className="text-xs font-semibold uppercase text-gray-500">Preferred regions</label>
-          <div className="mt-1">
-            <CheckboxGroup
-              options={regionOptions}
-              selected={regions}
-              onToggle={(v) => toggle(regions, setRegions, v)}
-            />
+        {statePreferences.length > 0 && (
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">Preferred regions</label>
+            <div className="mt-2 flex flex-col gap-4">
+              {statePreferences.map((s) => (
+                <div key={s}>
+                  <p className="mb-1.5 text-xs font-semibold text-gray-600">{STATE_LABELS[s]}</p>
+                  <CheckboxGroup
+                    options={REGIONS_BY_STATE[s] ?? []}
+                    selected={regions}
+                    onToggle={(v) => toggle(regions, setRegions, v)}
+                  />
+                </div>
+              ))}
+            </div>
+            <label className="mt-3 flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={openToRelocating}
+                onChange={(e) => setOpenToRelocating(e.target.checked)}
+              />
+              Open to relocating outside preferred regions
+            </label>
           </div>
-          <label className="mt-2 flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={openToRelocating}
-              onChange={(e) => setOpenToRelocating(e.target.checked)}
-            />
-            Open to relocating outside preferred regions
-          </label>
-        </div>
+        )}
 
-        <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-          <p className="mb-2 text-xs font-semibold uppercase text-gray-500">
-            Not sure which region? Here's roughly where each one sits.
-          </p>
-          <div className="flex flex-wrap gap-4">
-            {(statePreferences.length === 0 ? STATE_OPTIONS : statePreferences).map((s) => (
-              <RegionMap key={s} state={s} />
-            ))}
+        {statePreferences.length > 0 && (
+          <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase text-gray-500">
+              Not sure which region? Here's roughly where each one sits.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              {statePreferences.map((s) => (
+                <div key={s}>
+                  <p className="mb-1.5 text-sm font-bold text-brand-navy">{STATE_LABELS[s]}</p>
+                  <RegionMap state={s} />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div>
           <label className="text-xs font-semibold uppercase text-gray-500">
