@@ -118,6 +118,31 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   }
 
+  // Some states' real competition names have Men's/Women's built in
+  // (e.g. "NPL SA (Women's)"); others (VIC, TAS) don't split by gender
+  // in the name at all and pass through unfiltered either way. "No
+  // preference" or nothing selected shows everything, unfiltered.
+  // Victoria's men's-side names are mostly unmarked by convention
+  // (paired against an explicitly-named women's/girls competition
+  // elsewhere in the same list) — regex alone can't tell those apart
+  // from genuinely ungendered levels like "Community / Junior", so
+  // they're called out explicitly here.
+  const VIC_IMPLICITLY_MENS = new Set(["NPL Victoria", "VPL1 & VPL2", "State League 1 & 2", "State League 3-7"]);
+
+  function filterByGender(levels: readonly string[], gender: string): string[] {
+    if (!gender || gender === "No preference") return [...levels];
+    const wantsWomen = gender === "Female";
+    return levels.filter((l) => {
+      // Catches spelled-out "Women"/"Female" as well as real
+      // abbreviated forms like "NPLW", where the W is glued directly
+      // onto the acronym rather than being its own word.
+      const mentionsWomen = /women|female/i.test(l) || /[A-Za-z]W$/.test(l);
+      const mentionsMen = /\bmen'?s\b/i.test(l) || VIC_IMPLICITLY_MENS.has(l);
+      if (!mentionsWomen && !mentionsMen) return true; // gender-neutral, always shown
+      return wantsWomen ? mentionsWomen : mentionsMen;
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -347,6 +372,34 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
 
         <div>
           <label className="text-xs font-semibold uppercase text-gray-500">
+            Preferred team gender to work with
+          </label>
+          <select
+            value={preferredTeamGender}
+            onChange={(e) => {
+              const newGender = e.target.value;
+              setPreferredTeamGender(newGender);
+              // A previously-selected level might no longer match the
+              // new gender filter (e.g. switching away from "Male"
+              // should drop any already-picked Men's-only levels).
+              const validNow = statePreferences.flatMap((s) =>
+                filterByGender(COMPETITION_LEVELS_BY_STATE[s] ?? [], newGender)
+              );
+              setCompetitionLevels((prev) => prev.filter((c) => validNow.includes(c)));
+            }}
+            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+          >
+            <option value="">Select…</option>
+            {GENDER_OPTIONS.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold uppercase text-gray-500">
             Which state(s) are you open to coaching in?
           </label>
           <div className="mt-1 flex flex-wrap gap-3">
@@ -382,26 +435,6 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           </p>
         </div>
 
-        {statePreferences.length > 0 && (
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">
-              Preferred competition levels
-            </label>
-            <div className="mt-2 flex flex-col gap-4">
-              {statePreferences.map((s) => (
-                <div key={s}>
-                  <p className="mb-1.5 text-xs font-semibold text-gray-600">{STATE_LABELS[s]}</p>
-                  <CheckboxGroup
-                    options={COMPETITION_LEVELS_BY_STATE[s] ?? []}
-                    selected={competitionLevels}
-                    onToggle={(v) => toggle(competitionLevels, setCompetitionLevels, v)}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div>
           <label className="text-xs font-semibold uppercase text-gray-500">Preferred age groups</label>
           <div className="mt-1">
@@ -412,6 +445,26 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
             />
           </div>
         </div>
+
+        {statePreferences.length > 0 && (
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">
+              Preferred competition levels
+            </label>
+            <div className="mt-2 flex flex-col gap-4">
+              {statePreferences.map((s) => (
+                <div key={s}>
+                  <p className="mb-1.5 text-xs font-semibold text-gray-600">{STATE_LABELS[s]}</p>
+                  <CheckboxGroup
+                    options={filterByGender(COMPETITION_LEVELS_BY_STATE[s] ?? [], preferredTeamGender)}
+                    selected={competitionLevels}
+                    onToggle={(v) => toggle(competitionLevels, setCompetitionLevels, v)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {statePreferences.length > 0 && (
           <div>
@@ -456,24 +509,6 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
             </div>
           </div>
         )}
-
-        <div>
-          <label className="text-xs font-semibold uppercase text-gray-500">
-            Preferred team gender to work with
-          </label>
-          <select
-            value={preferredTeamGender}
-            onChange={(e) => setPreferredTeamGender(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-          >
-            <option value="">Select…</option>
-            {GENDER_OPTIONS.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
-            ))}
-          </select>
-        </div>
 
         <div>
           <p className="text-xs font-semibold uppercase text-gray-500">Package</p>
