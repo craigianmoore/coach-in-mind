@@ -147,7 +147,7 @@ export const ABILITY_LEVELS = [
 // REGIONS_BY_STATE. Add a new state's ladder here as it comes on
 // board.
 export const COMPETITION_LEVELS_BY_STATE: Record<string, readonly string[]> = {
- // Confirmed directly against Football Victoria's live Dribl
+  // Confirmed directly against Football Victoria's live Dribl
   // competition filter (the actual current list, screenshotted end to
   // end) — sponsor prefixes stripped (Senol, New Balance, VETO
   // Sports, Coles), consistent with every other state. Cup
@@ -160,6 +160,12 @@ export const COMPETITION_LEVELS_BY_STATE: Record<string, readonly string[]> = {
   // "Competition" selector) — included here as their own entries
   // since a Head Coach / Assistant Coach role can be specifically for
   // an U20 or U23 squad rather than the senior team.
+  //
+  // "All Abilities League" is likewise not one flat competition — it's
+  // two separate organisations (AAL and FFADD), each running its own
+  // Junior/Senior/Social/Youth divisions (confirmed directly against
+  // Dribl's League filter), so all 8 are listed individually here
+  // rather than the single umbrella name.
   VIC: [
     "NPL Victoria Men",
     "NPL Victoria Men - U20",
@@ -180,7 +186,14 @@ export const COMPETITION_LEVELS_BY_STATE: Record<string, readonly string[]> = {
     "Boys Youth State League North-West",
     "Boys Youth State League South-East",
     "Community Premier League Girls",
-    "All Abilities League",
+    "AAL - Junior All Abilities Mixed",
+    "AAL - Senior All Abilities Mixed",
+    "AAL - Social All Abilities Mixed",
+    "AAL - Youth All Abilities Mixed",
+    "FFADD - Junior",
+    "FFADD - Senior",
+    "FFADD - Social",
+    "FFADD - Youth",
     "Junior Boys Sunday (U17-U18)",
     "Junior Girls Sunday (U12-U18)",
     "Junior Mixed Saturday (U12-U16)",
