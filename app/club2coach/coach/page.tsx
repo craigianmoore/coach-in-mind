@@ -162,6 +162,84 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     });
   }
 
+  // Maps a competition name to the age-group bucket(s) it belongs to,
+  // so picking "Senior" doesn't surface junior/youth pathway
+  // competitions and vice versa. "any" means genuinely ambiguous from
+  // the name alone (e.g. a regional zone league that could run
+  // divisions at every age) — those are always shown rather than
+  // risking hiding a real option based on a guess.
+  const AGE_BUCKET_RANGES: Record<string, [number, number]> = {
+    "U6-U8": [6, 8],
+    "U9-U11": [9, 11],
+    "U12-U13": [12, 13],
+    "U14-U16": [14, 16],
+    "U17-U18": [17, 18],
+    "U20-23 / Reserves": [20, 23],
+  };
+
+  function numericRangeToBuckets(lo: number, hi: number): string[] {
+    return Object.entries(AGE_BUCKET_RANGES)
+      .filter(([, [gLo, gHi]]) => lo <= gHi && hi >= gLo)
+      .map(([label]) => label);
+  }
+
+  function ageBucketsFor(level: string): string[] | "any" {
+    // An explicit numeric range in the name is authoritative, e.g.
+    // "Junior Mixed Saturday (U12-U16)" or "MiniRoos Mixed Sunday
+    // (U6-U11)".
+    const rangeMatch = level.match(/U(\d{1,2})\s*-\s*U?(\d{1,2})\b/i);
+    if (rangeMatch) return numericRangeToBuckets(parseInt(rangeMatch[1], 10), parseInt(rangeMatch[2], 10));
+
+    // A single trailing age number, e.g. "NPL Victoria Men - U20".
+    const singleU = level.match(/\bU(\d{1,2})\b/i);
+    if (singleU) {
+      const age = parseInt(singleU[1], 10);
+      return numericRangeToBuckets(age, age);
+    }
+    const underMatch = level.match(/under\s*(\d{1,2})/i);
+    if (underMatch) {
+      const age = parseInt(underMatch[1], 10);
+      return numericRangeToBuckets(age, age);
+    }
+
+    if (/miniroos/i.test(level)) return ["U6-U8", "U9-U11"];
+    if (/youth/i.test(level)) return ["U12-U13", "U14-U16", "U17-U18"];
+    if (/\bjunior\b/i.test(level)) return ["U12-U13", "U14-U16", "U17-U18"];
+    if (/masters/i.test(level)) return ["Masters"];
+
+    // NPL / VPL / State League / Metropolitan League with no junior
+    // marker are each state's standard senior/open-age flagship
+    // competitions — a confident call, consistent across every
+    // state's football pyramid.
+    if (/\b(npl|vpl|state league|metropolitan league)\b/i.test(level)) return ["Senior"];
+
+    // Regional zone leagues, "All Abilities", and community-level
+    // competitions could genuinely span multiple ages under one name
+    // — not confident enough to exclude them from any specific age
+    // search, so they pass through regardless of the filter.
+    return "any";
+  }
+
+  function filterByAge(levels: readonly string[], ageGroups: string[]): string[] {
+    if (ageGroups.length === 0) return [...levels]; // no preference selected — show everything
+    return levels.filter((l) => {
+      const buckets = ageBucketsFor(l);
+      return buckets === "any" || buckets.some((b) => ageGroups.includes(b));
+    });
+  }
+
+  function toggleAgeGroup(v: string) {
+    const next = ageGroups.includes(v) ? ageGroups.filter((a) => a !== v) : [...ageGroups, v];
+    setAgeGroups(next);
+    // A previously-picked competition level might no longer fit the
+    // new age selection (e.g. switching from "No preference" to
+    // "Senior" should drop any already-picked youth-pathway levels).
+    const stillValidLevels = statePreferences.flatMap((s) =>
+      filterByAge(filterByGender(COMPETITION_LEVELS_BY_STATE[s] ?? [], preferredTeamGender), next)
+    );
+    setCompetitionLevels((prev) => prev.filter((c) => stillValidLevels.includes(c)));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -569,7 +647,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
                 <CheckboxGroup
                   options={AGE_GROUPS}
                   selected={ageGroups}
-                  onToggle={(v) => toggle(ageGroups, setAgeGroups, v)}
+                  onToggle={toggleAgeGroup}
                 />
               </div>
             )}
@@ -601,7 +679,10 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
                   <div key={s}>
                     <p className="mb-1.5 text-xs font-semibold text-gray-600">{STATE_LABELS[s]}</p>
                     <CheckboxGroup
-                      options={filterByGender(COMPETITION_LEVELS_BY_STATE[s] ?? [], preferredTeamGender)}
+                      options={filterByAge(
+                        filterByGender(COMPETITION_LEVELS_BY_STATE[s] ?? [], preferredTeamGender),
+                        ageGroups
+                      )}
                       selected={competitionLevels}
                       onToggle={(v) => toggle(competitionLevels, setCompetitionLevels, v)}
                     />
