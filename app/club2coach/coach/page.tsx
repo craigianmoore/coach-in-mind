@@ -184,6 +184,10 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   }
 
   function ageBucketsFor(level: string): string[] | "any" {
+    // Confirmed directly (not a guess): Community Premier League Girls
+    // runs U13-U17, spanning three of the standard age buckets.
+    if (level === "Community Premier League Girls") return numericRangeToBuckets(13, 17);
+
     // An explicit numeric range in the name is authoritative, e.g.
     // "Junior Mixed Saturday (U12-U16)" or "MiniRoos Mixed Sunday
     // (U6-U11)".
@@ -206,6 +210,11 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     if (/youth/i.test(level)) return ["U12-U13", "U14-U16", "U17-U18"];
     if (/\bjunior\b/i.test(level)) return ["U12-U13", "U14-U16", "U17-U18"];
     if (/masters/i.test(level)) return ["Masters"];
+
+    // Any competition that explicitly says "Senior" in its own name
+    // (e.g. "AAL - Senior All Abilities Mixed") — not just the
+    // flagship NPL/VPL naming below — is a confident Senior tag too.
+    if (/\bsenior\b/i.test(level)) return ["Senior"];
 
     // NPL / VPL / State League / Metropolitan League with no junior
     // marker are each state's standard senior/open-age flagship
