@@ -22,6 +22,7 @@ interface AdminPinRow {
   id: string;
   label: string | null;
   created_at: string;
+  is_master: boolean;
 }
 
 function Club2CoachAdmin() {
@@ -41,6 +42,14 @@ function Club2CoachAdmin() {
   const [newPinLabel, setNewPinLabel] = useState("");
   const [editingPinId, setEditingPinId] = useState<string | null>(null);
   const [editingLabelValue, setEditingLabelValue] = useState("");
+  // Whether THIS logged-in session was itself granted via a master
+  // PIN — determines whether the Admins tab shows management controls
+  // (add/edit/revoke/reset) or a read-only list.
+  const [isMasterSession, setIsMasterSession] = useState(false);
+  // Set when a periodic check finds this session has been ended —
+  // either it simply expired, or a master PIN logged in elsewhere and
+  // force-ended every other active admin session, this one included.
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
 
   const [supportQueries, setSupportQueries] = useState<SupportQuery[]>([]);
   const [creditRequests, setCreditRequests] = useState<CoachCreditRequest[]>([]);
@@ -61,6 +70,12 @@ function Club2CoachAdmin() {
 
   useEffect(() => {
     loadAll();
+    // Poll for "has my session been superseded" independently of
+    // whatever tab is open — a master login should notify you even
+    // if you're sitting on the Matches tab, not just the Admins tab.
+    checkSession();
+    const interval = setInterval(checkSession, 30_000);
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -104,8 +119,34 @@ function Club2CoachAdmin() {
     setAdminPins((data as AdminPinRow[]) ?? []);
   }
 
+  async function loadIsMasterSession() {
+    const { data } = await supabase.rpc("am_i_master_admin");
+    setIsMasterSession(Boolean(data));
+  }
+
+  // Central "is my session still valid" check. refresh_admin_session()
+  // now returns 'ok' | 'expired' | 'superseded_by_master:<label>'
+  // instead of nothing, so a kicked-out admin gets told WHY the next
+  // time this runs — up to 30s after it happens, not just the next
+  // time an action they take happens to fail against RLS.
+  async function checkSession() {
+    const { data } = await supabase.rpc("refresh_admin_session");
+    const result = data as string | null;
+    if (result === "expired") {
+      setSessionNotice("Your admin session has expired. Refresh the page and re-enter your PIN to continue.");
+    } else if (result && result.startsWith("superseded_by_master:")) {
+      const who = result.split(":").slice(1).join(":") || "another admin";
+      setSessionNotice(
+        `You've been logged out — ${who} just logged in with the master PIN, which immediately ends every other active admin session. Refresh the page and re-enter your PIN to continue.`
+      );
+    }
+  }
+
   useEffect(() => {
-    if (tab === "admins") loadAdminPins();
+    if (tab === "admins") {
+      loadAdminPins();
+      loadIsMasterSession();
+    }
     if (tab === "matches" && weights) runAutoMatchSweep();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
@@ -394,6 +435,31 @@ function Club2CoachAdmin() {
     }
   }
 
+  async function runFullPinReset() {
+    const nonMasterCount = adminPins.filter((p) => !p.is_master).length;
+    if (nonMasterCount === 0) {
+      setStatus("Nothing to reset — there are no non-master PINs.");
+      return;
+    }
+    if (
+      !window.confirm(
+        `Full PIN reset: this permanently removes all ${nonMasterCount} non-master admin PIN${
+          nonMasterCount === 1 ? "" : "s"
+        }. Master PIN(s) are untouched, so you'll always still be able to get back in. This can't be undone — continue?`
+      )
+    ) {
+      return;
+    }
+    setStatus(null);
+    supabase.rpc("refresh_admin_session");
+    const { error } = await supabase.rpc("full_pin_reset");
+    if (error) setStatus(error.message);
+    else {
+      setStatus("Full PIN reset complete — every non-master PIN has been removed.");
+      await loadAdminPins();
+    }
+  }
+
   function startEditingLabel(p: AdminPinRow) {
     setEditingPinId(p.id);
     setEditingLabelValue(p.label || "");
@@ -527,6 +593,20 @@ function Club2CoachAdmin() {
 
   return (
     <div className="py-8">
+      {sessionNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="max-w-sm rounded-xl bg-white p-6 text-center shadow-xl">
+            <p className="text-sm text-gray-800">{sessionNotice}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="btn-accent mt-4 rounded-lg px-5 py-2 text-sm font-semibold"
+            >
+              Refresh now
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-600">
           {coachListings.length} coach listings · {vacancies.length} vacancies
@@ -1103,6 +1183,21 @@ function Club2CoachAdmin() {
             this applies across both Club 2 Coach and Coach 2 Mentor, not
             just this page.
           </p>
+          <p className="mt-2 text-sm text-gray-600">
+            <strong>Master PINs</strong> can add, edit, revoke, and reset
+            other admin PINs. Logging in with a master PIN immediately
+            ends every other active admin session, everywhere on the
+            platform — the person using it will see a notice next time
+            this page checks in (every 30 seconds while it's open).
+          </p>
+
+          {!isMasterSession && (
+            <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              This session isn't using a master PIN, so PIN management is
+              read-only for you — you can see the list below, but adding,
+              editing, revoking, or resetting is master-only.
+            </p>
+          )}
 
           <div className="mt-4 flex flex-col gap-2">
             {adminPins.map((p) => (
@@ -1132,61 +1227,89 @@ function Club2CoachAdmin() {
                 ) : (
                   <>
                     <div>
-                      <p className="text-sm font-medium">{p.label || "Unlabelled PIN"}</p>
+                      <p className="text-sm font-medium">
+                        {p.label || "Unlabelled PIN"}
+                        {p.is_master && (
+                          <span className="ml-2 rounded-full bg-brand-navy px-2 py-0.5 text-xs font-semibold text-white">
+                            Master
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs text-gray-500">
                         Added {new Date(p.created_at).toLocaleDateString("en-GB")}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => startEditingLabel(p)}
-                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => revokeAdminPin(p.id, p.label)}
-                        className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
-                      >
-                        Revoke
-                      </button>
-                    </div>
+                    {isMasterSession && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => startEditingLabel(p)}
+                          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => revokeAdminPin(p.id, p.label)}
+                          className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                        >
+                          Revoke
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
             ))}
           </div>
 
-          <form onSubmit={addAdminPin} className="mt-6 flex flex-col gap-3 rounded-xl border bg-white p-4">
-            <h3 className="text-sm font-semibold">Add a new admin PIN</h3>
-            <div>
-              <label className="text-xs font-semibold uppercase text-gray-500">Label (who is this for?)</label>
-              <input
-                value={newPinLabel}
-                onChange={(e) => setNewPinLabel(e.target.value)}
-                placeholder="e.g. Sarah"
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold uppercase text-gray-500">6-digit PIN</label>
-              <input
-                required
-                pattern="[0-9]{6}"
-                maxLength={6}
-                value={newPin}
-                onChange={(e) => setNewPin(e.target.value)}
-                placeholder="123456"
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </div>
-            <button
-              type="submit"
-              className="btn-accent self-start rounded-lg px-5 py-2 text-sm font-semibold"
-            >
-              Add admin PIN
-            </button>
-          </form>
+          {isMasterSession && (
+            <>
+              <form onSubmit={addAdminPin} className="mt-6 flex flex-col gap-3 rounded-xl border bg-white p-4">
+                <h3 className="text-sm font-semibold">Add a new admin PIN</h3>
+                <div>
+                  <label className="text-xs font-semibold uppercase text-gray-500">Label (who is this for?)</label>
+                  <input
+                    value={newPinLabel}
+                    onChange={(e) => setNewPinLabel(e.target.value)}
+                    placeholder="e.g. Sarah"
+                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase text-gray-500">6-digit PIN</label>
+                  <input
+                    required
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value)}
+                    placeholder="123456"
+                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="btn-accent self-start rounded-lg px-5 py-2 text-sm font-semibold"
+                >
+                  Add admin PIN
+                </button>
+              </form>
+
+              <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
+                <h3 className="text-sm font-semibold text-red-900">Full PIN reset</h3>
+                <p className="mt-1 text-xs text-red-700">
+                  Permanently removes every non-master admin PIN in one
+                  go. Master PIN(s) are never touched by this — there's
+                  always at least one way back in.
+                </p>
+                <button
+                  onClick={runFullPinReset}
+                  className="mt-3 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
+                >
+                  Run full PIN reset
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
       {tab === "support" && (
