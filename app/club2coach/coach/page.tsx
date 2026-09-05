@@ -122,23 +122,16 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   // (e.g. "NPL SA (Women's)"); others (VIC, TAS) don't split by gender
   // in the name at all and pass through unfiltered either way. "No
   // preference" or nothing selected shows everything, unfiltered.
-  // Victoria's men's-side names are mostly unmarked by convention
-  // (paired against an explicitly-named women's/girls competition
-  // elsewhere in the same list) — regex alone can't tell those apart
-  // from genuinely ungendered levels like "Community / Junior", so
-  // they're called out explicitly here.
-  const VIC_IMPLICITLY_MENS = new Set(["NPL Victoria", "VPL1 & VPL2", "State League 1 & 2", "State League 3-7"]);
-
   function filterByGender(levels: readonly string[], gender: string): string[] {
     if (!gender || gender === "No preference") return [...levels];
     const wantsWomen = gender === "Female";
     return levels.filter((l) => {
-      // Catches spelled-out "Women"/"Female" as well as real
-      // abbreviated forms like "NPLW", where the W is glued directly
-      // onto the acronym rather than being its own word.
-      const mentionsWomen = /women|female/i.test(l) || /[A-Za-z]W$/.test(l);
-      const mentionsMen = /\bmen'?s\b/i.test(l) || VIC_IMPLICITLY_MENS.has(l);
-      if (!mentionsWomen && !mentionsMen) return true; // gender-neutral, always shown
+      // Covers adult (Women/Women's/Female), youth (Girls), and
+      // abbreviated (a bare trailing "W" glued onto an acronym, e.g.
+      // a shorthand like "NPLW") gendered naming patterns.
+      const mentionsWomen = /women|female|\bgirls?\b/i.test(l) || /[A-Za-z]W$/.test(l);
+      const mentionsMen = /\bmen'?s?\b|\bboys?\b/i.test(l);
+      if (!mentionsWomen && !mentionsMen) return true; // gender-neutral/mixed, always shown
       return wantsWomen ? mentionsWomen : mentionsMen;
     });
   }
