@@ -237,6 +237,21 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     });
   }
 
+  // Some competitions are genuinely tied to one specific region — in
+  // Victoria that's the "FV <region name>" zone leagues, and the name
+  // after "FV " matches a real REGIONS_BY_STATE entry exactly, so no
+  // separate mapping table is needed. Statewide competitions (NPL,
+  // VPL, State League, Metropolitan League) aren't tied to any single
+  // region and always pass through regardless of what's selected.
+  function filterByRegion(levels: readonly string[], regions: string[]): string[] {
+    if (regions.length === 0) return [...levels]; // no preference selected — show everything
+    return levels.filter((l) => {
+      if (!l.startsWith("FV ")) return true;
+      const regionName = l.slice(3);
+      return regions.includes(regionName);
+    });
+  }
+
   function toggleAgeGroup(v: string) {
     const next = ageGroups.includes(v) ? ageGroups.filter((a) => a !== v) : [...ageGroups, v];
     setAgeGroups(next);
@@ -244,7 +259,20 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     // new age selection (e.g. switching from "No preference" to
     // "Senior" should drop any already-picked youth-pathway levels).
     const stillValidLevels = statePreferences.flatMap((s) =>
-      filterByAge(filterByGender(COMPETITION_LEVELS_BY_STATE[s] ?? [], preferredTeamGender), next)
+      filterByRegion(filterByAge(filterByGender(COMPETITION_LEVELS_BY_STATE[s] ?? [], preferredTeamGender), next), regions)
+    );
+    setCompetitionLevels((prev) => prev.filter((c) => stillValidLevels.includes(c)));
+  }
+
+  function toggleRegion(v: string) {
+    const next = regions.includes(v) ? regions.filter((r) => r !== v) : [...regions, v];
+    setRegions(next);
+    // Same safety net as toggleAgeGroup — narrowing to specific
+    // regions can invalidate an already-picked region-tied
+    // competition (e.g. "FV Sunraysia" no longer fits once regions
+    // are narrowed down to just Geelong).
+    const stillValidLevels = statePreferences.flatMap((s) =>
+      filterByRegion(filterByAge(filterByGender(COMPETITION_LEVELS_BY_STATE[s] ?? [], preferredTeamGender), ageGroups), next)
     );
     setCompetitionLevels((prev) => prev.filter((c) => stillValidLevels.includes(c)));
   }
@@ -608,7 +636,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
                       <CheckboxGroup
                         options={REGIONS_BY_STATE[s] ?? []}
                         selected={regions}
-                        onToggle={(v) => toggle(regions, setRegions, v)}
+                        onToggle={toggleRegion}
                       />
                       {s !== "ACT" && (
                         <div className="mt-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
@@ -688,9 +716,12 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
                   <div key={s}>
                     <p className="mb-1.5 text-xs font-semibold text-gray-600">{STATE_LABELS[s]}</p>
                     <CheckboxGroup
-                      options={filterByAge(
-                        filterByGender(COMPETITION_LEVELS_BY_STATE[s] ?? [], preferredTeamGender),
-                        ageGroups
+                      options={filterByRegion(
+                        filterByAge(
+                          filterByGender(COMPETITION_LEVELS_BY_STATE[s] ?? [], preferredTeamGender),
+                          ageGroups
+                        ),
+                        regions
                       )}
                       selected={competitionLevels}
                       onToggle={(v) => toggle(competitionLevels, setCompetitionLevels, v)}
