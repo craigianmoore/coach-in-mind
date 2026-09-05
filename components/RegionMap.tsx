@@ -95,35 +95,22 @@ function TasmaniaMap() {
            Q 200.0 187.5, 212.3 200.0 Q 224.7 212.5, 228.6 170.2 Q 232.5 128.0, 248.8 126.5
            Q 265.0 125.1, 255.4 122.7 Q 245.9 120.2, 244.2 74.5 Q 242.5 28.8, 181.7 41.0
            Q 120.9 53.2, 68.0 34.1 Z"
-        fill="#ECEEF1"
-        stroke="#6B7280"
+        fill="#F7EFDD"
+        stroke="#B8935A"
         strokeWidth={2}
       />
 
-      <ellipse cx={86} cy={64} rx={39.1} ry={23} fill="#191B41" fillOpacity={0.1} />
+      <ellipse cx={86} cy={64} rx={39.1} ry={23} fill="#E8791A" fillOpacity={0.15} />
       <RegionLabel x={100} y={19} name="North-West" />
       <Dot x={92} y={44} />
-      <CityLabel x={68} y={62} name="Burnie" />
-      <Dot x={110} y={52} />
-      <CityLabel x={135} y={78} name="Ulverstone" anchor="end" />
-      <Dot x={121} y={53} />
-      <CityLabel x={127} y={42} name="Devonport" />
 
-      <ellipse cx={196} cy={72} rx={45} ry={30} fill="#191B41" fillOpacity={0.1} />
+      <ellipse cx={196} cy={72} rx={45} ry={30} fill="#191B41" fillOpacity={0.06} />
       <RegionLabel x={210} y={45} name="North" />
       <Dot x={172} y={74} />
-      <CityLabel x={178} y={65} name="Launceston" />
 
-      <ellipse cx={148} cy={160} rx={69} ry={60} fill="#191B41" fillOpacity={0.05} />
+      <ellipse cx={148} cy={160} rx={69} ry={60} fill="#E8791A" fillOpacity={0.1} />
       <RegionLabel x={148} y={150} name="South" />
-      <Dot x={70} y={125} />
-      <CityLabel x={65} y={122} name="Queenstown" anchor="end" />
       <Dot x={182} y={185} />
-      <CityLabel x={188} y={188} name="Hobart" />
-      <Dot x={167} y={180} />
-      <CityLabel x={162} y={175} name="New Norfolk" anchor="end" />
-      <Dot x={234} y={124} />
-      <CityLabel x={229} y={121} name="Coles Bay" anchor="end" />
     </svg>
   );
 }
