@@ -147,23 +147,46 @@ export const ABILITY_LEVELS = [
 // REGIONS_BY_STATE. Add a new state's ladder here as it comes on
 // board.
 export const COMPETITION_LEVELS_BY_STATE: Record<string, readonly string[]> = {
-  // Women's/girls competitions confirmed directly — real names, not
-  // normalised to match other states' "(Women's)" convention, since
-  // Victoria's own naming is asymmetric (men's side largely unmarked,
-  // women's/girls side carries its own distinct name).
+  // Confirmed directly against Football Victoria's live Dribl
+  // competition filter (the actual current list, screenshotted end to
+  // end) — sponsor prefixes stripped (Senol, New Balance, VETO
+  // Sports, Coles), consistent with every other state. Cup
+  // competitions (Dockerty Cup, Nike FC Cup, and the regional cups)
+  // are knockout tournaments open to teams from any level, not a
+  // "level" themselves, so they're left out here.
   VIC: [
-    "NPL Victoria",
-    "NPLW",
-    "VPL1 & VPL2",
+    "NPL Victoria Men",
+    "NPL Victoria Women",
+    "VPL Men 1",
+    "VPL Men 2",
     "VPL Women",
-    "NPL/VPL Development (U20-23)",
-    "YPLG Female",
-    "State League 1 & 2",
-    "State League Women",
-    "State League 3-7",
-    "Metropolitan League",
-    "Regional League",
-    "Community / Junior",
+    "State League Men's",
+    "State League Women's",
+    "Men's Metropolitan League",
+    "Men's Metropolitan Under 21",
+    "Women's Metropolitan League",
+    "Boys Victorian Youth Premier League 1",
+    "Boys Victorian Youth Premier League 2",
+    "Girls Victorian Youth Premier League",
+    "Boys Youth State League North-West",
+    "Boys Youth State League South-East",
+    "Community Premier League Girls",
+    "All Abilities League",
+    "Junior Boys Sunday (U17-U18)",
+    "Junior Girls Sunday (U12-U18)",
+    "Junior Mixed Saturday (U12-U16)",
+    "Junior Mixed Sunday (U12-U16)",
+    "MiniRoos Girls' Sunday (U6-U11)",
+    "MiniRoos Mixed Saturday (U6-U11)",
+    "MiniRoos Mixed Sunday (U6-U11)",
+    "FV Greater Ballarat",
+    "FV Greater Bendigo",
+    "FV Geelong",
+    "FV Gippsland",
+    "FV Latrobe Valley",
+    "FV Shepparton",
+    "FV South West",
+    "FV Sunraysia",
   ],
   // Cleaned up from the actual 2026-season competitions clubs listed —
   // gender is handled by the separate Team Gender field already on
