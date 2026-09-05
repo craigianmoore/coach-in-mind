@@ -147,16 +147,25 @@ export const ABILITY_LEVELS = [
 // REGIONS_BY_STATE. Add a new state's ladder here as it comes on
 // board.
 export const COMPETITION_LEVELS_BY_STATE: Record<string, readonly string[]> = {
-  // Confirmed directly against Football Victoria's live Dribl
+ // Confirmed directly against Football Victoria's live Dribl
   // competition filter (the actual current list, screenshotted end to
   // end) — sponsor prefixes stripped (Senol, New Balance, VETO
   // Sports, Coles), consistent with every other state. Cup
   // competitions (Dockerty Cup, Nike FC Cup, and the regional cups)
   // are knockout tournaments open to teams from any level, not a
   // "level" themselves, so they're left out here.
+  //
+  // NPL Men and Women each also run age-restricted sub-leagues
+  // (visible under Dribl's "League" filter, nested below the
+  // "Competition" selector) — included here as their own entries
+  // since a Head Coach / Assistant Coach role can be specifically for
+  // an U20 or U23 squad rather than the senior team.
   VIC: [
     "NPL Victoria Men",
+    "NPL Victoria Men - U20",
+    "NPL Victoria Men - U23",
     "NPL Victoria Women",
+    "NPL Victoria Women - U20",
     "VPL Men 1",
     "VPL Men 2",
     "VPL Women",
