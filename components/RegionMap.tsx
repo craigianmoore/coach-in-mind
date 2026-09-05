@@ -48,49 +48,40 @@ function VictoriaMap() {
       />
 
       <ellipse cx={43} cy={39} rx={21.1} ry={18} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={53} y={21} name="Sunraysia" anchor="start" />
       <Dot x={43} y={21} />
-      <CityLabel x={43} y={39} name="Mildura" />
+      <RegionLabel x={55} y={21} name="Sunraysia" anchor="start" />
 
       <ellipse cx={148} cy={132} rx={32} ry={26} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={148} y={122} name="Greater Bendigo" />
       <Dot x={148} y={132} />
-      <CityLabel x={155} y={139} name="Bendigo" />
+      <RegionLabel x={148} y={120} name="Greater Bendigo" />
 
       <ellipse cx={218} cy={120} rx={21.3} ry={16} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={218} y={110} name="Shepparton" anchor="start" />
       <Dot x={218} y={120} />
-      <CityLabel x={225} y={127} name="Wangaratta area" />
+      <RegionLabel x={218} y={108} name="Shepparton" anchor="start" />
 
       <circle cx={171} cy={185} r={17} fill="#191B41" fillOpacity={0.08} />
-      <RegionLabel x={171} y={175} name="Melbourne" />
       <Dot x={171} y={185} />
-      <CityLabel x={178} y={192} name="Melbourne" />
+      <RegionLabel x={171} y={173} name="Melbourne" />
 
       <ellipse cx={112} cy={172} rx={26} ry={22} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={112} y={162} name="Ballarat" />
       <Dot x={112} y={172} />
-      <CityLabel x={105} y={179} name="Ballarat" anchor="end" />
+      <RegionLabel x={112} y={160} name="Ballarat" anchor="end" />
 
       <ellipse cx={119} cy={193} rx={25.9} ry={18} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={115} y={202} name="Geelong" anchor="end" />
       <Dot x={125} y={202} />
-      <CityLabel x={125} y={192} name="Geelong" />
+      <RegionLabel x={133.5} y={210.5} name="Geelong" anchor="start" />
 
       <ellipse cx={79} cy={193} rx={23.4} ry={18} fill="#191B41" fillOpacity={0.06} />
-      <RegionLabel x={86} y={218} name="South West" anchor="start" />
       <Dot x={79} y={211} />
-      <CityLabel x={72} y={218} name="Warrnambool" anchor="end" />
+      <RegionLabel x={79} y={199} name="South West" />
 
       <ellipse cx={240} cy={182} rx={16} ry={12} fill="#E8791A" fillOpacity={0.15} />
-      <RegionLabel x={240} y={172} name="Gippsland" />
       <Dot x={240} y={182} />
-      <CityLabel x={247} y={189} name="Bairnsdale" />
+      <RegionLabel x={240} y={170} name="Gippsland" anchor="start" />
 
       <ellipse cx={215} cy={191} rx={24} ry={16} fill="#191B41" fillOpacity={0.1} />
-      <RegionLabel x={225} y={210} name="Latrobe Valley" anchor="start" />
       <Dot x={218} y={203} />
-      <CityLabel x={211} y={210} name="Traralgon" anchor="end" />
+      <RegionLabel x={230} y={203} name="Latrobe Valley" anchor="start" />
     </svg>
   );
 }
