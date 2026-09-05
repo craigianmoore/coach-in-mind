@@ -9,6 +9,7 @@ import {
   COACHING_ROLES,
   ABILITY_LEVELS,
   COMPETITION_LEVELS,
+  COMPETITION_LEVELS_BY_STATE,
   AGE_GROUPS,
   REGIONS,
   REGIONS_BY_STATE,
@@ -346,30 +347,6 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
 
         <div>
           <label className="text-xs font-semibold uppercase text-gray-500">
-            Preferred competition levels
-          </label>
-          <div className="mt-1">
-            <CheckboxGroup
-              options={COMPETITION_LEVELS}
-              selected={competitionLevels}
-              onToggle={(v) => toggle(competitionLevels, setCompetitionLevels, v)}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold uppercase text-gray-500">Preferred age groups</label>
-          <div className="mt-1">
-            <CheckboxGroup
-              options={AGE_GROUPS}
-              selected={ageGroups}
-              onToggle={(v) => toggle(ageGroups, setAgeGroups, v)}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold uppercase text-gray-500">
             Which state(s) are you open to coaching in?
           </label>
           <div className="mt-1 flex flex-wrap gap-3">
@@ -383,12 +360,15 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
                       ? statePreferences.filter((s) => s !== opt)
                       : [...statePreferences, opt];
                     setStatePreferences(next);
-                    // Drop any previously-selected regions that no
-                    // longer belong to the currently chosen state(s),
-                    // so nothing stale lingers invisibly in the
-                    // background.
-                    const stillValid = next.length === 0 ? REGIONS : next.flatMap((s) => REGIONS_BY_STATE[s] ?? []);
-                    setRegions((prev) => prev.filter((r) => stillValid.includes(r)));
+                    // Drop any previously-selected regions and
+                    // competition levels that no longer belong to the
+                    // currently chosen state(s), so nothing stale
+                    // lingers invisibly in the background.
+                    const stillValidRegions = next.length === 0 ? REGIONS : next.flatMap((s) => REGIONS_BY_STATE[s] ?? []);
+                    setRegions((prev) => prev.filter((r) => stillValidRegions.includes(r)));
+                    const stillValidLevels =
+                      next.length === 0 ? COMPETITION_LEVELS : next.flatMap((s) => COMPETITION_LEVELS_BY_STATE[s] ?? []);
+                    setCompetitionLevels((prev) => prev.filter((c) => stillValidLevels.includes(c)));
                   }}
                 />
                 {STATE_LABELS[opt]}
@@ -400,6 +380,37 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
             state(s) won't be matched to you. Leave everything unchecked to stay open to every
             state, including any added later.
           </p>
+        </div>
+
+        {statePreferences.length > 0 && (
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">
+              Preferred competition levels
+            </label>
+            <div className="mt-2 flex flex-col gap-4">
+              {statePreferences.map((s) => (
+                <div key={s}>
+                  <p className="mb-1.5 text-xs font-semibold text-gray-600">{STATE_LABELS[s]}</p>
+                  <CheckboxGroup
+                    options={COMPETITION_LEVELS_BY_STATE[s] ?? []}
+                    selected={competitionLevels}
+                    onToggle={(v) => toggle(competitionLevels, setCompetitionLevels, v)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div>
+          <label className="text-xs font-semibold uppercase text-gray-500">Preferred age groups</label>
+          <div className="mt-1">
+            <CheckboxGroup
+              options={AGE_GROUPS}
+              selected={ageGroups}
+              onToggle={(v) => toggle(ageGroups, setAgeGroups, v)}
+            />
+          </div>
         </div>
 
         {statePreferences.length > 0 && (
