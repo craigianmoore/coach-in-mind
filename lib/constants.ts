@@ -147,11 +147,19 @@ export const ABILITY_LEVELS = [
 // REGIONS_BY_STATE. Add a new state's ladder here as it comes on
 // board.
 export const COMPETITION_LEVELS_BY_STATE: Record<string, readonly string[]> = {
+  // Women's/girls competitions confirmed directly — real names, not
+  // normalised to match other states' "(Women's)" convention, since
+  // Victoria's own naming is asymmetric (men's side largely unmarked,
+  // women's/girls side carries its own distinct name).
   VIC: [
     "NPL Victoria",
+    "NPLW",
     "VPL1 & VPL2",
+    "VPL Women",
     "NPL/VPL Development (U20-23)",
+    "YPLG Female",
     "State League 1 & 2",
+    "State League Women",
     "State League 3-7",
     "Metropolitan League",
     "Regional League",
