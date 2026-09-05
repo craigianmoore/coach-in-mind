@@ -32,9 +32,13 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   const [preferredTeamGender, setPreferredTeamGender] = useState("");
   const [abilityLevels, setAbilityLevels] = useState<string[]>([]);
   const [competitionLevels, setCompetitionLevels] = useState<string[]>([]);
+  const [competitionNoPreference, setCompetitionNoPreference] = useState(false);
   const [ageGroups, setAgeGroups] = useState<string[]>([]);
+  const [ageNoPreference, setAgeNoPreference] = useState(false);
   const [regions, setRegions] = useState<string[]>([]);
+  const [regionNoPreference, setRegionNoPreference] = useState(false);
   const [statePreferences, setStatePreferences] = useState<string[]>([]);
+  const [stateNoPreference, setStateNoPreference] = useState(false);
   const [openToRelocating, setOpenToRelocating] = useState(false);
   const [salaryMin, setSalaryMin] = useState("");
   const [salaryMax, setSalaryMax] = useState("");
@@ -58,9 +62,13 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     setPreferredTeamGender("");
     setAbilityLevels([]);
     setCompetitionLevels([]);
+    setCompetitionNoPreference(false);
     setAgeGroups([]);
+    setAgeNoPreference(false);
     setRegions([]);
+    setRegionNoPreference(false);
     setStatePreferences([]);
+    setStateNoPreference(false);
     setOpenToRelocating(false);
     setSalaryMin("");
     setSalaryMax("");
@@ -85,10 +93,28 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       setRoleSought(l.role_sought);
       setPreferredTeamGender(l.preferred_team_gender ?? "");
       setAbilityLevels(l.ability_levels ?? []);
-      setCompetitionLevels(l.preferred_competition_levels ?? []);
-      setAgeGroups(l.preferred_age_groups ?? []);
-      setRegions(l.preferred_regions ?? []);
-      setStatePreferences(l.state_preferences ?? []);
+
+      // An existing (previously-saved) listing with an empty array
+      // means the coach had already been through this field and
+      // explicitly left it open — not that they haven't reached it
+      // yet — so the "No preference" toggle is switched on to match,
+      // rather than re-hiding a question they already answered.
+      const loadedStates = l.state_preferences ?? [];
+      setStatePreferences(loadedStates);
+      setStateNoPreference(loadedStates.length === 0);
+
+      const loadedRegions = l.preferred_regions ?? [];
+      setRegions(loadedRegions);
+      setRegionNoPreference(loadedRegions.length === 0);
+
+      const loadedAges = l.preferred_age_groups ?? [];
+      setAgeGroups(loadedAges);
+      setAgeNoPreference(loadedAges.length === 0);
+
+      const loadedCompetition = l.preferred_competition_levels ?? [];
+      setCompetitionLevels(loadedCompetition);
+      setCompetitionNoPreference(loadedCompetition.length === 0);
+
       setOpenToRelocating(l.open_to_relocating);
       setSalaryMin(l.salary_min?.toString() ?? "");
       setSalaryMax(l.salary_max?.toString() ?? "");
@@ -208,10 +234,20 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
 
   if (loading) return <p className="py-8 text-sm text-gray-500">Loading…</p>;
 
-  // Regions and maps only make sense once at least one state is
-  // picked — before that there's nothing to scope them to, so they
-  // stay hidden rather than showing an unfiltered wall of every
-  // region across every federation.
+  // The form reveals one question at a time, each gated on the one
+  // above having an answer — including an explicit "No preference"
+  // answer, not just silence. This stops a coach from accidentally
+  // over-narrowing themselves just because a field was easy to skip,
+  // while still letting them move forward without picking anything
+  // specific.
+  const genderAnswered = preferredTeamGender !== "";
+  const stateAnswered = stateNoPreference || statePreferences.length > 0;
+  // Region and Competition Level are both scoped per-state, so if the
+  // coach is open to any state, there's nothing sensible to show for
+  // either — both are treated as automatically "no preference" too,
+  // and the chain skips straight from State to Age.
+  const regionAnswered = stateNoPreference || regionNoPreference || regions.length > 0;
+  const ageAnswered = ageNoPreference || ageGroups.length > 0;
 
   return (
     <div className="py-8">
@@ -391,115 +427,188 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           </select>
         </div>
 
-        <div>
-          <label className="text-xs font-semibold uppercase text-gray-500">
-            Which state(s) are you open to coaching in?
-          </label>
-          <div className="mt-1 flex flex-wrap gap-3">
-            {STATE_OPTIONS.map((opt) => (
-              <label key={opt} className="flex items-center gap-1.5 text-sm">
-                <input
-                  type="checkbox"
-                  checked={statePreferences.includes(opt)}
-                  onChange={() => {
-                    const next = statePreferences.includes(opt)
-                      ? statePreferences.filter((s) => s !== opt)
-                      : [...statePreferences, opt];
-                    setStatePreferences(next);
-                    // Drop any previously-selected regions and
-                    // competition levels that no longer belong to the
-                    // currently chosen state(s), so nothing stale
-                    // lingers invisibly in the background.
-                    const stillValidRegions = next.length === 0 ? REGIONS : next.flatMap((s) => REGIONS_BY_STATE[s] ?? []);
-                    setRegions((prev) => prev.filter((r) => stillValidRegions.includes(r)));
-                    const stillValidLevels =
-                      next.length === 0 ? COMPETITION_LEVELS : next.flatMap((s) => COMPETITION_LEVELS_BY_STATE[s] ?? []);
-                    setCompetitionLevels((prev) => prev.filter((c) => stillValidLevels.includes(c)));
-                  }}
+        {genderAnswered && (
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">
+              Which state(s) are you open to coaching in?
+            </label>
+
+            <label className="mt-2 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm font-medium text-brand-navy">
+              <input
+                type="checkbox"
+                checked={stateNoPreference}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setStateNoPreference(checked);
+                  if (checked) {
+                    // Open to any state also means open to any region
+                    // and competition level, since both only make
+                    // sense scoped to a specific state.
+                    setStatePreferences([]);
+                    setRegions([]);
+                    setRegionNoPreference(true);
+                    setCompetitionLevels([]);
+                    setCompetitionNoPreference(true);
+                  }
+                }}
+              />
+              No preference — open to any state
+            </label>
+
+            {!stateNoPreference && (
+              <>
+                <div className="mt-2 flex flex-wrap gap-3">
+                  {STATE_OPTIONS.map((opt) => (
+                    <label key={opt} className="flex items-center gap-1.5 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={statePreferences.includes(opt)}
+                        onChange={() => {
+                          const next = statePreferences.includes(opt)
+                            ? statePreferences.filter((s) => s !== opt)
+                            : [...statePreferences, opt];
+                          setStatePreferences(next);
+                          // Drop any previously-selected regions and
+                          // competition levels that no longer belong to
+                          // the currently chosen state(s), so nothing
+                          // stale lingers invisibly in the background.
+                          const stillValidRegions =
+                            next.length === 0 ? REGIONS : next.flatMap((s) => REGIONS_BY_STATE[s] ?? []);
+                          setRegions((prev) => prev.filter((r) => stillValidRegions.includes(r)));
+                          const stillValidLevels =
+                            next.length === 0
+                              ? COMPETITION_LEVELS
+                              : next.flatMap((s) => COMPETITION_LEVELS_BY_STATE[s] ?? []);
+                          setCompetitionLevels((prev) => prev.filter((c) => stillValidLevels.includes(c)));
+                        }}
+                      />
+                      {STATE_LABELS[opt]}
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  This is a hard preference, not just a nice-to-have — roles outside your
+                  selected state(s) won't be matched to you.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
+        {genderAnswered && stateAnswered && !stateNoPreference && (
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">Preferred regions</label>
+
+            <label className="mt-2 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm font-medium text-brand-navy">
+              <input
+                type="checkbox"
+                checked={regionNoPreference}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setRegionNoPreference(checked);
+                  if (checked) setRegions([]);
+                }}
+              />
+              No preference — open to any region within my selected state(s)
+            </label>
+
+            {!regionNoPreference && (
+              <>
+                <div className="mt-3 flex flex-col gap-4">
+                  {statePreferences.map((s) => (
+                    <div key={s}>
+                      <p className="mb-1.5 text-xs font-semibold text-gray-600">{STATE_LABELS[s]}</p>
+                      <CheckboxGroup
+                        options={REGIONS_BY_STATE[s] ?? []}
+                        selected={regions}
+                        onToggle={(v) => toggle(regions, setRegions, v)}
+                      />
+                      {s !== "ACT" && (
+                        <div className="mt-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
+                          <p className="mb-1.5 text-xs font-semibold uppercase text-gray-500">
+                            Not sure which region? Here's roughly where each one sits.
+                          </p>
+                          <RegionMap state={s} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <label className="mt-3 flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={openToRelocating}
+                    onChange={(e) => setOpenToRelocating(e.target.checked)}
+                  />
+                  Open to relocating outside preferred regions
+                </label>
+              </>
+            )}
+          </div>
+        )}
+
+        {genderAnswered && stateAnswered && regionAnswered && (
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">Preferred age groups</label>
+
+            <label className="mt-2 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm font-medium text-brand-navy">
+              <input
+                type="checkbox"
+                checked={ageNoPreference}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setAgeNoPreference(checked);
+                  if (checked) setAgeGroups([]);
+                }}
+              />
+              No preference — open to any age group
+            </label>
+
+            {!ageNoPreference && (
+              <div className="mt-2">
+                <CheckboxGroup
+                  options={AGE_GROUPS}
+                  selected={ageGroups}
+                  onToggle={(v) => toggle(ageGroups, setAgeGroups, v)}
                 />
-                {STATE_LABELS[opt]}
-              </label>
-            ))}
+              </div>
+            )}
           </div>
-          <p className="mt-1 text-xs text-gray-500">
-            This is a hard preference, not just a nice-to-have — roles outside your selected
-            state(s) won't be matched to you. Leave everything unchecked to stay open to every
-            state, including any added later.
-          </p>
-        </div>
+        )}
 
-        <div>
-          <label className="text-xs font-semibold uppercase text-gray-500">Preferred age groups</label>
-          <div className="mt-1">
-            <CheckboxGroup
-              options={AGE_GROUPS}
-              selected={ageGroups}
-              onToggle={(v) => toggle(ageGroups, setAgeGroups, v)}
-            />
-          </div>
-        </div>
-
-        {statePreferences.length > 0 && (
+        {genderAnswered && stateAnswered && ageAnswered && !stateNoPreference && (
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">
               Preferred competition levels
             </label>
-            <div className="mt-2 flex flex-col gap-4">
-              {statePreferences.map((s) => (
-                <div key={s}>
-                  <p className="mb-1.5 text-xs font-semibold text-gray-600">{STATE_LABELS[s]}</p>
-                  <CheckboxGroup
-                    options={filterByGender(COMPETITION_LEVELS_BY_STATE[s] ?? [], preferredTeamGender)}
-                    selected={competitionLevels}
-                    onToggle={(v) => toggle(competitionLevels, setCompetitionLevels, v)}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {statePreferences.length > 0 && (
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Preferred regions</label>
-            <div className="mt-2 flex flex-col gap-4">
-              {statePreferences.map((s) => (
-                <div key={s}>
-                  <p className="mb-1.5 text-xs font-semibold text-gray-600">{STATE_LABELS[s]}</p>
-                  <CheckboxGroup
-                    options={REGIONS_BY_STATE[s] ?? []}
-                    selected={regions}
-                    onToggle={(v) => toggle(regions, setRegions, v)}
-                  />
-                </div>
-              ))}
-            </div>
-            <label className="mt-3 flex items-center gap-2 text-sm">
+            <label className="mt-2 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm font-medium text-brand-navy">
               <input
                 type="checkbox"
-                checked={openToRelocating}
-                onChange={(e) => setOpenToRelocating(e.target.checked)}
+                checked={competitionNoPreference}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setCompetitionNoPreference(checked);
+                  if (checked) setCompetitionLevels([]);
+                }}
               />
-              Open to relocating outside preferred regions
+              No preference — open to any competition level
             </label>
-          </div>
-        )}
 
-        {statePreferences.some((s) => s !== "ACT") && (
-          <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-            <p className="mb-2 text-xs font-semibold uppercase text-gray-500">
-              Not sure which region? Here's roughly where each one sits.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              {statePreferences
-                .filter((s) => s !== "ACT") // no map for ACT — it's a single-region federation
-                .map((s) => (
+            {!competitionNoPreference && (
+              <div className="mt-3 flex flex-col gap-4">
+                {statePreferences.map((s) => (
                   <div key={s}>
-                    <p className="mb-1.5 text-sm font-bold text-brand-navy">{STATE_LABELS[s]}</p>
-                    <RegionMap state={s} />
+                    <p className="mb-1.5 text-xs font-semibold text-gray-600">{STATE_LABELS[s]}</p>
+                    <CheckboxGroup
+                      options={filterByGender(COMPETITION_LEVELS_BY_STATE[s] ?? [], preferredTeamGender)}
+                      selected={competitionLevels}
+                      onToggle={(v) => toggle(competitionLevels, setCompetitionLevels, v)}
+                    />
                   </div>
                 ))}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
