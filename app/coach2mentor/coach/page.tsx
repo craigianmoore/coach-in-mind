@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import RequireProfile from "@/components/RequireProfile";
 import CheckboxGroup from "@/components/CheckboxGroup";
+import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
 import {
   GENDER_OPTIONS,
@@ -10,6 +11,9 @@ import {
   CAREER_STAGES,
   MENTOR_SPECIALISMS,
   CLUB2COACH_COACH_PACKAGES,
+  STATE_OPTIONS,
+  STATE_LABELS,
+  REGIONS_BY_STATE,
 } from "@/lib/constants";
 import type {
   Coach2MentorCoachListing,
@@ -40,6 +44,16 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
   const [availability, setAvailability] = useState("Either");
   const [careerStage, setCareerStage] = useState<string>(CAREER_STAGES[0]);
   const [supportAreas, setSupportAreas] = useState<string[]>([]);
+  // Only meaningful when mentoring might happen in person — a
+  // Virtual-only mentee has no reason to specify where they are, so
+  // this whole section is hidden (not cleared, just hidden) for them.
+  // Named to match Club2Coach's own coach-side fields
+  // (state_preferences / preferred_regions) for consistency across
+  // the platform, even though the underlying meaning here is "where
+  // I'd want to meet a mentor" rather than Club2Coach's "where I'd
+  // take a coaching role" — same shape, different purpose.
+  const [statePreferences, setStatePreferences] = useState<string[]>([]);
+  const [preferredRegions, setPreferredRegions] = useState<string[]>([]);
   const [meetMin, setMeetMin] = useState("");
   const [meetMax, setMeetMax] = useState("");
   const [budgetMin, setBudgetMin] = useState("");
@@ -67,6 +81,8 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
     setAvailability("Either");
     setCareerStage(CAREER_STAGES[0]);
     setSupportAreas([]);
+    setStatePreferences([]);
+    setPreferredRegions([]);
     setMeetMin("");
     setMeetMax("");
     setBudgetMin("");
@@ -101,6 +117,21 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
       setAvailability(l.availability ?? "Either");
       setCareerStage(l.current_career_stage ?? CAREER_STAGES[0]);
       setSupportAreas(l.support_areas ?? []);
+
+      const loadedRegions = l.preferred_regions ?? [];
+      setPreferredRegions(loadedRegions);
+      // Same derivation the mentor form already uses — a region
+      // inherently belongs to one state, so which state checkboxes
+      // start ticked can be worked out from whichever regions are
+      // already saved, rather than needing this to be kept in sync
+      // as a second source of truth.
+      const loadedStates = l.state_preferences ?? [];
+      setStatePreferences(
+        loadedStates.length > 0
+          ? loadedStates
+          : STATE_OPTIONS.filter((s) => (REGIONS_BY_STATE[s] ?? []).some((r) => loadedRegions.includes(r)))
+      );
+
       setMeetMin(l.meet_min?.toString() ?? "");
       setMeetMax(l.meet_max?.toString() ?? "");
       setBudgetMin(l.budget_min?.toString() ?? "");
@@ -165,9 +196,20 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
     setSupportAreas((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
   }
 
+  function toggleRegion(v: string) {
+    setPreferredRegions((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
+  }
+
   function updatePersonalWeight(key: keyof Coach2MentorWeights, value: number) {
     setPersonalWeights((prev) => ({ ...(prev as Coach2MentorWeights), [key]: value }));
   }
+
+  // Geography only matters when mentoring might happen face to face —
+  // a mentee who's picked Virtual has no reason to be asked where
+  // they are, so the whole region section stays hidden for them
+  // (existing selections are preserved, not wiped, in case they
+  // switch back to In-person or Either later).
+  const regionRelevant = availability === "In-person" || availability === "Either";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -180,6 +222,8 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
       availability,
       current_career_stage: careerStage,
       support_areas: supportAreas,
+      state_preferences: statePreferences,
+      preferred_regions: preferredRegions,
       meet_min: meetMin ? Number(meetMin) : null,
       meet_max: meetMax ? Number(meetMax) : null,
       budget_min: budgetMin ? Number(budgetMin) : null,
@@ -402,6 +446,77 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
             </select>
           </div>
         </div>
+
+        {regionRelevant && (
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">
+              Which state(s) would you want to meet a mentor in?
+            </label>
+            <div className="mt-1 flex flex-wrap gap-3">
+              {STATE_OPTIONS.map((opt) => (
+                <label key={opt} className="flex items-center gap-1.5 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={statePreferences.includes(opt)}
+                    onChange={() => {
+                      const next = statePreferences.includes(opt)
+                        ? statePreferences.filter((s) => s !== opt)
+                        : [...statePreferences, opt];
+                      setStatePreferences(next);
+                      // Drop any previously-selected regions that no
+                      // longer belong to the currently chosen state(s).
+                      const stillValid = next.flatMap((s) => REGIONS_BY_STATE[s] ?? []);
+                      setPreferredRegions((prev) => prev.filter((r) => stillValid.includes(r)));
+                    }}
+                  />
+                  {STATE_LABELS[opt]}
+                </label>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Leave everything unchecked to stay open to every state. This only affects matching
+              for in-person mentoring — it won't limit you to virtual-only mentors.
+            </p>
+          </div>
+        )}
+
+        {regionRelevant && statePreferences.length > 0 && (
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">
+              Regions that work for you — select all that apply
+            </label>
+            <div className="mt-2 flex flex-col gap-4">
+              {statePreferences.map((s) => (
+                <div key={s}>
+                  <p className="mb-1.5 text-xs font-semibold text-gray-600">{STATE_LABELS[s]}</p>
+                  <CheckboxGroup
+                    options={REGIONS_BY_STATE[s] ?? []}
+                    selected={preferredRegions}
+                    onToggle={toggleRegion}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {regionRelevant && statePreferences.some((s) => s !== "ACT") && (
+          <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase text-gray-500">
+              Not sure which region? Here's roughly where each one sits.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              {statePreferences
+                .filter((s) => s !== "ACT") // no map for ACT — it's a single-region federation
+                .map((s) => (
+                  <div key={s}>
+                    <p className="mb-1.5 text-sm font-bold text-brand-navy">{STATE_LABELS[s]}</p>
+                    <RegionMap state={s} />
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="text-xs font-semibold uppercase text-gray-500">Current career stage</label>
