@@ -152,6 +152,15 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     if (!gender || gender === "No preference") return [...levels];
     const wantsWomen = gender === "Female";
     return levels.filter((l) => {
+      // Queensland's FQPL3/FQPL4/FQPL (Regional) and Metro Divisional
+      // 3-6 carry no gender tag in the raw data, but they're lower
+      // tiers of the exact same pyramid as FQPL1 and FQPL2 — both
+      // explicitly labelled Men's in this same list. Women's football
+      // in Queensland runs through NPL Queensland (Women's) instead,
+      // not this ladder, so this is a confident Men's-only call, not
+      // a guess pulled from nothing.
+      if (/^(FQPL\d|FQPL \(Regional\)|Metro Divisional \d)/i.test(l)) return !wantsWomen;
+
       // Covers adult (Women/Women's/Female), youth (Girls), and
       // abbreviated (a bare trailing "W" glued onto an acronym, e.g.
       // a shorthand like "NPLW") gendered naming patterns.
@@ -194,8 +203,12 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     const rangeMatch = level.match(/U(\d{1,2})\s*-\s*U?(\d{1,2})\b/i);
     if (rangeMatch) return numericRangeToBuckets(parseInt(rangeMatch[1], 10), parseInt(rangeMatch[2], 10));
 
-    // A single trailing age number, e.g. "NPL Victoria Men - U20".
-    const singleU = level.match(/\bU(\d{1,2})\b/i);
+    // A single trailing age number, e.g. "NPL Victoria Men - U20" or
+    // "NPL U21s" / "...League U16s" — the optional "s?" catches the
+    // plural form some states use, which a plain \b boundary check
+    // misses (there's no word boundary between a digit and a
+    // following letter).
+    const singleU = level.match(/\bU(\d{1,2})s?\b/i);
     if (singleU) {
       const age = parseInt(singleU[1], 10);
       return numericRangeToBuckets(age, age);
@@ -206,6 +219,9 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       return numericRangeToBuckets(age, age);
     }
 
+    // "Over 35s" (or similar) is the Masters tier by another name.
+    if (/over\s*\d{2}s?\b/i.test(level)) return ["Masters"];
+
     if (/miniroos/i.test(level)) return ["U6-U8", "U9-U11"];
     if (/youth/i.test(level)) return ["U12-U13", "U14-U16", "U17-U18"];
     if (/\bjunior\b/i.test(level)) return ["U12-U13", "U14-U16", "U17-U18"];
@@ -213,14 +229,26 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
 
     // Any competition that explicitly says "Senior" in its own name
     // (e.g. "AAL - Senior All Abilities Mixed") — not just the
-    // flagship NPL/VPL naming below — is a confident Senior tag too.
+    // flagship naming below — is a confident Senior tag too.
     if (/\bsenior\b/i.test(level)) return ["Senior"];
 
-    // NPL / VPL / State League / Metropolitan League with no junior
-    // marker are each state's standard senior/open-age flagship
-    // competitions — a confident call, consistent across every
-    // state's football pyramid.
-    if (/\b(npl|vpl|state league|metropolitan league)\b/i.test(level)) return ["Senior"];
+    // NPL / VPL / State League / Metropolitan League / Premier League
+    // / FQPL / Metro Divisional / League One / League Two / Zone
+    // League / Amateur Football League, with no junior marker, are
+    // each state's standard senior/open-age divisional structures —
+    // a confident call backed by how these competition pyramids
+    // actually work (NPL -> State/Premier League -> Zone/Divisional
+    // -> amateur), not just a guess from the word "League" alone.
+    // Order matters here: junior-tagged competitions that happen to
+    // also contain "League" in their name (e.g. "Northern Youth
+    // Premier League") are already caught by the /youth/i or
+    // /junior/i checks above, before ever reaching this one.
+    if (
+      /\b(npl|vpl|state league|metropolitan league|premier league|fqpl\d*|metro divisional|league one|league two|zone league|amateur football league)\b/i.test(
+        level
+      )
+    )
+      return ["Senior"];
 
     // Regional zone leagues, "All Abilities", and community-level
     // competitions could genuinely span multiple ages under one name
