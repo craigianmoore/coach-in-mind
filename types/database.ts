@@ -100,6 +100,8 @@ export interface Coach2MentorCoachListing {
   availability: string | null;
   current_career_stage: string | null;
   support_areas: string[];
+  preferred_regions: string[];
+  state_preferences: string[]; // which state(s) this mentee would meet a mentor in — only meaningful when availability is In-person/Either; empty array means open to all states (including ones added later)
   meet_min: number | null;
   meet_max: number | null;
   budget_min: number | null;
