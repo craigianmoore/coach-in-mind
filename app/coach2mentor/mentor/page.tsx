@@ -145,6 +145,13 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
     setSpecialisms((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
   }
 
+  // Same reasoning as the Coach2Mentor coach form: geography only
+  // matters when mentoring might happen face to face. A mentor who's
+  // Virtual-only has no reason to be asked which regions they serve —
+  // the whole section stays hidden for them, existing selections
+  // preserved (not cleared) in case they switch back later.
+  const regionRelevant = availability === "In-person" || availability === "Either";
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -329,38 +336,39 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           </div>
         </div>
 
-        <div>
-          <label className="text-xs font-semibold uppercase text-gray-500">
-            Which state(s) are you open to mentoring in?
-          </label>
-          <div className="mt-1 flex flex-wrap gap-3">
-            {STATE_OPTIONS.map((opt) => (
-              <label key={opt} className="flex items-center gap-1.5 text-sm">
-                <input
-                  type="checkbox"
-                  checked={statePreferences.includes(opt)}
-                  onChange={() => {
-                    const next = statePreferences.includes(opt)
-                      ? statePreferences.filter((s) => s !== opt)
-                      : [...statePreferences, opt];
-                    setStatePreferences(next);
-                    // Drop any previously-selected regions that no
-                    // longer belong to the currently chosen state(s).
-                    const stillValid = next.flatMap((s) => REGIONS_BY_STATE[s] ?? []);
-                    setRegionsServed((prev) => prev.filter((r) => stillValid.includes(r)));
-                  }}
-                />
-                {STATE_LABELS[opt]}
-              </label>
-            ))}
+        {regionRelevant && (
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">
+              Which state(s) are you open to mentoring in?
+            </label>
+            <div className="mt-1 flex flex-wrap gap-3">
+              {STATE_OPTIONS.map((opt) => (
+                <label key={opt} className="flex items-center gap-1.5 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={statePreferences.includes(opt)}
+                    onChange={() => {
+                      const next = statePreferences.includes(opt)
+                        ? statePreferences.filter((s) => s !== opt)
+                        : [...statePreferences, opt];
+                      setStatePreferences(next);
+                      // Drop any previously-selected regions that no
+                      // longer belong to the currently chosen state(s).
+                      const stillValid = next.flatMap((s) => REGIONS_BY_STATE[s] ?? []);
+                      setRegionsServed((prev) => prev.filter((r) => stillValid.includes(r)));
+                    }}
+                  />
+                  {STATE_LABELS[opt]}
+                </label>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Leave everything unchecked to stay open to every state, including any added later.
+            </p>
           </div>
-          <p className="mt-1 text-xs text-gray-500">
-            Leave everything unchecked to stay open to every state, including any added later —
-            though virtual mentoring means state doesn't need to be a limiting factor.
-          </p>
-        </div>
+        )}
 
-        {statePreferences.length > 0 && (
+        {regionRelevant && statePreferences.length > 0 && (
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">
               Regions you can serve — select all that apply
@@ -380,7 +388,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           </div>
         )}
 
-        {statePreferences.some((s) => s !== "ACT") && (
+        {regionRelevant && statePreferences.some((s) => s !== "ACT") && (
           <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
             <p className="mb-2 text-xs font-semibold uppercase text-gray-500">
               Not sure which region? Here's roughly where each one sits.
