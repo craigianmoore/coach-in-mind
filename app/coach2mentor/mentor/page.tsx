@@ -14,7 +14,7 @@ import {
   RATE_UNITS,
   COACH2MENTOR_MENTOR_CAPACITY_PACKAGES,
   STATE_OPTIONS,
-  STATE_LABELS,
+  MEMBER_FEDERATIONS,
   REGIONS_BY_STATE,
 } from "@/lib/constants";
 import type { Coach2MentorMentorListing, Coach2MentorRequest, Person } from "@/types/database";
@@ -339,7 +339,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
         {regionRelevant && (
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">
-              Which state(s) are you open to mentoring in?
+              Which Member Federation(s) are you open to mentoring in?
             </label>
             <div className="mt-1 flex flex-wrap gap-3">
               {STATE_OPTIONS.map((opt) => (
@@ -358,12 +358,13 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
                       setRegionsServed((prev) => prev.filter((r) => stillValid.includes(r)));
                     }}
                   />
-                  {STATE_LABELS[opt]}
+                  {MEMBER_FEDERATIONS[opt]}
                 </label>
               ))}
             </div>
             <p className="mt-1 text-xs text-gray-500">
-              Leave everything unchecked to stay open to every state, including any added later.
+              Leave everything unchecked to stay open to every Member Federation, including any
+              added later.
             </p>
           </div>
         )}
@@ -376,7 +377,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
             <div className="mt-2 flex flex-col gap-4">
               {statePreferences.map((s) => (
                 <div key={s}>
-                  <p className="mb-1.5 text-xs font-semibold text-gray-600">{STATE_LABELS[s]}</p>
+                  <p className="mb-1.5 text-xs font-semibold text-gray-600">{MEMBER_FEDERATIONS[s]}</p>
                   <CheckboxGroup
                     options={REGIONS_BY_STATE[s] ?? []}
                     selected={regionsServed}
@@ -398,7 +399,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
                 .filter((s) => s !== "ACT") // no map for ACT — it's a single-region federation
                 .map((s) => (
                   <div key={s}>
-                    <p className="mb-1.5 text-sm font-bold text-brand-navy">{STATE_LABELS[s]}</p>
+                    <p className="mb-1.5 text-sm font-bold text-brand-navy">{MEMBER_FEDERATIONS[s]}</p>
                     <RegionMap state={s} />
                   </div>
                 ))}
