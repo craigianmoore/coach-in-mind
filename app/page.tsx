@@ -68,7 +68,7 @@ export default function HomePage() {
         </div>
 
         <p className="mt-2 text-xs text-white/50">
-          Currently serving Victoria, with other states to follow.
+          Shaping Australian football coaches&rsquo; futures, NOW
         </p>
       </div>
     </div>
