@@ -283,6 +283,7 @@ function Club2CoachAdmin() {
           const breakdown = scoreClub2CoachMatch(coach, coachPerson?.current_licence ?? null, vacancy, weights);
           return { coach, breakdown };
         })
+        .filter(({ breakdown }) => breakdown.eligible) // a wrong-state pairing is never a candidate, auto or manual
         .sort((a, b) => b.breakdown.total - a.breakdown.total)
         .slice(0, remaining);
 
@@ -1013,7 +1014,7 @@ function Club2CoachAdmin() {
                     {/* Other available candidates — only while slots remain */}
                     {(entitled == null || remaining! > 0) &&
                       candidates
-                        .filter((c) => !c.shareRow)
+                        .filter((c) => !c.shareRow && c.breakdown.eligible) // a wrong-state pairing is never offered as a new candidate
                         .slice(0, 10)
                         .map(({ coach, breakdown }) => (
                           <div
