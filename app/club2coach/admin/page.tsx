@@ -67,6 +67,7 @@ function Club2CoachAdmin() {
   const [coachAmount, setCoachAmount] = useState<Record<string, string>>({});
   const [topupAmount, setTopupAmount] = useState<Record<string, string>>({});
   const [autoMatching, setAutoMatching] = useState(false);
+  const [expandedPersonId, setExpandedPersonId] = useState<string | null>(null);
 
   useEffect(() => {
     loadAll();
@@ -563,6 +564,47 @@ function Club2CoachAdmin() {
 
   const filteredCoachListingsForListingsTab = coachListings.filter(passesListingsFilter);
   const filteredVacanciesForListingsTab = vacancies.filter(passesListingsFilter);
+
+  // Everything this one person has been matched with, across every
+  // role they hold — a coach listing's shares (which clubs), a club
+  // vacancy's shares (which coaches), or both if they somehow hold
+  // both roles. Built from data already loaded for the other tabs, so
+  // this needs no extra query.
+  function activityForPerson(personId: string) {
+    const asCoachListings = coachListings.filter((l) => l.person_id === personId);
+    const asClubVacancies = vacancies.filter((v) => v.person_id === personId);
+
+    const coachSide = asCoachListings.map((listing) => {
+      const listingShares = shares.filter((s) => s.coach_listing_id === listing.id);
+      const matches = listingShares
+        .map((s) => {
+          const vacancy = vacancies.find((v) => v.id === s.club_vacancy_id);
+          return vacancy ? { share: s, vacancy } : null;
+        })
+        .filter((m): m is { share: Club2CoachShare; vacancy: Club2CoachClubVacancy } => m !== null)
+        .sort((a, b) => new Date(b.share.shared_at).getTime() - new Date(a.share.shared_at).getTime());
+      return { listing, matches };
+    });
+
+    const clubSide = asClubVacancies.map((vacancy) => {
+      const vacancyShares = shares.filter((s) => s.club_vacancy_id === vacancy.id);
+      const matches = vacancyShares
+        .map((s) => {
+          const listing = coachListings.find((l) => l.id === s.coach_listing_id);
+          const coachPerson = listing ? people[listing.person_id] : undefined;
+          return listing ? { share: s, listing, coachPerson } : null;
+        })
+        .filter(
+          (m): m is { share: Club2CoachShare; listing: Club2CoachCoachListing; coachPerson: Person | undefined } =>
+            m !== null
+        )
+        .sort((a, b) => new Date(b.share.shared_at).getTime() - new Date(a.share.shared_at).getTime());
+      return { vacancy, matches };
+    });
+
+    return { coachSide, clubSide };
+  }
+
 
   function FilterPills<T extends string>({
     value,
@@ -1375,24 +1417,121 @@ function Club2CoachAdmin() {
           </p>
           {allPeople.map((p) => {
             const isNew = Date.now() - new Date(p.created_at).getTime() < 24 * 60 * 60 * 1000;
+            const isExpanded = expandedPersonId === p.id;
+            const activity = isExpanded ? activityForPerson(p.id) : null;
+            const hasAnyListing =
+              coachListings.some((l) => l.person_id === p.id) || vacancies.some((v) => v.person_id === p.id);
             return (
-              <div key={p.id} className="flex items-center justify-between rounded-lg border bg-white p-3">
-                <div>
-                  <p className="text-sm font-medium">
-                    {p.full_name}
-                    {isNew && (
-                      <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                        New
-                      </span>
+              <div key={p.id} className="rounded-lg border bg-white">
+                <button
+                  type="button"
+                  onClick={() => setExpandedPersonId(isExpanded ? null : p.id)}
+                  disabled={!hasAnyListing}
+                  className="flex w-full items-center justify-between p-3 text-left disabled:cursor-default"
+                >
+                  <div>
+                    <p className="text-sm font-medium">
+                      {p.full_name}
+                      {isNew && (
+                        <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                          New
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {p.email} · {p.mobile} · {p.region ?? "No region set"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <p className="text-xs text-gray-400">
+                      Joined {new Date(p.created_at).toLocaleDateString("en-GB")}
+                    </p>
+                    {hasAnyListing && (
+                      <span className="text-xs font-semibold text-gray-400">{isExpanded ? "▲" : "▼"}</span>
                     )}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {p.email} · {p.mobile} · {p.region ?? "No region set"}
-                  </p>
-                </div>
-                <p className="text-xs text-gray-400">
-                  Joined {new Date(p.created_at).toLocaleDateString("en-GB")}
-                </p>
+                  </div>
+                </button>
+
+                {isExpanded && activity && (
+                  <div className="border-t bg-gray-50 p-3">
+                    {activity.coachSide.length === 0 && activity.clubSide.length === 0 && (
+                      <p className="text-xs text-gray-500">No listings for this person.</p>
+                    )}
+
+                    {activity.coachSide.map(({ listing, matches }) => (
+                      <div key={listing.id} className="mb-3 last:mb-0">
+                        <p className="text-xs font-semibold uppercase text-gray-500">
+                          As a coach — {listing.role_sought}
+                        </p>
+                        {matches.length === 0 ? (
+                          <p className="mt-1 text-xs text-gray-400">No clubs matched yet.</p>
+                        ) : (
+                          <div className="mt-1 flex flex-col gap-1">
+                            {matches.map(({ share, vacancy }) => (
+                              <div
+                                key={share.id}
+                                className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs"
+                              >
+                                <span>
+                                  {vacancy.club_name} — {vacancy.role_being_recruited}
+                                  {vacancy.state && ` (${STATE_LABELS[vacancy.state]})`}
+                                </span>
+                                <span className="flex items-center gap-2 text-gray-500">
+                                  <span
+                                    className={`rounded-full px-2 py-0.5 font-medium ${
+                                      share.status === "approved"
+                                        ? "bg-green-100 text-green-700"
+                                        : "bg-blue-100 text-blue-700"
+                                    }`}
+                                  >
+                                    {share.status}
+                                  </span>
+                                  {share.score != null && `${Math.round(share.score * 100)}%`}
+                                  {new Date(share.shared_at).toLocaleDateString("en-GB")}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {activity.clubSide.map(({ vacancy, matches }) => (
+                      <div key={vacancy.id} className="mb-3 last:mb-0">
+                        <p className="text-xs font-semibold uppercase text-gray-500">
+                          As a club — {vacancy.club_name}: {vacancy.role_being_recruited}
+                        </p>
+                        {matches.length === 0 ? (
+                          <p className="mt-1 text-xs text-gray-400">No coaches matched yet.</p>
+                        ) : (
+                          <div className="mt-1 flex flex-col gap-1">
+                            {matches.map(({ share, coachPerson }) => (
+                              <div
+                                key={share.id}
+                                className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs"
+                              >
+                                <span>{coachPerson?.full_name ?? "Unknown coach"}</span>
+                                <span className="flex items-center gap-2 text-gray-500">
+                                  <span
+                                    className={`rounded-full px-2 py-0.5 font-medium ${
+                                      share.status === "approved"
+                                        ? "bg-green-100 text-green-700"
+                                        : "bg-blue-100 text-blue-700"
+                                    }`}
+                                  >
+                                    {share.status}
+                                  </span>
+                                  {share.score != null && `${Math.round(share.score * 100)}%`}
+                                  {new Date(share.shared_at).toLocaleDateString("en-GB")}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
