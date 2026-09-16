@@ -33,12 +33,6 @@ function accreditationScore(coachLicence: string | null, requiredLicence: string
 
 // A mentor's own accreditation must be strictly higher than the
 // coach's — equal or lower is disqualifying, not just a weaker match
-// (mirrors stateFitOk's hard-gate pattern below). If either side's
-// licence is missing/unrecognised, this doesn't block the match —
-// there's nothing to compare, so it falls through to the rest of
-// scoring rather than silently excluding incomplete profiles.
-// A mentor's own accreditation must be strictly higher than the
-// coach's — equal or lower is disqualifying, not just a weaker match
 // (mirrors stateFitOk's hard-gate pattern below) — with one specific
 // exception: at the top of the ladder, an A Licence/Diploma coach can
 // be mentored by another A Licence/Diploma mentor, not just a Pro
@@ -66,13 +60,17 @@ function overlapScore(preferred: string[], target: string | null | undefined): n
   return preferred.includes(target) ? 1 : 0;
 }
 
-// State acts as a hard gate ahead of regional scoring, not just another
-// soft preference — being in the wrong state matters far more than
-// which region within a state, since this is in-person coaching. A
-// coach who said "either" or a vacancy with no state recorded (legacy
-// rows) never gets gated; only an explicit VIC/TAS mismatch does.
+// State is a genuine hard gate, not a scored term — same pattern as
+// mentorAccreditationFitOk above. A wrong-state pairing is a
+// structural impossibility (the coach explicitly ruled it out), not
+// a preference they might still reconsider, so it can't be outweighed
+// by six other terms each scoring 1 the way a merely-low geography
+// score could be. A coach who said "no preference" (empty array,
+// meaning open to all states including ones added later) or a
+// vacancy with no state recorded (legacy rows) never gets gated —
+// only an explicit stated-state mismatch does.
 function stateFitOk(coachPreferences: string[], vacancyState: string | null): boolean {
-  if (!coachPreferences || coachPreferences.length === 0) return true; // open to all states, including future ones
+  if (!coachPreferences || coachPreferences.length === 0) return true;
   if (!vacancyState) return true;
   return coachPreferences.includes(vacancyState);
 }
@@ -119,6 +117,12 @@ export interface Club2CoachScoreBreakdown {
   geography: number;
   salary: number;
   gender: number;
+  // False when the coach explicitly ruled out this vacancy's state —
+  // a disqualifying condition, not a weak-match penalty. total is
+  // forced to 0 in this case; callers can also check this flag
+  // directly to filter these pairs out of suggestions entirely,
+  // mirroring Coach2Mentor's own `eligible` flag below.
+  eligible: boolean;
 }
 
 export function scoreClub2CoachMatch(
@@ -127,12 +131,19 @@ export function scoreClub2CoachMatch(
   vacancy: Club2CoachClubVacancy,
   weights: Club2CoachWeights
 ): Club2CoachScoreBreakdown {
+  const eligible = stateFitOk(coach.state_preferences, vacancy.state);
+
   const accreditation = accreditationScore(coachLicence, vacancy.required_accreditation);
   const ability = overlapScore(coach.ability_levels, vacancy.required_ability_level);
   const competition_level = overlapScore(coach.preferred_competition_levels, vacancy.competition_level);
   const age_group = overlapScore(coach.preferred_age_groups, vacancy.age_group);
 
-  const geography = !stateFitOk(coach.state_preferences, vacancy.state)
+  // Region only matters once state is already confirmed OK — this
+  // function still returns a 0-1 geography number even when eligible
+  // is false, purely so the breakdown UI has something sane to show
+  // rather than an undefined value; it plays no part in `total` in
+  // that case, since total is forced to 0 below regardless.
+  const geography = !eligible
     ? 0
     : coach.open_to_relocating
     ? 1
@@ -150,17 +161,19 @@ export function scoreClub2CoachMatch(
     { value: genderPreferenceScore(vacancy.preferred_coach_gender, null), weight: 1 },
   ]);
 
-  const total = weightedAverage([
-    { value: accreditation, weight: weights.accreditation },
-    { value: ability, weight: weights.ability },
-    { value: competition_level, weight: weights.competition_level },
-    { value: age_group, weight: weights.age_group },
-    { value: geography, weight: weights.geography },
-    { value: salary, weight: weights.salary },
-    { value: gender, weight: weights.gender },
-  ]);
+  const total = eligible
+    ? weightedAverage([
+        { value: accreditation, weight: weights.accreditation },
+        { value: ability, weight: weights.ability },
+        { value: competition_level, weight: weights.competition_level },
+        { value: age_group, weight: weights.age_group },
+        { value: geography, weight: weights.geography },
+        { value: salary, weight: weights.salary },
+        { value: gender, weight: weights.gender },
+      ])
+    : 0;
 
-  return { total, accreditation, ability, competition_level, age_group, geography, salary, gender };
+  return { total, accreditation, ability, competition_level, age_group, geography, salary, gender, eligible };
 }
 
 export interface Coach2MentorScoreBreakdown {
