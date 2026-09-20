@@ -5,6 +5,7 @@ import RequireProfile from "@/components/RequireProfile";
 import CheckboxGroup from "@/components/CheckboxGroup";
 import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
+import TermsModal from "@/components/TermsModal";
 import {
   GENDER_OPTIONS,
   AVAILABILITY_OPTIONS,
@@ -60,6 +61,8 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
   const [budgetMax, setBudgetMax] = useState("");
   const [goals, setGoals] = useState("");
   const [notes, setNotes] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(1);
 
   const [globalWeights, setGlobalWeights] = useState<Coach2MentorWeights | null>(null);
@@ -89,6 +92,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
     setBudgetMax("");
     setGoals("");
     setNotes("");
+    setAgreedToTerms(false);
     setSelectedPackage(1);
     setPersonalWeights(null);
     setMatches([]);
@@ -138,6 +142,10 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
       setBudgetMax(l.budget_max?.toString() ?? "");
       setGoals(l.goals ?? "");
       setNotes(l.notes ?? "");
+      // Older listings saved before this consent step existed won't
+      // have this field set — they still need to tick it once, same
+      // as a brand-new listing, rather than being silently grandfathered in.
+      setAgreedToTerms(l.agreed_to_terms ?? false);
       setSelectedPackage(l.included_introductions ?? 1);
       setPersonalWeights(l.personal_weights ?? global ?? null);
 
@@ -214,6 +222,12 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!agreedToTerms) {
+      setError("Please agree to the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
+
     setSaving(true);
 
     const payload = {
@@ -230,6 +244,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
       budget_max: budgetMax ? Number(budgetMax) : null,
       goals,
       notes,
+      agreed_to_terms: agreedToTerms,
       personal_weights: personalWeights,
       included_introductions: selectedPackage, // the coach's chosen package — admin confirms this when marking paid
     };
@@ -647,16 +662,42 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
           />
         </div>
 
+        <div className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            required
+            checked={agreedToTerms}
+            readOnly
+            onClick={() => setShowTermsModal(true)}
+            className="mt-0.5"
+          />
+          <button type="button" onClick={() => setShowTermsModal(true)} className="text-left">
+            I agree to the{" "}
+            <span className="text-brand-navy underline">Terms of Service and Privacy Policy</span>
+            {agreedToTerms && <span className="ml-2 text-xs font-semibold text-green-600">✓ Agreed</span>}
+            {" *"}
+          </button>
+        </div>
+
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <button
           type="submit"
-          disabled={saving}
+          disabled={saving || !agreedToTerms}
           className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
         >
           {saving ? "Saving…" : existing ? "Save changes" : "Save profile"}
         </button>
       </form>
+
+      <TermsModal
+        open={showTermsModal}
+        onAgree={() => {
+          setAgreedToTerms(true);
+          setShowTermsModal(false);
+        }}
+        onClose={() => setShowTermsModal(false)}
+      />
     </div>
   );
 }
