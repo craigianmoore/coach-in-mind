@@ -6,6 +6,7 @@ import CheckboxGroup from "@/components/CheckboxGroup";
 import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
+import PayWithCardButton from "@/components/PayWithCardButton";
 import {
   COACHING_ROLES,
   ABILITY_LEVELS,
@@ -161,6 +162,10 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   const [editingId, setEditingId] = useState<string | null>(null); // null while showForm=false; "new" or a vacancy id while true
   const [form, setForm] = useState<FormState>(emptyForm());
   const [showTermsModal, setShowTermsModal] = useState(false);
+  // Which package tier this club has picked for self-serve card
+  // payment — previously this grid was purely informational (admin
+  // decided the tier manually), so this is new state, not a rename.
+  const [selectedVacancyPackage, setSelectedVacancyPackage] = useState(1);
   const [openCountMessage, setOpenCountMessage] = useState<string | null>(null);
   const [activity, setActivity] = useState<Club2CoachShare[] | null>(null);
 
@@ -496,7 +501,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
               <strong>Payment required (from ${CLUB2COACH_CLUB_PACKAGES[1]} AUD):</strong> your
               vacancy is saved but won't be included in matching until
               payment is confirmed. Coach In Mind will be in touch about
-              how to pay — once confirmed, this activates automatically.
+              how to pay, or pick a package below and pay now to activate immediately.
             </>
           )}
         </div>
@@ -509,13 +514,35 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           </p>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
             {Object.entries(CLUB2COACH_CLUB_PACKAGES).map(([count, price]) => (
-              <div key={count} className="rounded-lg border border-gray-200 p-3 text-center">
+              <label
+                key={count}
+                className={`cursor-pointer rounded-lg border-2 p-3 text-center ${
+                  selectedVacancyPackage === Number(count)
+                    ? "border-brand-navy bg-brand-navy/5"
+                    : "border-gray-200"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="vacancy-package"
+                  className="sr-only"
+                  checked={selectedVacancyPackage === Number(count)}
+                  onChange={() => setSelectedVacancyPackage(Number(count))}
+                />
                 <p className="font-semibold">
                   {count} intro{count === "1" ? "" : "s"}
                 </p>
                 <p className="text-sm text-gray-500">${price} AUD</p>
-              </div>
+              </label>
             ))}
+          </div>
+          <div className="mt-3">
+            <PayWithCardButton
+              listingTable="club2coach_club_vacancies"
+              listingId={existing.id}
+              packageSize={selectedVacancyPackage}
+              mode="new"
+            />
           </div>
           <p className="mt-2 text-xs text-gray-500">
             Coach In Mind will confirm which package suits your vacancy when we're in touch about
