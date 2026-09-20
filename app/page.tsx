@@ -68,7 +68,7 @@ export default function HomePage() {
         </div>
 
         <p className="mt-2 text-xs text-white/50">
-          Shaping Australian football coaches&rsquo; futures, NOW
+          Shaping Australian football coaches&rsquo; futures
         </p>
       </div>
     </div>
