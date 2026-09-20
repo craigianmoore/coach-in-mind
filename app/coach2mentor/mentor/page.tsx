@@ -6,6 +6,7 @@ import CheckboxGroup from "@/components/CheckboxGroup";
 import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
+import PayWithCardButton from "@/components/PayWithCardButton";
 import {
   GENDER_OPTIONS,
   AVAILABILITY_OPTIONS,
@@ -276,8 +277,16 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
               <strong>
                 Payment required (${COACH2MENTOR_MENTOR_CAPACITY_PACKAGES[selectedCapacity]} AUD):
               </strong>{" "}
-              save your profile, then Coach In Mind will be in touch about how to pay. Once
-              confirmed, we'll start introducing you to coaches.
+              save your profile, then Coach In Mind will be in touch about how to pay, or pay now
+              to activate immediately.
+              <div className="mt-3">
+                <PayWithCardButton
+                  listingTable="coach2mentor_mentor_listings"
+                  listingId={existing.id}
+                  packageSize={selectedCapacity}
+                  mode="new"
+                />
+              </div>
             </>
           )}
         </div>
