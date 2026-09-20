@@ -13,12 +13,19 @@ function SignupForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!agreedToTerms) {
+      setError("Please agree to the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
+
     setLoading(true);
 
     const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
@@ -59,11 +66,32 @@ function SignupForm() {
           className="rounded-lg border border-gray-300 px-3 py-2"
         />
 
+        <label className="flex items-start gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            required
+            checked={agreedToTerms}
+            onChange={(e) => setAgreedToTerms(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            I agree to the{" "}
+            <Link href="/terms" target="_blank" className="text-brand-navy underline">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" target="_blank" className="text-brand-navy underline">
+              Privacy Policy
+            </Link>
+            . *
+          </span>
+        </label>
+
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !agreedToTerms}
           className="rounded-lg bg-brand-navy px-4 py-2 font-semibold text-white hover:bg-brand-navyLight disabled:opacity-50"
         >
           {loading ? "Creating account…" : "Continue"}
