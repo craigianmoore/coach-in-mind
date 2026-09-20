@@ -599,6 +599,26 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             </li>
             {existing.filled_at && <li>Marked filled: {formatDate(existing.filled_at)}</li>}
           </ul>
+
+          {/* Shown every time this vacancy is viewed once at least one
+              coach has been introduced — not just a one-off toast at the
+              moment of sharing — since the interview itself often happens
+              well after the introduction, and the club needs this
+              reminder to still be there when it matters. */}
+          {activity && activity.length > 0 && (
+            <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+              Before your first interview with a coach, check the{" "}
+              <a
+                href="/coach-interview-checklist.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold underline"
+              >
+                Interviewing a Coach — checklist for clubs
+              </a>
+              .
+            </div>
+          )}
         </div>
       )}
 
