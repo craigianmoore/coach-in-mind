@@ -39,6 +39,7 @@ export interface Club2CoachCoachListing {
   notes: string | null;
   status: ListingStatus;
   authorise_share: boolean;
+  agreed_to_terms: boolean; // Terms of Service / Privacy Policy consent — required before saving
   paid: boolean;
   paid_at: string | null;
   price_aud: number | null;
@@ -71,6 +72,7 @@ export interface Club2CoachClubVacancy {
   notes: string | null;
   status: ListingStatus;
   authorise_share: boolean;
+  agreed_to_terms: boolean; // Terms of Service / Privacy Policy consent — required before saving
   paid: boolean;
   paid_at: string | null;
   price_aud: number | null;
@@ -109,6 +111,7 @@ export interface Coach2MentorCoachListing {
   goals: string | null;
   notes: string | null;
   status: ListingStatus;
+  agreed_to_terms: boolean; // Terms of Service / Privacy Policy consent — required before saving
   paid: boolean;
   paid_at: string | null;
   price_aud: number | null;
@@ -144,6 +147,7 @@ export interface Coach2MentorMentorListing {
   status: ListingStatus;
   confirm_accurate: boolean;
   authorise_share: boolean;
+  agreed_to_terms: boolean; // Terms of Service / Privacy Policy consent — required before saving
   paid: boolean;
   paid_at: string | null;
   price_aud: number | null;
