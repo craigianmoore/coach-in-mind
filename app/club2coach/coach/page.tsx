@@ -6,6 +6,7 @@ import CheckboxGroup from "@/components/CheckboxGroup";
 import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
+import PayWithCardButton from "@/components/PayWithCardButton";
 import {
   COACHING_ROLES,
   ABILITY_LEVELS,
@@ -434,7 +435,15 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
               <strong>Payment required (${CLUB2COACH_COACH_PACKAGES[selectedPackage]} AUD):</strong> your
               listing is saved but won't be included in matching until
               payment is confirmed. Coach In Mind will be in touch about
-              how to pay — once confirmed, this activates automatically.
+              how to pay, or pay now to activate immediately.
+              <div className="mt-3">
+                <PayWithCardButton
+                  listingTable="club2coach_coach_listings"
+                  listingId={existing.id}
+                  packageSize={selectedPackage}
+                  mode="new"
+                />
+              </div>
             </>
           )}
         </div>
@@ -480,13 +489,23 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
                     </label>
                   ))}
                 </div>
-                <button
-                  onClick={requestTopup}
-                  disabled={requestingTopup}
-                  className="btn-accent mt-3 rounded-lg px-5 py-2 text-sm font-semibold disabled:opacity-50"
-                >
-                  {requestingTopup ? "Sending…" : "Request top-up"}
-                </button>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={requestTopup}
+                    disabled={requestingTopup}
+                    className="btn-accent rounded-lg px-5 py-2 text-sm font-semibold disabled:opacity-50"
+                  >
+                    {requestingTopup ? "Sending…" : "Request top-up"}
+                  </button>
+                  <span className="text-xs text-gray-400">or</span>
+                  <PayWithCardButton
+                    listingTable="club2coach_coach_listings"
+                    listingId={existing!.id}
+                    packageSize={topupPackage}
+                    mode="topup"
+                    label="Pay with card now"
+                  />
+                </div>
               </>
             )}
           </div>
