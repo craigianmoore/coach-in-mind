@@ -18,6 +18,13 @@ import type {
 
 type Tab = "unpaid" | "matches" | "weighting" | "listings" | "admins" | "support" | "people";
 
+// Minimal local shape for the new platform_settings singleton table —
+// not part of types/database.ts yet, since it's the first thing this
+// session added that isn't a per-listing or per-product row.
+interface PlatformSettings {
+  stripe_payments_enabled: boolean;
+}
+
 interface AdminPinRow {
   id: string;
   label: string | null;
@@ -34,6 +41,7 @@ function Club2CoachAdmin() {
   const [people, setPeople] = useState<Record<string, Person>>({});
   const [shares, setShares] = useState<Club2CoachShare[]>([]);
   const [settings, setSettings] = useState<AdminSettings | null>(null);
+  const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -93,7 +101,7 @@ function Club2CoachAdmin() {
     // support_queries is loaded here too — not just lazily on tab
     // click — so the "Support (N)" badge count is correct the moment
     // the page loads, not just after you've already opened that tab.
-    const [{ data: cl }, { data: cv }, { data: ppl }, { data: sh }, { data: st }, { data: sq }, { data: cr }] = await Promise.all([
+    const [{ data: cl }, { data: cv }, { data: ppl }, { data: sh }, { data: st }, { data: sq }, { data: cr }, { data: ps }] = await Promise.all([
       supabase.from("club2coach_coach_listings").select("*"),
       supabase.from("club2coach_club_vacancies").select("*"),
       supabase.from("people").select("*"),
@@ -101,6 +109,7 @@ function Club2CoachAdmin() {
       supabase.from("admin_settings").select("*").eq("product", "club2coach").maybeSingle(),
       supabase.from("support_queries").select("*").order("created_at", { ascending: false }),
       supabase.from("coach_credit_requests").select("*").eq("status", "pending"),
+      supabase.from("platform_settings").select("*").maybeSingle(),
     ]);
 
     setCoachListings((cl as Club2CoachCoachListing[]) ?? []);
@@ -112,6 +121,10 @@ function Club2CoachAdmin() {
     setSettings(st as AdminSettings | null);
     setCreditRequests((cr as CoachCreditRequest[]) ?? []);
     setSupportQueries((sq as SupportQuery[]) ?? []);
+    // stripe_payments_enabled defaults to true if the row's somehow
+    // missing (e.g. the migration hasn't run yet) — fail open to "on"
+    // rather than silently disabling card payments platform-wide.
+    setPlatformSettings((ps as PlatformSettings | null) ?? { stripe_payments_enabled: true });
     setLoading(false);
   }
 
@@ -343,6 +356,17 @@ function Club2CoachAdmin() {
     supabase.rpc("refresh_admin_session");
     setSettings({ ...settings, auto_approve_matches: value });
     await supabase.from("admin_settings").update({ auto_approve_matches: value }).eq("id", settings.id);
+  }
+
+  // Global kill switch, checked server-side by the checkout API route
+  // itself before it ever creates a Stripe session — this toggle
+  // isn't just hiding a button in the UI, it genuinely stops new card
+  // payments from being possible at all while it's off. Existing
+  // paid listings are entirely unaffected either way.
+  async function toggleStripePayments(value: boolean) {
+    supabase.rpc("refresh_admin_session");
+    setPlatformSettings({ stripe_payments_enabled: value });
+    await supabase.from("platform_settings").update({ stripe_payments_enabled: value }).eq("id", true);
   }
 
   async function revokeShare(shareId: string) {
@@ -1221,7 +1245,31 @@ function Club2CoachAdmin() {
 
       {tab === "admins" && (
         <div className="mt-6 max-w-xl">
-          <p className="text-sm text-gray-600">
+          <div className="rounded-xl border bg-white p-4">
+            <h2 className="text-sm font-semibold text-gray-700">Card payments (Stripe)</h2>
+            <p className="mt-1 text-xs text-gray-500">
+              A platform-wide switch — checked by the payment system itself before it ever
+              creates a Stripe checkout, not just a UI toggle. Turning this off removes the "Pay
+              with card" option everywhere (Club 2 Coach and Coach 2 Mentor, coaches, clubs, and
+              mentors alike); the existing manual "mark as paid" flow keeps working regardless,
+              and nobody's already-paid listing is affected either way.
+            </p>
+            <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={platformSettings?.stripe_payments_enabled ?? true}
+                disabled={!isMasterSession}
+                onChange={(e) => toggleStripePayments(e.target.checked)}
+              />
+              Card payments are currently{" "}
+              <strong>{platformSettings?.stripe_payments_enabled ?? true ? "enabled" : "disabled"}</strong>
+            </label>
+            {!isMasterSession && (
+              <p className="mt-2 text-xs text-amber-700">This switch is master-only — you can see its current state, but not change it.</p>
+            )}
+          </div>
+
+          <p className="mt-6 text-sm text-gray-600">
             Anyone with a valid PIN below gets a 2-hour admin session —
             this applies across both Club 2 Coach and Coach 2 Mentor, not
             just this page.
