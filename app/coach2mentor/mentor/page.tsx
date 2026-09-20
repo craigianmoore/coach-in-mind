@@ -5,6 +5,7 @@ import RequireProfile from "@/components/RequireProfile";
 import CheckboxGroup from "@/components/CheckboxGroup";
 import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
+import TermsModal from "@/components/TermsModal";
 import {
   GENDER_OPTIONS,
   AVAILABILITY_OPTIONS,
@@ -52,6 +53,8 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
   const [notes, setNotes] = useState("");
   const [confirmAccurate, setConfirmAccurate] = useState(false);
   const [authoriseShare, setAuthoriseShare] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const [requests, setRequests] = useState<RequestWithCoachName[]>([]);
 
@@ -83,6 +86,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
     setNotes("");
     setConfirmAccurate(false);
     setAuthoriseShare(false);
+    setAgreedToTerms(false);
     setRequests([]);
   }
 
@@ -124,6 +128,10 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       setNotes(l.notes ?? "");
       setConfirmAccurate(l.confirm_accurate);
       setAuthoriseShare(l.authorise_share);
+      // Older listings saved before this consent step existed won't
+      // have this field set — they still need to tick it once, same
+      // as a brand-new listing, rather than being silently grandfathered in.
+      setAgreedToTerms(l.agreed_to_terms ?? false);
 
       if (l.paid) {
         const { data: reqs } = await supabase
@@ -168,6 +176,11 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       return;
     }
 
+    if (!agreedToTerms) {
+      setError("Please agree to the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
+
     setSaving(true);
 
     const payload = {
@@ -192,6 +205,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       notes,
       confirm_accurate: confirmAccurate,
       authorise_share: authoriseShare,
+      agreed_to_terms: agreedToTerms,
     };
 
     const { error: saveError } = existing
@@ -643,12 +657,29 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           </span>
         </label>
 
+        <div className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            required
+            checked={agreedToTerms}
+            readOnly
+            onClick={() => setShowTermsModal(true)}
+            className="mt-0.5"
+          />
+          <button type="button" onClick={() => setShowTermsModal(true)} className="text-left">
+            I agree to the{" "}
+            <span className="text-brand-navy underline">Terms of Service and Privacy Policy</span>
+            {agreedToTerms && <span className="ml-2 text-xs font-semibold text-green-600">✓ Agreed</span>}
+            {" *"}
+          </button>
+        </div>
+
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <div className="flex items-center gap-3">
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || !agreedToTerms}
             className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
           >
             {saving ? "Saving…" : existing ? "Save changes" : "Save profile"}
@@ -664,6 +695,15 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           )}
         </div>
       </form>
+
+      <TermsModal
+        open={showTermsModal}
+        onAgree={() => {
+          setAgreedToTerms(true);
+          setShowTermsModal(false);
+        }}
+        onClose={() => setShowTermsModal(false)}
+      />
 
       {existing?.paid && (
         <div className="mt-8 rounded-xl border-2 border-accent bg-accent-soft p-5" style={{ borderColor: "var(--accent)" }}>
