@@ -430,6 +430,7 @@ create table coach2mentor_mentor_listings (
   max_mentees integer,
   currently_open boolean not null default true,
   bio text,
+  intro_video_url text, -- YouTube/Loom/Vimeo link, embedded on the coach-facing browse page
   notes text,
   status text not null default 'draft', -- draft | active | paused
   confirm_accurate boolean not null default false, -- "info is accurate" consent

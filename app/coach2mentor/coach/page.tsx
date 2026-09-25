@@ -25,6 +25,7 @@ import type {
   AdminSettings,
 } from "@/types/database";
 import { notifyAdmin } from "@/lib/notify";
+import { getEmbedUrl } from "@/lib/videoEmbed";
 
 const WEIGHT_LABELS: Record<keyof Coach2MentorWeights, string> = {
   specialism_overlap: "Specialism overlap",
@@ -69,7 +70,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
   const [globalWeights, setGlobalWeights] = useState<Coach2MentorWeights | null>(null);
   const [personalWeights, setPersonalWeights] = useState<Coach2MentorWeights | null>(null);
 
-  const [matches, setMatches] = useState<(Coach2MentorRequest & { mentorName?: string; mentorBio?: string })[]>([]);
+  const [matches, setMatches] = useState<(Coach2MentorRequest & { mentorName?: string; mentorBio?: string; mentorIntroVideoUrl?: string })[]>([]);
   const [introductionsUsed, setIntroductionsUsed] = useState(0);
   const [topupPackage, setTopupPackage] = useState(1);
   const [requestingTopup, setRequestingTopup] = useState(false);
@@ -167,7 +168,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
         requestRows.map(async (r) => {
           const { data: mentorListing } = await supabase
             .from("coach2mentor_mentor_listings")
-            .select("bio, person_id")
+            .select("bio, intro_video_url, person_id")
             .eq("id", r.mentor_listing_id)
             .maybeSingle();
 
@@ -181,7 +182,12 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
             mentorName = mentorPerson?.full_name;
           }
 
-          return { ...r, mentorName, mentorBio: mentorListing?.bio ?? undefined };
+          return {
+            ...r,
+            mentorName,
+            mentorBio: mentorListing?.bio ?? undefined,
+            mentorIntroVideoUrl: mentorListing?.intro_video_url ?? undefined,
+          };
         })
       );
       setMatches(enriched);
@@ -424,26 +430,53 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
         <div className="mt-4 rounded-xl border bg-white p-4">
           <h2 className="text-sm font-semibold text-gray-700">Your matches</h2>
           <div className="mt-2 flex flex-col gap-2">
-            {matches.map((m) => (
-              <div key={m.id} className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-                <div>
-                  <p className="text-sm font-medium">
-                    {m.status === "accepted" ? m.mentorName ?? "A mentor" : "A potential mentor"}
-                  </p>
-                  {m.mentorBio && m.status !== "declined" && (
-                    <p className="text-xs text-gray-500 line-clamp-1">{m.mentorBio}</p>
+            {matches.map((m) => {
+              const embedUrl = m.mentorIntroVideoUrl ? getEmbedUrl(m.mentorIntroVideoUrl) : null;
+              return (
+                <div key={m.id} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">
+                        {m.status === "accepted" ? m.mentorName ?? "A mentor" : "A potential mentor"}
+                      </p>
+                      {m.mentorBio && m.status !== "declined" && (
+                        <p className="text-xs text-gray-500 line-clamp-1">{m.mentorBio}</p>
+                      )}
+                      <p className="text-xs text-gray-400 capitalize">
+                        {m.status === "pending" ? "Awaiting mentor's response" : m.status}
+                      </p>
+                    </div>
+                    {m.score != null && (
+                      <span className="text-sm font-bold" style={{ color: "var(--accent-dark)" }}>
+                        {Math.round(m.score * 100)}%
+                      </span>
+                    )}
+                  </div>
+                  {m.status !== "declined" && embedUrl && (
+                    <div className="mt-2 aspect-video w-full overflow-hidden rounded-lg">
+                      <iframe
+                        src={embedUrl}
+                        title="Mentor introduction video"
+                        className="h-full w-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
                   )}
-                  <p className="text-xs text-gray-400 capitalize">
-                    {m.status === "pending" ? "Awaiting mentor's response" : m.status}
-                  </p>
+                  {m.status !== "declined" && m.mentorIntroVideoUrl && !embedUrl && (
+                    <a
+                      href={m.mentorIntroVideoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-block text-xs font-semibold underline"
+                      style={{ color: "var(--accent-dark)" }}
+                    >
+                      Watch intro video ↗
+                    </a>
+                  )}
                 </div>
-                {m.score != null && (
-                  <span className="text-sm font-bold" style={{ color: "var(--accent-dark)" }}>
-                    {Math.round(m.score * 100)}%
-                  </span>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

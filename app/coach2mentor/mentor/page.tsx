@@ -51,6 +51,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
   const [selectedCapacity, setSelectedCapacity] = useState(1);
   const [currentlyOpen, setCurrentlyOpen] = useState(true);
   const [bio, setBio] = useState("");
+  const [introVideoUrl, setIntroVideoUrl] = useState("");
   const [notes, setNotes] = useState("");
   const [confirmAccurate, setConfirmAccurate] = useState(false);
   const [authoriseShare, setAuthoriseShare] = useState(false);
@@ -126,6 +127,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       setSelectedCapacity(l.max_mentees ?? 1);
       setCurrentlyOpen(l.currently_open);
       setBio(l.bio ?? "");
+      setIntroVideoUrl(l.intro_video_url ?? "");
       setNotes(l.notes ?? "");
       setConfirmAccurate(l.confirm_accurate);
       setAuthoriseShare(l.authorise_share);
@@ -203,6 +205,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       max_mentees: selectedCapacity,
       currently_open: currentlyOpen,
       bio,
+      intro_video_url: introVideoUrl.trim() || null,
       notes,
       confirm_accurate: confirmAccurate,
       authorise_share: authoriseShare,
@@ -624,6 +627,22 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
             rows={4}
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
           />
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold uppercase text-gray-500">
+            Intro video (optional) — YouTube, Loom, or Vimeo link
+          </label>
+          <input
+            type="url"
+            value={introVideoUrl}
+            onChange={(e) => setIntroVideoUrl(e.target.value)}
+            placeholder="https://youtu.be/…, https://loom.com/share/…, or https://vimeo.com/…"
+            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            A short video introducing yourself. Coaches see it embedded on your profile when browsing mentors.
+          </p>
         </div>
 
         <div>

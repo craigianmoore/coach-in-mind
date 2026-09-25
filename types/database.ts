@@ -144,6 +144,7 @@ export interface Coach2MentorMentorListing {
   max_mentees: number | null;
   currently_open: boolean;
   bio: string | null;
+  intro_video_url: string | null; // YouTube/Loom/Vimeo link the mentor pastes in; embedded as a player on the coach-facing browse page
   notes: string | null;
   status: ListingStatus;
   confirm_accurate: boolean;
