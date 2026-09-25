@@ -13,6 +13,8 @@ const config: Config = {
           navyLight: "#2A2D6B",
           gold: "#B8935A",
           goldLight: "#D4AF6A",
+          silver: "#8F97A3",
+          silverLight: "#C7CFD9",
         },
       },
       fontFamily: {
