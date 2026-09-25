@@ -131,6 +131,11 @@ export const COACHING_ROLES = [
   "TD (Senior)",
 ] as const;
 
+// TDs oversee a whole program (e.g. the entire junior pathway), not one
+// team, so their vacancies capture an age-group RANGE rather than a
+// single AGE_GROUPS entry — everywhere else stays single-select.
+export const TD_ROLES: readonly string[] = ["TD (Junior)", "TD (Senior)"];
+
 // Alphabetical — unlike ACCREDITATION_LEVELS/AGE_GROUPS, these don't
 // form a single clean low-to-high ladder, so alphabetical is the
 // clearest ordering rather than an arbitrary one.

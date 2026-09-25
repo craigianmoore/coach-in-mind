@@ -59,6 +59,7 @@ export interface Club2CoachClubVacancy {
   role_being_recruited: string;
   competition_level: string;
   age_group: string;
+  age_group_max: string | null; // set only for TD roles: upper end of the age-group range this TD oversees (age_group is the lower end). Null for a single age group.
   team_gender: string | null;
   preferred_coach_gender: string | null;
   region: string;

@@ -269,6 +269,7 @@ create table club2coach_club_vacancies (
   role_being_recruited text not null, -- COACHING_ROLES
   competition_level text not null, -- COMPETITION_LEVELS
   age_group text not null, -- AGE_GROUPS
+  age_group_max text, -- TD roles only: upper end of an age-group range
   team_gender text,
   preferred_coach_gender text,
   region text not null,

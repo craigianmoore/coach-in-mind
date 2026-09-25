@@ -1,5 +1,6 @@
 import {
   ACCREDITATION_LEVELS,
+  AGE_GROUPS,
   CAREER_STAGES,
 } from "./constants";
 import type {
@@ -58,6 +59,32 @@ function overlapScore(preferred: string[], target: string | null | undefined): n
   if (!target) return 0.5;
   if (!preferred || preferred.length === 0) return 0.5; // no stated preference = neutral, not a penalty
   return preferred.includes(target) ? 1 : 0;
+}
+
+// Same as overlapScore, but the vacancy side may be a RANGE of
+// AGE_GROUPS (a TD role overseeing several age bands, e.g. U6-U8
+// through U12-U13) rather than a single one. A coach matches if any of
+// their preferred age groups falls anywhere inside that range.
+// targetMax null/undefined means "not a range" — falls back to the
+// plain single-value behaviour above.
+function ageGroupOverlapScore(
+  preferred: string[],
+  target: string | null | undefined,
+  targetMax: string | null | undefined
+): number {
+  if (!targetMax) return overlapScore(preferred, target);
+  if (!target) return 0.5;
+  if (!preferred || preferred.length === 0) return 0.5;
+  const loIdx = AGE_GROUPS.indexOf(target as any);
+  const hiIdx = AGE_GROUPS.indexOf(targetMax as any);
+  if (loIdx < 0 || hiIdx < 0) return overlapScore(preferred, target);
+  const [lo, hi] = loIdx <= hiIdx ? [loIdx, hiIdx] : [hiIdx, loIdx];
+  return preferred.some((p) => {
+    const idx = AGE_GROUPS.indexOf(p as any);
+    return idx >= lo && idx <= hi;
+  })
+    ? 1
+    : 0;
 }
 
 // State is a genuine hard gate, not a scored term — same pattern as
@@ -136,7 +163,7 @@ export function scoreClub2CoachMatch(
   const accreditation = accreditationScore(coachLicence, vacancy.required_accreditation);
   const ability = overlapScore(coach.ability_levels, vacancy.required_ability_level);
   const competition_level = overlapScore(coach.preferred_competition_levels, vacancy.competition_level);
-  const age_group = overlapScore(coach.preferred_age_groups, vacancy.age_group);
+  const age_group = ageGroupOverlapScore(coach.preferred_age_groups, vacancy.age_group, vacancy.age_group_max);
 
   // Region only matters once state is already confirmed OK — this
   // function still returns a 0-1 geography number even when eligible

@@ -13,6 +13,7 @@ import {
   COMPETITION_LEVELS,
   COMPETITION_LEVELS_BY_STATE,
   AGE_GROUPS,
+  TD_ROLES,
   REGIONS,
   REGIONS_BY_STATE,
   GENDER_OPTIONS,
@@ -34,11 +35,16 @@ const PRIORITY_HINTS = [
   "Gender fit",
 ] as const;
 
+function ageGroupLabel(ageGroup: string, ageGroupMax: string | null | undefined): string {
+  return ageGroupMax ? `${ageGroup} to ${ageGroupMax}` : ageGroup;
+}
+
 type FormState = {
   clubName: string;
   roleBeingRecruited: string;
   competitionLevel: string;
   ageGroup: string;
+  ageGroupMax: string; // TD roles only: upper end of the range. "" = single age group.
   teamGender: string;
   preferredCoachGender: string;
   region: string;
@@ -60,6 +66,7 @@ function emptyForm(): FormState {
     roleBeingRecruited: COACHING_ROLES[0],
     competitionLevel: COMPETITION_LEVELS[0],
     ageGroup: AGE_GROUPS[0],
+    ageGroupMax: "",
     teamGender: "",
     preferredCoachGender: "",
     region: REGIONS[0],
@@ -82,6 +89,7 @@ function formFromVacancy(v: Club2CoachClubVacancy): FormState {
     roleBeingRecruited: v.role_being_recruited,
     competitionLevel: v.competition_level,
     ageGroup: v.age_group,
+    ageGroupMax: v.age_group_max ?? "",
     teamGender: v.team_gender ?? "",
     preferredCoachGender: v.preferred_coach_gender ?? "",
     region: v.region,
@@ -308,6 +316,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
       role_being_recruited: form.roleBeingRecruited,
       competition_level: form.competitionLevel,
       age_group: form.ageGroup,
+      age_group_max: TD_ROLES.includes(form.roleBeingRecruited) ? (form.ageGroupMax || null) : null,
       team_gender: form.teamGender || null,
       preferred_coach_gender: form.preferredCoachGender || null,
       region: form.region,
@@ -342,7 +351,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     if (isNew) {
       notifyAdmin(
         "new vacancy advertised",
-        `${matchedClub.name} — ${form.roleBeingRecruited}\nAdvertised by: ${person.full_name} (${person.email}, ${person.mobile})\nCompetition: ${form.competitionLevel} · ${form.ageGroup} · ${form.region}`
+        `${matchedClub.name} — ${form.roleBeingRecruited}\nAdvertised by: ${person.full_name} (${person.email}, ${person.mobile})\nCompetition: ${form.competitionLevel} · ${ageGroupLabel(form.ageGroup, form.ageGroupMax)} · ${form.region}`
       );
 
       // Club-scoped, not person-scoped: this counts every open vacancy
@@ -425,7 +434,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                       — {v.role_being_recruited}
                     </p>
                     <p className="mt-0.5 text-sm text-gray-500">
-                      {v.competition_level} · {v.age_group} · {v.region}
+                      {v.competition_level} · {ageGroupLabel(v.age_group, v.age_group_max)} · {v.region}
                     </p>
                     {v.status === "active" && v.paid && daysLeft !== null && (
                       <p className="mt-0.5 text-xs text-blue-700">
@@ -717,18 +726,59 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Age group</label>
-            <select
-              value={form.ageGroup}
-              onChange={(e) => setForm((f) => ({ ...f, ageGroup: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-            >
-              {AGE_GROUPS.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
+            <label className="text-xs font-semibold uppercase text-gray-500">
+              {TD_ROLES.includes(form.roleBeingRecruited) ? "Age group range overseen" : "Age group"}
+            </label>
+            {TD_ROLES.includes(form.roleBeingRecruited) ? (
+              <div className="mt-1 flex items-center gap-2">
+                <select
+                  value={form.ageGroup}
+                  onChange={(e) => {
+                    const from = e.target.value;
+                    setForm((f) => ({
+                      ...f,
+                      ageGroup: from,
+                      // keep "to" valid — clear it if it's now below the new "from"
+                      ageGroupMax:
+                        f.ageGroupMax && AGE_GROUPS.indexOf(f.ageGroupMax as any) < AGE_GROUPS.indexOf(from as any)
+                          ? ""
+                          : f.ageGroupMax,
+                    }));
+                  }}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                >
+                  {AGE_GROUPS.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
+                <span className="flex-shrink-0 text-xs text-gray-500">to</span>
+                <select
+                  value={form.ageGroupMax || form.ageGroup}
+                  onChange={(e) => setForm((f) => ({ ...f, ageGroupMax: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                >
+                  {AGE_GROUPS.filter((a) => AGE_GROUPS.indexOf(a) >= AGE_GROUPS.indexOf(form.ageGroup as any)).map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <select
+                value={form.ageGroup}
+                onChange={(e) => setForm((f) => ({ ...f, ageGroup: e.target.value, ageGroupMax: "" }))}
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              >
+                {AGE_GROUPS.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Region</label>
