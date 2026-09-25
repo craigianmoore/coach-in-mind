@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import CoachInMindLogo from "@/components/CoachInMindLogo";
 
 export default function TopNav() {
   const router = useRouter();
@@ -19,7 +20,11 @@ export default function TopNav() {
   return (
     <div className="border-b border-white/10 bg-brand-navy text-sm text-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-2">
-        <Link href="/help" className="font-semibold tracking-wide hover:text-brand-goldLight">
+        <Link
+          href="/help"
+          className="flex items-center gap-2 font-semibold tracking-wide hover:text-brand-goldLight"
+        >
+          <CoachInMindLogo size={32} />
           Coach In Mind
         </Link>
         <nav className="flex items-center gap-4">
