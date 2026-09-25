@@ -16,7 +16,7 @@ export default function CoachInMindLogo({ size = 150 }: { size?: number }) {
   const width = Math.round(size * LOGO_ASPECT);
   return (
     <div
-      className="flex-shrink-0 rounded-lg bg-white p-3 shadow-sm"
+      className="flex-shrink-0 rounded-lg bg-white p-1 shadow-sm"
       style={{ width, height }}
     >
       <Image
