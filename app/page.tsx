@@ -5,12 +5,12 @@ export default function HomePage() {
   return (
     <div className="bg-brand-navy pb-16 pt-8 text-white">
       <div className="mx-auto flex max-w-4xl flex-col items-center gap-5 px-4 text-center">
-        <div className="rounded-xl bg-white p-4 shadow-lg">
+        <div className="rounded-xl bg-white p-5 shadow-lg">
           <Image
             src="/coach-in-mind-logo.png"
             alt="Coach In Mind — shaping coaches minds on & off the pitch"
-            width={160}
-            height={168}
+            width={206}
+            height={320}
             priority
           />
         </div>
