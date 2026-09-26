@@ -324,12 +324,12 @@ export const RATE_UNITS = ["per session", "per hour", "per month"] as const;
 // Pricing — activation fee per role listing. Coach In Mind charges per
 // role, not per account: the same person pays separately for each hat
 // they wear (Club2Coach coach, Club2Coach club, Coach2Mentor coach,
-// Coach2Mentor mentor). These are placeholders until real pricing is set.
+// Coach2Mentor mentor).
 export const ROLE_PRICES_AUD = {
   club2coach_coach: 20, // starting tier — see CLUB2COACH_COACH_PACKAGES for the full ladder
-  club2coach_club: 100, // starting tier — see CLUB2COACH_CLUB_PACKAGES for the full ladder
-  coach2mentor_coach: 15,
-  coach2mentor_mentor: 25,
+  club2coach_club: 75, // starting tier — see CLUB2COACH_CLUB_PACKAGES for the full ladder
+  coach2mentor_coach: 20,
+  coach2mentor_mentor: 75,
 } as const;
 
 // Club2Coach runs on paid introduction packages rather than a flat
@@ -342,8 +342,11 @@ export const CLUB2COACH_COACH_PACKAGES: Record<number, number> = {
   3: 50,
 };
 
+// Tier 1 reflects the confirmed $75 club starting price; tiers 2-5 are
+// still the original placeholder ladder shape and haven't been
+// reconfirmed — revisit if/when the club-side package ladder is priced.
 export const CLUB2COACH_CLUB_PACKAGES: Record<number, number> = {
-  1: 100,
+  1: 75,
   2: 200,
   3: 300,
   4: 380,
