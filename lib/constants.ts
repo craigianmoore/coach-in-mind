@@ -342,15 +342,12 @@ export const CLUB2COACH_COACH_PACKAGES: Record<number, number> = {
   3: 50,
 };
 
-// Tier 1 reflects the confirmed $75 club starting price; tiers 2-5 are
-// still the original placeholder ladder shape and haven't been
-// reconfirmed — revisit if/when the club-side package ladder is priced.
 export const CLUB2COACH_CLUB_PACKAGES: Record<number, number> = {
   1: 75,
-  2: 200,
-  3: 300,
-  4: 380,
-  5: 440,
+  2: 150,
+  3: 225,
+  4: 300,
+  5: 350,
 };
 
 // Coach2Mentor mentor capacity — how many mentees a mentor can take on
