@@ -1,10 +1,7 @@
 // Shared reference data used across both Club2Coach and Coach2Mentor.
-// Scoped to Victoria for now — when other states are added, this becomes
-// state-keyed (e.g. REGIONS_BY_STATE.VIC, REGIONS_BY_STATE.NSW) rather
-// than a flat list. Keeping it centralised here means that change happens
-// in one place, not scattered across every form.
-
-export const STATE = "VIC" as const;
+// State-keyed (e.g. REGIONS_BY_STATE.VIC, REGIONS_BY_STATE.NSW) rather
+// than a flat list. Keeping it centralised here means adding or updating
+// a state's data happens in one place, not scattered across every form.
 
 // Regions, grouped by state. Adding a new state later is just a new
 // entry here — everything else (state options, region pickers) is

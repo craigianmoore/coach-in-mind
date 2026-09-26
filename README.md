@@ -108,15 +108,14 @@ adding a denormalised `gender` column directly on each listing table
 (low sensitivity, unlike mobile/email) rather than loosening `people`
 access.
 
-## Victoria only, for now
+## State coverage
 
 `lib/constants.ts` holds every dropdown list — regions, competition
-levels, accreditation ladder, specialisms — all scoped to Victoria.
-When you add other states, this is where that change happens: likely
-restructuring the flat lists into state-keyed objects
-(`REGIONS_BY_STATE.VIC`, `REGIONS_BY_STATE.NSW`), which the forms
-already read from a single source, so it's a constants-file and
-form-dropdown change, not a schema rewrite.
+levels, accreditation ladder, specialisms — keyed by state
+(`REGIONS_BY_STATE`, `COMPETITION_LEVELS_BY_STATE`), which the forms
+already read from a single source. Some states have a fuller ladder
+than others; bringing a state's list up to date, or adding a new one,
+is a constants-file and form-dropdown change, not a schema rewrite.
 
 ## What's deliberately not built yet
 

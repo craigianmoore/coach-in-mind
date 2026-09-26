@@ -10,7 +10,7 @@ export default function Coach2MentorLayout({ children }: { children: React.React
             <h1 className="text-3xl font-bold" style={{ color: "var(--header-text)" }}>
               Coach <span style={{ color: "var(--accent)" }}>2</span> Mentor
             </h1>
-            <p className="text-sm text-white/70">Coach mentoring matching — Victoria</p>
+            <p className="text-sm text-white/70">Coach mentoring matching</p>
             <nav className="mt-3 flex gap-4 text-sm font-medium text-white/90">
               <Link href="/coach2mentor/coach" className="hover:underline">
                 Find a Mentor

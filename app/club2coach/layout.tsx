@@ -11,7 +11,7 @@ export default function Club2CoachLayout({ children }: { children: React.ReactNo
               Club <span className="text-white">2</span> Coach
             </h1>
             <p className="text-sm" style={{ color: "var(--header-text)" }}>
-              Coach placement matching — Victoria
+              Coach placement matching
             </p>
             <nav className="mt-3 flex gap-4 text-sm font-medium" style={{ color: "var(--header-text)" }}>
               <Link href="/club2coach/coach" className="hover:underline">

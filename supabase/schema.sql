@@ -25,10 +25,23 @@
 --    check that flag — so the PIN genuinely gates data access at the
 --    database level, not just which buttons the UI shows.
 --
--- 4. VICTORIA ONLY FOR NOW. Region/competition-level values are plain
---    text columns validated by the app against lib/constants.ts, not
---    Postgres enums — deliberately, so adding other states later is a
---    constants-file change, not a schema migration.
+-- 4. STATE-KEYED REFERENCE DATA. Region/competition-level values are
+--    plain text columns validated by the app against lib/constants.ts,
+--    not Postgres enums — deliberately, so bringing a state's list up
+--    to date, or adding a new state, is a constants-file change, not a
+--    schema migration.
+--
+-- 5. TWO ADMIN TIERS. On top of the ordinary admin PIN in #3, a PIN can
+--    additionally be flagged `is_master` — a master PIN can add, revoke
+--    and relabel other admin PINs, and run a full PIN reset, via
+--    `is_master_caller()` and the functions in the MASTER ADMIN TIER
+--    section below. There must always be at least one master PIN.
+--
+-- 6. TWO WAYS TO GET PAID. Payments can still be marked manually by an
+--    admin (`mark_*_paid`, as in #3 originally), OR collected live via
+--    Stripe Checkout (`/api/stripe/checkout` + `/api/stripe/webhook`),
+--    gated by the `platform_settings.stripe_payments_enabled` kill
+--    switch. Either path ends up as a row in `payments`.
 -- =========================================================
 
 create extension if not exists "uuid-ossp";
@@ -50,7 +63,17 @@ create table people (
   -- Null / in the past = not currently an admin session.
   admin_session_until timestamptz,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  -- PIN brute-force protection: a run of wrong PIN guesses locks the
+  -- person out of retrying for a short window.
+  failed_admin_pin_attempts integer not null default 0,
+  admin_pin_locked_until timestamptz,
+  admin_session_granted_at timestamptz,
+  -- Which admin_pins row granted the current admin session — lets
+  -- is_master_caller() below tell a master session from an ordinary one.
+  -- FK added further down (admin_pins doesn't exist yet at this point
+  -- in the file).
+  admin_session_pin_id uuid
 );
 
 create index people_region_idx on people(region);
@@ -117,8 +140,19 @@ create table admin_pins (
   id uuid primary key default uuid_generate_v4(),
   pin_hash text not null,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  label text, -- optional human-readable name ("Craig's PIN", "Front desk")
+  -- A second tier above ordinary admin PINs. A master PIN can add,
+  -- revoke, and relabel other admin PINs, and run a full PIN reset —
+  -- see is_master_caller() and the functions below. There must always
+  -- be at least one master PIN (enforced in revoke_admin_pin).
+  is_master boolean not null default false
 );
+
+-- Now that admin_pins exists, wire up the FK declared on people above.
+alter table people
+  add constraint people_admin_session_pin_id_fkey
+  foreign key (admin_session_pin_id) references admin_pins(id);
 
 -- Locked down completely — no policies means no direct access via the
 -- anon/publishable key at all. Only the SECURITY DEFINER functions
@@ -210,6 +244,135 @@ end;
 $$;
 
 -- ---------------------------------------------------------
+-- MASTER ADMIN TIER
+-- A second, higher tier of PIN. An ordinary admin PIN (added via
+-- set_admin_pin/change_admin_pin above, back when there was only one)
+-- can do everyday admin actions. A master PIN can additionally manage
+-- OTHER admin PINs — add, revoke, relabel, or wipe them all — without
+-- ever exposing pin_hash values. Which tier the CURRENT session has is
+-- recorded on people.admin_session_pin_id when the PIN is granted (see
+-- grant_admin_pin_session above, which every admin_pins row — master
+-- or not — flows through the same way).
+-- ---------------------------------------------------------
+create or replace function is_master_caller()
+returns boolean
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  session_is_master boolean;
+begin
+  if not is_admin_caller() then
+    return false;
+  end if;
+
+  select ap.is_master into session_is_master
+  from people p
+  join admin_pins ap on ap.id = p.admin_session_pin_id
+  where p.user_id = auth.uid();
+
+  return coalesce(session_is_master, false);
+end;
+$$;
+
+-- Convenience wrapper the app can call to decide whether to show
+-- master-only admin UI.
+create or replace function am_i_master_admin()
+returns boolean
+language sql
+security definer
+set search_path = public, extensions
+as $$
+  select is_master_caller();
+$$;
+
+create or replace function list_admin_pins()
+returns table(id uuid, label text, created_at timestamptz, is_master boolean)
+language sql
+security definer
+set search_path = public, extensions
+as $$
+  select id, label, created_at, is_master from admin_pins order by is_master desc, created_at asc;
+$$;
+
+create or replace function add_admin_pin(new_pin text, new_label text default null)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+begin
+  if not is_master_caller() then
+    raise exception 'Only a master PIN can add admin PINs.';
+  end if;
+  insert into admin_pins (pin_hash, label, is_master)
+  values (extensions.crypt(new_pin, extensions.gen_salt('bf')), new_label, false);
+end;
+$$;
+
+create or replace function update_admin_pin_label(target_id uuid, new_label text)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+begin
+  if not is_master_caller() then
+    raise exception 'Only a master PIN can edit admin PINs.';
+  end if;
+  update admin_pins set label = new_label where id = target_id;
+end;
+$$;
+
+-- Revokes one admin PIN. Refuses to revoke the last remaining master
+-- PIN — there must always be at least one, or nobody could ever grant
+-- another master PIN again.
+create or replace function revoke_admin_pin(target_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  target_is_master boolean;
+  master_count int;
+begin
+  if not is_master_caller() then
+    raise exception 'Only a master PIN can revoke admin PINs.';
+  end if;
+
+  select is_master into target_is_master from admin_pins where id = target_id;
+
+  if target_is_master then
+    select count(*) into master_count from admin_pins where is_master = true;
+    if master_count <= 1 then
+      raise exception 'Cannot revoke the last master PIN — there must always be at least one.';
+    end if;
+  end if;
+
+  delete from admin_pins where id = target_id;
+end;
+$$;
+
+-- Wipes every ordinary admin PIN, keeping master PINs intact. For when
+-- you suspect a PIN has leaked and want a clean slate without locking
+-- yourself out of the master tier.
+create or replace function full_pin_reset()
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+begin
+  if not is_master_caller() then
+    raise exception 'Only a master PIN can run a full PIN reset.';
+  end if;
+  delete from admin_pins where is_master = false;
+end;
+$$;
+
+-- ---------------------------------------------------------
 -- CLUB2COACH: coach listings ("looking for a role")
 -- ---------------------------------------------------------
 create table club2coach_coach_listings (
@@ -233,7 +396,12 @@ create table club2coach_coach_listings (
   paid_at timestamptz,
   price_aud numeric,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz, -- soft delete, so historic shares/payments still resolve
+  included_introductions integer, -- how many admin-shared intros this listing's package covers
+  topup_requested integer, -- set when the coach has asked to buy more intros; cleared by confirm_club2coach_coach_topup()
+  state_preferences text[] not null default '{}', -- states (not just regions) the coach is open to, multi-state search
+  agreed_to_terms boolean not null default false
 );
 
 create index c2c_coach_listings_person_idx on club2coach_coach_listings(person_id);
@@ -260,11 +428,35 @@ create policy "owner or admin can update coach listing"
   );
 
 -- ---------------------------------------------------------
+-- CLUBS — a lightweight directory of clubs, linked from vacancies so
+-- the same club's open-vacancy count can be queried without scanning
+-- free-text club_name values. club_name on the vacancy itself stays
+-- authoritative for display; club_id is an optional link on top of it.
+-- ---------------------------------------------------------
+create table clubs (
+  id uuid primary key default uuid_generate_v4(),
+  name text not null unique,
+  created_at timestamptz not null default now(),
+  state text not null default 'VIC'
+);
+
+alter table clubs enable row level security;
+
+create policy "anyone authenticated can view clubs"
+  on clubs for select
+  using (auth.role() = 'authenticated');
+
+create policy "admin can insert clubs"
+  on clubs for insert
+  with check (is_admin_caller());
+
+-- ---------------------------------------------------------
 -- CLUB2COACH: club vacancies
 -- ---------------------------------------------------------
 create table club2coach_club_vacancies (
   id uuid primary key default uuid_generate_v4(),
   person_id uuid not null references people(id) on delete cascade, -- club contact
+  club_id uuid references clubs(id), -- optional link into the clubs directory above
   club_name text not null,
   role_being_recruited text not null, -- COACHING_ROLES
   competition_level text not null, -- COMPETITION_LEVELS
@@ -287,7 +479,14 @@ create table club2coach_club_vacancies (
   paid_at timestamptz,
   price_aud numeric,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  shared_at timestamptz, -- set when the admin first shares this vacancy with a coach
+  filled_at timestamptz,
+  deleted_at timestamptz, -- soft delete, so historic shares/payments still resolve
+  included_introductions integer, -- how many admin-shared intros this vacancy's package covers
+  is_charity boolean not null default false, -- true for vacancies gifted via gift_club2coach_vacancy() rather than actually paid for
+  state text, -- which state's competition/region lists this vacancy was created under
+  agreed_to_terms boolean not null default false
 );
 
 create index c2c_vacancies_person_idx on club2coach_club_vacancies(person_id);
@@ -325,6 +524,7 @@ create table club2coach_shares (
   score numeric,
   admin_notes text,
   shared_at timestamptz not null default now(),
+  status text not null default 'approved', -- 'approved' | future statuses if a review step is added later
   unique (coach_listing_id, club_vacancy_id)
 );
 
@@ -338,13 +538,16 @@ create policy "admin can manage shares"
 create policy "involved parties can view their own share"
   on club2coach_shares for select
   using (
-    exists (
-      select 1 from club2coach_coach_listings cl
-      where cl.id = coach_listing_id and cl.person_id = my_person_id()
-    )
-    or exists (
-      select 1 from club2coach_club_vacancies cv
-      where cv.id = club_vacancy_id and cv.person_id = my_person_id()
+    status = 'approved'
+    and (
+      exists (
+        select 1 from club2coach_coach_listings cl
+        where cl.id = coach_listing_id and cl.person_id = my_person_id()
+      )
+      or exists (
+        select 1 from club2coach_club_vacancies cv
+        where cv.id = club_vacancy_id and cv.person_id = my_person_id()
+      )
     )
   );
 
@@ -383,7 +586,14 @@ create table coach2mentor_coach_listings (
   paid_at timestamptz,
   price_aud numeric,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz, -- soft delete, so historic requests/payments still resolve
+  personal_weights jsonb, -- this coach's own scoring-weight overrides, if they've customised them
+  included_introductions integer, -- how many admin-shared intros this listing's package covers
+  topup_requested integer, -- set when the coach has asked to buy more intros; cleared by confirm_coach2mentor_coach_topup()
+  preferred_regions text[] not null default '{}',
+  state_preferences text[] not null default '{}', -- states (not just regions) the coach is open to, multi-state search
+  agreed_to_terms boolean not null default false
 );
 
 create index c2m_coach_listings_person_idx on coach2mentor_coach_listings(person_id);
@@ -440,7 +650,9 @@ create table coach2mentor_mentor_listings (
   paid_at timestamptz,
   price_aud numeric,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz, -- soft delete, so historic requests/payments still resolve
+  agreed_to_terms boolean not null default false
 );
 
 create index c2m_mentor_listings_person_idx on coach2mentor_mentor_listings(person_id);
@@ -491,11 +703,31 @@ create table coach2mentor_requests (
   message text,
   created_at timestamptz not null default now(),
   responded_at timestamptz,
+  score numeric, -- match score at the time the coach sent this request
+  admin_notes text,
   unique (coach_listing_id, mentor_listing_id)
 );
 
 create index c2m_requests_coach_idx on coach2mentor_requests(coach_listing_id);
 create index c2m_requests_mentor_idx on coach2mentor_requests(mentor_listing_id);
+
+-- Used by the app to check whether a coach already has a live (not
+-- merely 'suggested') request against a given mentor, before letting
+-- them send another one.
+create or replace function coach2mentor_has_active_link(target_coach_listing_id uuid, target_mentor_listing_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+set row_security = off
+as $$
+  select exists (
+    select 1 from coach2mentor_requests
+    where coach_listing_id = target_coach_listing_id
+      and mentor_listing_id = target_mentor_listing_id
+      and status != 'suggested'
+  );
+$$;
 
 alter table coach2mentor_requests enable row level security;
 
@@ -572,7 +804,11 @@ create table payments (
   status text not null default 'paid', -- kept simple for MVP: rows only exist once marked paid
   marked_by_person_id uuid references people(id),
   notes text,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- Set when this payment came through Stripe Checkout rather than a
+  -- manual admin mark-paid — see the Stripe section further down.
+  stripe_session_id text unique,
+  stripe_payment_intent_id text
 );
 
 create index payments_person_idx on payments(person_id);
@@ -622,6 +858,35 @@ begin
 end;
 $$;
 
+-- Overload: also sets the number of admin-shared introductions the
+-- purchased package includes, for packages priced by introduction
+-- count rather than a flat one-off fee.
+create or replace function mark_club2coach_coach_paid(target_listing_id uuid, amount numeric, introductions integer)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  admin_person_id uuid;
+  target_person_id uuid;
+begin
+  if not is_admin_caller() then
+    raise exception 'Admin session required';
+  end if;
+
+  select id into admin_person_id from people where user_id = auth.uid();
+  select person_id into target_person_id from club2coach_coach_listings where id = target_listing_id;
+
+  update club2coach_coach_listings
+  set paid = true, paid_at = now(), price_aud = amount, status = 'active', included_introductions = introductions
+  where id = target_listing_id;
+
+  insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id)
+  values (target_person_id, 'club2coach', 'coach', 'club2coach_coach_listings', target_listing_id, amount, admin_person_id);
+end;
+$$;
+
 create or replace function mark_club2coach_club_paid(target_listing_id uuid, amount numeric)
 returns void
 language plpgsql
@@ -645,6 +910,93 @@ begin
 
   insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id)
   values (target_person_id, 'club2coach', 'club', 'club2coach_club_vacancies', target_listing_id, amount, admin_person_id);
+end;
+$$;
+
+-- Overload: also sets included_introductions, same idea as the coach
+-- listing overload above.
+create or replace function mark_club2coach_club_paid(target_listing_id uuid, amount numeric, introductions integer)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  admin_person_id uuid;
+  target_person_id uuid;
+begin
+  if not is_admin_caller() then
+    raise exception 'Admin session required';
+  end if;
+
+  select id into admin_person_id from people where user_id = auth.uid();
+  select person_id into target_person_id from club2coach_club_vacancies where id = target_listing_id;
+
+  update club2coach_club_vacancies
+  set paid = true, paid_at = now(), price_aud = amount, status = 'active', included_introductions = introductions
+  where id = target_listing_id;
+
+  insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id)
+  values (target_person_id, 'club2coach', 'club', 'club2coach_club_vacancies', target_listing_id, amount, admin_person_id);
+end;
+$$;
+
+-- Gifts a club vacancy — marks it paid at $0 and flags it as a
+-- charity/complimentary listing rather than a real payment, e.g. for a
+-- community club that can't afford the standard fee.
+create or replace function gift_club2coach_vacancy(target_listing_id uuid, introductions integer)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  admin_person_id uuid;
+  target_person_id uuid;
+begin
+  if not is_admin_caller() then
+    raise exception 'Admin session required';
+  end if;
+
+  select id into admin_person_id from people where user_id = auth.uid();
+  select person_id into target_person_id from club2coach_club_vacancies where id = target_listing_id;
+
+  update club2coach_club_vacancies
+  set paid = true, paid_at = now(), price_aud = 0, status = 'active', included_introductions = introductions, is_charity = true
+  where id = target_listing_id;
+
+  insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id, notes)
+  values (target_person_id, 'club2coach', 'club', 'club2coach_club_vacancies', target_listing_id, 0, admin_person_id, 'Complimentary / charity — gifted, not a real payment');
+end;
+$$;
+
+-- Confirms a coach's request to buy additional introductions on top of
+-- an already-paid Club2Coach coach listing.
+create or replace function confirm_club2coach_coach_topup(target_listing_id uuid, amount numeric, additional_introductions integer)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  admin_person_id uuid;
+  target_person_id uuid;
+begin
+  if not is_admin_caller() then
+    raise exception 'Admin session required';
+  end if;
+
+  select id into admin_person_id from people where user_id = auth.uid();
+  select person_id into target_person_id from club2coach_coach_listings where id = target_listing_id;
+
+  update club2coach_coach_listings
+  set included_introductions = coalesce(included_introductions, 0) + additional_introductions,
+      topup_requested = null,
+      status = 'active'
+  where id = target_listing_id;
+
+  insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id, notes)
+  values (target_person_id, 'club2coach', 'coach', 'club2coach_coach_listings', target_listing_id, amount, admin_person_id, 'Top-up — additional introductions');
 end;
 $$;
 
@@ -674,6 +1026,63 @@ begin
 end;
 $$;
 
+-- Overload: also sets included_introductions.
+create or replace function mark_coach2mentor_coach_paid(target_listing_id uuid, amount numeric, introductions integer)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  admin_person_id uuid;
+  target_person_id uuid;
+begin
+  if not is_admin_caller() then
+    raise exception 'Admin session required';
+  end if;
+
+  select id into admin_person_id from people where user_id = auth.uid();
+  select person_id into target_person_id from coach2mentor_coach_listings where id = target_listing_id;
+
+  update coach2mentor_coach_listings
+  set paid = true, paid_at = now(), price_aud = amount, status = 'active', included_introductions = introductions
+  where id = target_listing_id;
+
+  insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id)
+  values (target_person_id, 'coach2mentor', 'coach', 'coach2mentor_coach_listings', target_listing_id, amount, admin_person_id);
+end;
+$$;
+
+-- Confirms a coach's request to buy additional introductions on top of
+-- an already-paid Coach2Mentor coach listing.
+create or replace function confirm_coach2mentor_coach_topup(target_listing_id uuid, amount numeric, additional_introductions integer)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  admin_person_id uuid;
+  target_person_id uuid;
+begin
+  if not is_admin_caller() then
+    raise exception 'Admin session required';
+  end if;
+
+  select id into admin_person_id from people where user_id = auth.uid();
+  select person_id into target_person_id from coach2mentor_coach_listings where id = target_listing_id;
+
+  update coach2mentor_coach_listings
+  set included_introductions = coalesce(included_introductions, 0) + additional_introductions,
+      topup_requested = null,
+      status = 'active'
+  where id = target_listing_id;
+
+  insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id, notes)
+  values (target_person_id, 'coach2mentor', 'coach', 'coach2mentor_coach_listings', target_listing_id, amount, admin_person_id, 'Top-up — additional introductions');
+end;
+$$;
+
 create or replace function mark_coach2mentor_mentor_paid(target_listing_id uuid, amount numeric)
 returns void
 language plpgsql
@@ -697,6 +1106,134 @@ begin
 
   insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id)
   values (target_person_id, 'coach2mentor', 'mentor', 'coach2mentor_mentor_listings', target_listing_id, amount, admin_person_id);
+end;
+$$;
+
+-- Overload: also sets max_mentees, for mentor packages priced by
+-- mentee capacity rather than a flat one-off fee.
+create or replace function mark_coach2mentor_mentor_paid(target_listing_id uuid, amount numeric, capacity integer)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  admin_person_id uuid;
+  target_person_id uuid;
+begin
+  if not is_admin_caller() then
+    raise exception 'Admin session required';
+  end if;
+
+  select id into admin_person_id from people where user_id = auth.uid();
+  select person_id into target_person_id from coach2mentor_mentor_listings where id = target_listing_id;
+
+  update coach2mentor_mentor_listings
+  set paid = true, paid_at = now(), price_aud = amount, status = 'active', max_mentees = capacity
+  where id = target_listing_id;
+
+  insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id)
+  values (target_person_id, 'coach2mentor', 'mentor', 'coach2mentor_mentor_listings', target_listing_id, amount, admin_person_id);
+end;
+$$;
+
+-- ---------------------------------------------------------
+-- COACH CREDIT REQUESTS — a person buying introductions across BOTH
+-- products in one combined purchase (e.g. "10 credits, some for
+-- Club2Coach, some for Coach2Mentor") asks for a split here; the admin
+-- reviews and confirms it via confirm_coach_credit_split(), which
+-- allocates the amount pro-rata across both listings.
+-- ---------------------------------------------------------
+create table coach_credit_requests (
+  id uuid primary key default uuid_generate_v4(),
+  person_id uuid not null references people(id) on delete cascade,
+  total_package integer not null,
+  club2coach_count integer not null default 0,
+  coach2mentor_count integer not null default 0,
+  status text not null default 'pending', -- pending | confirmed
+  created_at timestamptz not null default now(),
+  confirmed_at timestamptz
+);
+
+alter table coach_credit_requests enable row level security;
+
+create policy "owner or admin can view credit request"
+  on coach_credit_requests for select
+  using (
+    is_admin_caller()
+    or person_id = my_person_id()
+  );
+
+create policy "owner can create their own credit request"
+  on coach_credit_requests for insert
+  with check (person_id = my_person_id());
+
+create or replace function confirm_coach_credit_split(request_id uuid, amount numeric)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  admin_person_id uuid;
+  req record;
+  club_amount numeric := 0;
+  mentor_amount numeric := 0;
+  total_count integer;
+begin
+  if not is_admin_caller() then
+    raise exception 'Admin session required';
+  end if;
+
+  select id into admin_person_id from people where user_id = auth.uid();
+  select * into req from coach_credit_requests where id = request_id and status = 'pending';
+
+  if req is null then
+    raise exception 'Request not found or already processed';
+  end if;
+
+  total_count := req.club2coach_count + req.coach2mentor_count;
+  if total_count = 0 then
+    raise exception 'Split must allocate at least one introduction';
+  end if;
+
+  if req.club2coach_count > 0 then
+    if not exists (select 1 from club2coach_coach_listings where person_id = req.person_id) then
+      raise exception 'This person has no Club2Coach coach listing to apply credits to — they need to create one first';
+    end if;
+
+    club_amount := round(amount * req.club2coach_count::numeric / total_count, 2);
+
+    update club2coach_coach_listings
+    set included_introductions = coalesce(included_introductions, 0) + req.club2coach_count,
+        paid = true, paid_at = now(), status = 'active'
+    where person_id = req.person_id;
+
+    insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id, notes)
+    select req.person_id, 'club2coach', 'coach', 'club2coach_coach_listings', id, club_amount, admin_person_id,
+      'Part of a combined Club2Coach + Coach2Mentor credit purchase'
+    from club2coach_coach_listings where person_id = req.person_id;
+  end if;
+
+  if req.coach2mentor_count > 0 then
+    if not exists (select 1 from coach2mentor_coach_listings where person_id = req.person_id) then
+      raise exception 'This person has no Coach2Mentor coach listing to apply credits to — they need to create one first';
+    end if;
+
+    mentor_amount := amount - club_amount;
+
+    update coach2mentor_coach_listings
+    set included_introductions = coalesce(included_introductions, 0) + req.coach2mentor_count,
+        paid = true, paid_at = now(), status = 'active'
+    where person_id = req.person_id;
+
+    insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id, notes)
+    select req.person_id, 'coach2mentor', 'coach', 'coach2mentor_coach_listings', id, mentor_amount, admin_person_id,
+      'Part of a combined Club2Coach + Coach2Mentor credit purchase'
+    from coach2mentor_coach_listings where person_id = req.person_id;
+  end if;
+
+  update coach_credit_requests set status = 'confirmed', confirmed_at = now() where id = request_id;
 end;
 $$;
 
@@ -751,3 +1288,142 @@ insert into admin_settings (product, weights, salary_benchmarks) values
   '{}'::jsonb
 )
 on conflict (product) do nothing;
+
+-- ---------------------------------------------------------
+-- ADMIN MASTER STATE — a singleton row recording the last time someone
+-- logged in with a master PIN (see the MASTER ADMIN TIER section
+-- above), for a simple "last master login" line in the admin UI.
+-- Locked down completely, same as admin_pins: no policies, so only
+-- SECURITY DEFINER functions can touch it.
+-- ---------------------------------------------------------
+create table admin_master_state (
+  id boolean primary key default true,
+  constraint admin_master_state_singleton check (id), -- forces exactly one row, id = true
+  last_master_login_at timestamptz,
+  last_master_login_label text
+);
+
+alter table admin_master_state enable row level security;
+
+insert into admin_master_state (id) values (true) on conflict (id) do nothing;
+
+-- ---------------------------------------------------------
+-- PLATFORM SETTINGS — another singleton row, this time for
+-- platform-wide feature flags. Currently just the Stripe kill switch:
+-- when false, /api/stripe/checkout refuses to create new Checkout
+-- Sessions (existing paid listings are unaffected), letting you pause
+-- live payment collection without a deploy.
+-- ---------------------------------------------------------
+create table platform_settings (
+  id boolean primary key default true,
+  constraint platform_settings_singleton check (id), -- forces exactly one row, id = true
+  stripe_payments_enabled boolean not null default true,
+  updated_at timestamptz not null default now()
+);
+
+alter table platform_settings enable row level security;
+
+create policy "anyone authenticated can read platform settings"
+  on platform_settings for select
+  using (auth.role() = 'authenticated');
+
+create policy "master admin can update platform settings"
+  on platform_settings for update
+  using (is_master_caller())
+  with check (is_master_caller());
+
+insert into platform_settings (id) values (true) on conflict (id) do nothing;
+
+-- ---------------------------------------------------------
+-- STRIPE INTEGRATION
+-- Live payment collection alongside the manual "mark paid" flow above:
+-- /api/stripe/checkout creates a Checkout Session (blocked if
+-- platform_settings.stripe_payments_enabled is false) and
+-- /api/stripe/webhook verifies Stripe's signature, then calls the
+-- relevant mark_*_paid function and records the session/intent ids on
+-- the resulting payments row (see the stripe_session_id /
+-- stripe_payment_intent_id columns added to payments above).
+--
+-- stripe_processed_events is the webhook's idempotency guard — Stripe
+-- can and does redeliver the same event, so the webhook inserts the
+-- event id here FIRST and bails out if that insert hits a duplicate,
+-- before doing anything else. No RLS policies: only the webhook
+-- route's service-role key ever touches this table.
+-- ---------------------------------------------------------
+create table stripe_processed_events (
+  event_id text primary key,
+  processed_at timestamptz not null default now()
+);
+
+alter table stripe_processed_events enable row level security;
+
+-- ---------------------------------------------------------
+-- SUPPORT QUERIES — a simple "contact us" / help-request inbox.
+-- Anyone (logged in or not — person_id is nullable) can submit one;
+-- only admin can see and triage the queue.
+-- ---------------------------------------------------------
+create table support_queries (
+  id uuid primary key default uuid_generate_v4(),
+  person_id uuid references people(id) on delete set null,
+  name text not null,
+  email text not null,
+  message text not null,
+  status text not null default 'open', -- open | resolved
+  admin_notes text,
+  created_at timestamptz not null default now()
+);
+
+alter table support_queries enable row level security;
+
+create policy "logged in user can submit a support query"
+  on support_queries for insert
+  with check (
+    auth.role() = 'authenticated'
+    and (person_id is null or person_id = my_person_id())
+  );
+
+create policy "owner or admin can view support query"
+  on support_queries for select
+  using (
+    is_admin_caller()
+    or person_id = my_person_id()
+  );
+
+create policy "admin can update support query"
+  on support_queries for update
+  using (is_admin_caller())
+  with check (is_admin_caller());
+
+-- ---------------------------------------------------------
+-- MISC HELPERS
+-- ---------------------------------------------------------
+
+-- Used at signup to stop someone registering a second account against
+-- a mobile number already in use (excluding their own current row,
+-- for the "editing my own profile" case).
+create or replace function is_mobile_registered(check_mobile text, exclude_person_id uuid default null)
+returns boolean
+language sql
+security definer
+set search_path = public
+set row_security = off
+as $$
+  select exists (
+    select 1 from people
+    where lower(trim(mobile)) = lower(trim(check_mobile))
+      and (exclude_person_id is null or id != exclude_person_id)
+  );
+$$;
+
+-- How many open (not filled/expired) vacancies a given club currently
+-- has, via the clubs directory link (club2coach_club_vacancies.club_id).
+create or replace function get_c2c_open_vacancy_count(target_club_id uuid)
+returns integer
+language sql
+security definer
+set search_path = public
+set row_security = off
+as $$
+  select count(*)::integer from club2coach_club_vacancies
+  where club_id = target_club_id and status not in ('filled', 'expired');
+$$;
