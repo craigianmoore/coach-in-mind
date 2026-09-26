@@ -417,6 +417,7 @@ create table coach2mentor_mentor_listings (
   preferred_coach_gender text,
   availability text,
   regions_served text[] not null default '{}',
+  fa_number text, -- Football Australia registration number; validated as 8 digits in the app
   licence text, -- ACCREDITATION_LEVELS (mentor's own)
   career_stage text, -- CAREER_STAGES
   specialisms text[] not null default '{}',
@@ -709,6 +710,7 @@ create table admin_settings (
   product text not null unique, -- 'club2coach' | 'coach2mentor'
   weights jsonb not null default '{}'::jsonb,
   salary_benchmarks jsonb not null default '{}'::jsonb,
+  auto_approve_matches boolean not null default false, -- when false (default), auto-matched suggestions need explicit admin approval before contact details are shared
   updated_at timestamptz not null default now()
 );
 
