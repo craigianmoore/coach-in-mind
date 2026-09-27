@@ -228,7 +228,7 @@ export default function HomePage() {
           <span className="text-sm font-bold tracking-wide">COACH IN MIND</span>
         </div>
         <p className="text-base font-semibold text-brand-gold">
-          Matching coaches and clubs across Australia.
+          Matching coaches and clubs across Australia
         </p>
         <p className="text-xs text-white/50">© 2026 Coach In Mind</p>
       </div>
