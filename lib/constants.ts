@@ -313,7 +313,7 @@ export const MENTOR_SPECIALISMS = [
   "Leadership & Culture",
   "Tactical / Game Model",
   "Player Welfare",
-  "Talent Pathway",
+  "Talent Development",
 ] as const;
 
 export const CAREER_STAGES = [
