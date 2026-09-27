@@ -22,6 +22,12 @@ export default function PrivacyPage() {
           coach's preferred competition levels and salary expectations,
           or a club's vacancy details
         </li>
+        <li>
+          If you're a mentor, a copy of a certificate or other document
+          you upload as evidence of your accreditation, used only to
+          manually check your claimed licence level before your profile
+          is activated
+        </li>
         <li>Payment information, processed directly by Stripe — we do not store your card details ourselves</li>
       </ul>
 
@@ -61,6 +67,17 @@ export default function PrivacyPage() {
         can access data across all users. We take reasonable steps to
         protect your information, but no online service can guarantee
         complete security.
+      </p>
+      <p className="mt-2">
+        Accreditation evidence you upload is stored separately in a
+        private location that only you and an administrator can
+        access — it is never shown to other users. We keep it only for
+        as long as needed to review your accreditation and administer
+        your account; you can request its deletion at any time via the{" "}
+        <a href="/support" className="text-brand-navy underline">
+          Support
+        </a>{" "}
+        page.
       </p>
 
       <h2 className="mt-8 text-lg font-semibold text-gray-900">5. Access, correction, and deletion</h2>

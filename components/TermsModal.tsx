@@ -197,8 +197,10 @@ function PrivacyContent() {
       <h3 className="mt-6 font-semibold text-gray-900">1. What we collect</h3>
       <p className="mt-2">
         Your name, mobile number, email, coaching accreditation, region, gender (where provided), listing
-        details relevant to your role, and payment information (processed directly by Stripe — we don't store
-        card details ourselves).
+        details relevant to your role, payment information (processed directly by Stripe — we don't store
+        card details ourselves), and — if you're a mentor — a copy of a certificate or other document you
+        upload as evidence of your accreditation, used only to manually check your claimed licence level and
+        kept private to you and an administrator.
       </p>
 
       <h3 className="mt-6 font-semibold text-gray-900">2. How we use it</h3>
