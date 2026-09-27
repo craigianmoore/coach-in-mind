@@ -34,7 +34,9 @@ export default function HomePage() {
             For clubs
           </span>
           <h2 className="text-2xl font-bold leading-snug text-brand-navy">
-            Every season, the same scramble
+            Every season and
+            <br />
+            the same scramble
           </h2>
           <p className="flex-grow text-sm leading-relaxed text-gray-600">
             A coach decides not to coach the next season. Your committee
@@ -164,10 +166,10 @@ export default function HomePage() {
 
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="flex flex-col gap-3 rounded-2xl bg-brand-navy p-8 text-left">
+            <h3 className="text-xl font-bold text-white">Clubs ↔ Coaches</h3>
             <span className="text-xs font-bold uppercase tracking-wider text-brand-goldLight underline decoration-brand-goldLight/70 underline-offset-4">
               Club2Coach
             </span>
-            <h3 className="text-xl font-bold text-white">Clubs ↔ Coaches</h3>
             <p className="flex-grow text-base italic leading-relaxed text-white/70">
               Admin-curated matching for head coach, assistant and
               technical director vacancies — scored on accreditation,
@@ -182,10 +184,10 @@ export default function HomePage() {
           </div>
 
           <div className="flex flex-col gap-3 rounded-2xl bg-brand-navy p-8 text-left">
+            <h3 className="text-xl font-bold text-white">Coaches ↔ Mentors</h3>
             <span className="text-xs font-bold uppercase tracking-wider text-brand-silverLight underline decoration-brand-silverLight/70 underline-offset-4">
               Coach2Mentor
             </span>
-            <h3 className="text-xl font-bold text-white">Coaches ↔ Mentors</h3>
             <p className="flex-grow text-base italic leading-relaxed text-white/70">
               Browse mentor profiles directly, send a request, and connect
               — matched on specialism, career stage and availability.
