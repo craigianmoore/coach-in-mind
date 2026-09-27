@@ -717,8 +717,49 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
           />
           <p className="mt-1 text-xs text-gray-500">
-            A short video introducing yourself. Coaches see it embedded on your profile when browsing mentors.
+            A short video introducing yourself. Coaches you're matched with see it embedded right on the match.
           </p>
+
+          <details className="mt-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+            <summary className="cursor-pointer font-semibold text-gray-700">
+              Tips for a good intro video
+            </summary>
+            <div className="mt-2 flex flex-col gap-2">
+              <div>
+                <p className="font-medium text-gray-700">What to include</p>
+                <p className="mt-0.5">
+                  Who you are, your coaching background, what you enjoy about mentoring, and what a
+                  coach can expect from working with you. Think of it as your opening handshake, not
+                  a highlight reel.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-gray-700">Length</p>
+                <p className="mt-0.5">60–90 seconds is plenty. Coaches will watch it once, quickly.</p>
+              </div>
+              <div>
+                <p className="font-medium text-gray-700">Filming</p>
+                <p className="mt-0.5">
+                  Hold your phone landscape (sideways), find good light facing you, keep the
+                  background quiet and tidy, and look at the camera rather than the screen.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-gray-700">Uploading</p>
+                <p className="mt-0.5">
+                  <b>YouTube:</b> upload as <b>Unlisted</b> (or Public) — never Private, since a
+                  private video won't play for anyone but you. Unlisted keeps it off search results
+                  but works for anyone with the link.
+                  <br />
+                  <b>Loom:</b> easiest option — record straight from your phone or laptop browser and
+                  paste the share link it gives you, no separate upload needed.
+                  <br />
+                  <b>Vimeo:</b> set the video's Privacy to allow it to be embedded elsewhere (e.g.
+                  &quot;Anyone&quot;) — a password-protected or &quot;only me&quot; video won't display.
+                </p>
+              </div>
+            </div>
+          </details>
         </div>
 
         <div>

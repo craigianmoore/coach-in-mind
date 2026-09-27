@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import PinGate from "@/components/PinGate";
 import { createClient } from "@/lib/supabase/client";
 import { scoreCoach2MentorMatch } from "@/lib/scoring";
+import { getEmbedUrl } from "@/lib/videoEmbed";
 import { CLUB2COACH_COACH_PACKAGES, COACH2MENTOR_MENTOR_CAPACITY_PACKAGES, ACCREDITATION_LEVELS } from "@/lib/constants";
 import type {
   Coach2MentorCoachListing,
@@ -642,10 +643,15 @@ function Coach2MentorAdmin() {
                     {existingCandidates.length === 0 ? (
                       <p className="text-xs text-gray-400">No mentors matched yet.</p>
                     ) : (
-                      existingCandidates.map(({ mentor, breakdown, requestRow }) => (
+                      existingCandidates.map(({ mentor, breakdown, requestRow }) => {
+                        const embedUrl =
+                          requestRow.status === "suggested" && mentor.intro_video_url
+                            ? getEmbedUrl(mentor.intro_video_url)
+                            : null;
+                        return (
                         <div
                           key={mentor.id}
-                          className={`flex items-center justify-between rounded-lg border px-3 py-2 ${
+                          className={`rounded-lg border px-3 py-2 ${
                             requestRow.status === "suggested"
                               ? "border-amber-200 bg-amber-50"
                               : requestRow.status === "declined"
@@ -653,6 +659,7 @@ function Coach2MentorAdmin() {
                               : "border-green-100 bg-green-50/50"
                           }`}
                         >
+                        <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm">{people[mentor.person_id]?.full_name ?? "Unknown"}</p>
                             <p className="text-xs text-gray-500">{mentor.career_stage}</p>
@@ -701,7 +708,31 @@ function Coach2MentorAdmin() {
                             )}
                           </div>
                         </div>
-                      ))
+                        {embedUrl && (
+                          <div className="mt-2 aspect-video w-full max-w-sm overflow-hidden rounded-lg">
+                            <iframe
+                              src={embedUrl}
+                              title={`${people[mentor.person_id]?.full_name ?? "Mentor"} intro video`}
+                              className="h-full w-full"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          </div>
+                        )}
+                        {requestRow.status === "suggested" && mentor.intro_video_url && !embedUrl && (
+                          <a
+                            href={mentor.intro_video_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-2 inline-block text-xs font-semibold underline"
+                            style={{ color: "var(--accent-dark)" }}
+                          >
+                            Watch intro video ↗
+                          </a>
+                        )}
+                        </div>
+                        );
+                      })
                     )}
                   </div>
                 </div>
