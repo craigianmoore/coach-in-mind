@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase/service";
+import { runClub2CoachMatchSweep, runCoach2MentorMatchSweep } from "@/lib/matching/sweep";
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");
@@ -160,6 +161,22 @@ export async function POST(req: NextRequest) {
     // part — a missing ledger row is worth knowing about (hence the
     // log) but shouldn't make Stripe think the whole webhook failed
     // and retry, since retrying would re-run the listing update too.
+  }
+
+  // Compute matches immediately, so whoever just paid doesn't have to
+  // wait for an admin to open the Matches tab (or for the once-daily
+  // safety-net cron) before they show up as matchable. Best-effort:
+  // a failure here shouldn't turn a successful payment into a 500 that
+  // makes Stripe retry the whole webhook.
+  try {
+    if (product === "club2coach") {
+      const vacancyIds = listingTable === "club2coach_club_vacancies" ? [listingId] : undefined;
+      await runClub2CoachMatchSweep(supabase, { vacancyIds });
+    } else if (product === "coach2mentor") {
+      await runCoach2MentorMatchSweep(supabase);
+    }
+  } catch (err) {
+    console.error("Stripe webhook: match sweep after payment failed", err);
   }
 
   return NextResponse.json({ received: true });

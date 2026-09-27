@@ -542,14 +542,14 @@ function Club2CoachAdmin() {
     return shares.filter((s) => s.coach_listing_id === coachListingId).length;
   }
   const activeCoaches = coachListings.filter((l) => {
-    if (!l.paid || l.status === "placed" || l.deleted_at) return false;
+    if (!l.paid || l.status === "placed" || l.status === "refunded" || l.deleted_at) return false;
     if (l.included_introductions != null && coachIntroductionsUsed(l.id) >= l.included_introductions) {
       return false;
     }
     return true;
   });
   const activeVacancies = vacancies.filter(
-    (v) => v.paid && v.status !== "filled" && v.status !== "expired" && !v.deleted_at
+    (v) => v.paid && v.status !== "filled" && v.status !== "expired" && v.status !== "refunded" && !v.deleted_at
   );
   const sharedPairs = new Set(shares.map((s) => `${s.coach_listing_id}:${s.club_vacancy_id}`));
 

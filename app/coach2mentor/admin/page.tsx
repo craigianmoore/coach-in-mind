@@ -231,7 +231,9 @@ function Coach2MentorAdmin() {
     return requests.filter((r) => r.mentor_listing_id === mentorId && r.status === "accepted").length;
   }
 
-  const activeCoaches = coachListings.filter((l) => l.paid && l.status !== "placed" && !l.deleted_at);
+  const activeCoaches = coachListings.filter(
+    (l) => l.paid && l.status !== "placed" && l.status !== "refunded" && !l.deleted_at
+  );
   const activeMentors = mentorListings.filter((m) => {
     if (!m.paid || m.deleted_at || m.status !== "active" || !m.currently_open) return false;
     if (m.max_mentees != null && mentorAcceptedCount(m.id) >= m.max_mentees) return false;
