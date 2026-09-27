@@ -27,7 +27,7 @@ export default function HomePage() {
           href="/club2coach"
           className="flex flex-col gap-4 rounded-2xl bg-white p-8 text-left shadow-xl ring-1 ring-black/5 transition hover:-translate-y-2 hover:shadow-2xl"
         >
-          <span className="flex h-12 w-12 self-center items-center justify-center rounded-xl bg-brand-goldLight/25">
+          <span className="flex h-12 w-12 self-center items-center justify-center rounded-xl border-2 border-brand-gold/50 bg-brand-goldLight/25">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#B8935A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21V7a2 2 0 0 1 2-2h4l2-2h2l2 2h4a2 2 0 0 1 2 2v14" /><path d="M3 21h18" /><path d="M9 21v-6h6v6" /></svg>
           </span>
           <span className="self-center text-sm font-bold uppercase tracking-wider text-brand-gold">
@@ -51,7 +51,7 @@ export default function HomePage() {
           href="/club2coach/coach"
           className="flex flex-col gap-4 rounded-2xl bg-white p-8 text-left shadow-xl ring-1 ring-black/5 transition hover:-translate-y-2 hover:shadow-2xl"
         >
-          <span className="flex h-12 w-12 self-center items-center justify-center rounded-xl bg-brand-silverLight/40">
+          <span className="flex h-12 w-12 self-center items-center justify-center rounded-xl border-2 border-brand-silver/50 bg-brand-silverLight/40">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8F97A3" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
           </span>
           <span className="self-center text-sm font-bold uppercase tracking-wider text-brand-silver">
