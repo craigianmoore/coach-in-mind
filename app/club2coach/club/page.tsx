@@ -335,9 +335,9 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
     const isNew = editingId === "new";
 
-    const { error: saveError } = isNew
-      ? await supabase.from("club2coach_club_vacancies").insert(payload)
-      : await supabase.from("club2coach_club_vacancies").update(payload).eq("id", editingId as string);
+    const { data: savedRow, error: saveError } = isNew
+      ? await supabase.from("club2coach_club_vacancies").insert(payload).select().single()
+      : await supabase.from("club2coach_club_vacancies").update(payload).eq("id", editingId as string).select().single();
 
     if (saveError) {
       setError(saveError.message);
@@ -347,7 +347,6 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
     await load();
     setSaving(false);
-    closeForm();
 
     if (isNew) {
       notifyAdmin(
@@ -366,6 +365,15 @@ function Club2CoachClubForm({ person }: { person: Person }) {
       setOpenCountMessage(
         `${matchedClub.name} currently has ${count} open vacanc${count === 1 ? "y" : "ies"} advertised.`
       );
+
+      // Stay right where they are, now in edit mode for the vacancy they
+      // just created, so the package picker + "Pay with card" button
+      // they were already looking at appears immediately — same as the
+      // Find a Coaching Role flow — instead of bouncing them back to the
+      // list and making them click back in to pay.
+      if (savedRow) setEditingId(savedRow.id);
+    } else {
+      closeForm();
     }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -486,6 +494,12 @@ function Club2CoachClubForm({ person }: { person: Person }) {
         </button>
       </div>
 
+      {openCountMessage && (
+        <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+          {openCountMessage}
+        </div>
+      )}
+
       {existing && (
         <div
           className={`mt-4 rounded-lg border p-4 text-sm ${
@@ -517,10 +531,10 @@ function Club2CoachClubForm({ person }: { person: Person }) {
         </div>
       )}
 
-      {existing && !existing.paid && existing.status !== "filled" && (
+      {(!existing || (!existing.paid && existing.status !== "filled")) && (
         <div className="mt-4 rounded-xl border bg-white p-4">
           <p className="text-xs font-semibold uppercase text-gray-500">
-            Year 1 Introductory Pricing
+            How many coach introductions do you want?
           </p>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
             {Object.entries(CLUB2COACH_CLUB_PACKAGES).map(([count, price]) => (
@@ -546,18 +560,22 @@ function Club2CoachClubForm({ person }: { person: Person }) {
               </label>
             ))}
           </div>
-          <div className="mt-3">
-            <PayWithCardButton
-              listingTable="club2coach_club_vacancies"
-              listingId={existing.id}
-              packageSize={selectedVacancyPackage}
-              mode="new"
-            />
-          </div>
-          <p className="mt-2 text-xs text-gray-500">
-            Coach In Mind will confirm which package suits your vacancy when we're in touch about
-            payment.
-          </p>
+          {existing ? (
+            <div className="mt-3">
+              <PayWithCardButton
+                listingTable="club2coach_club_vacancies"
+                listingId={existing.id}
+                packageSize={selectedVacancyPackage}
+                mode="new"
+              />
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-gray-500">
+              We'll match you with your top-scoring coaches, up to this many, based on your
+              criteria below. Pick a package now — you'll be able to pay by card as soon as the
+              vacancy is saved.
+            </p>
+          )}
         </div>
       )}
 
