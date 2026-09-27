@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import PinGate from "@/components/PinGate";
 import { createClient } from "@/lib/supabase/client";
 import { scoreCoach2MentorMatch } from "@/lib/scoring";
-import { CLUB2COACH_COACH_PACKAGES, COACH2MENTOR_MENTOR_CAPACITY_PACKAGES } from "@/lib/constants";
+import { CLUB2COACH_COACH_PACKAGES, COACH2MENTOR_MENTOR_CAPACITY_PACKAGES, ACCREDITATION_LEVELS } from "@/lib/constants";
 import type {
   Coach2MentorCoachListing,
   Coach2MentorMentorListing,
@@ -466,7 +466,21 @@ function Coach2MentorAdmin() {
                   <div key={l.id} className="flex items-center justify-between rounded-lg border bg-white p-3">
                     <div>
                       <p className="text-sm font-medium">{people[l.person_id]?.full_name ?? "Unknown"}</p>
-                      {l.licence && <p className="text-xs text-gray-500">Claims: {l.licence}</p>}
+                      {l.licence && (
+                        <p
+                          className={`text-xs ${
+                            ACCREDITATION_LEVELS.indexOf(l.licence as any) <
+                            ACCREDITATION_LEVELS.indexOf("B Licence/Diploma" as any)
+                              ? "font-semibold text-red-600"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          Claims: {l.licence}
+                          {ACCREDITATION_LEVELS.indexOf(l.licence as any) <
+                            ACCREDITATION_LEVELS.indexOf("B Licence/Diploma" as any) &&
+                            " — below the usual B Licence/Diploma bar, check evidence carefully"}
+                        </p>
+                      )}
                       {l.max_mentees != null && (
                         <p className="text-xs text-blue-600">Requested capacity: {l.max_mentees} mentee{l.max_mentees === 1 ? "" : "s"}</p>
                       )}

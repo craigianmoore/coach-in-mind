@@ -182,13 +182,6 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       return;
     }
 
-    const minMentorIdx = ACCREDITATION_LEVELS.indexOf("B Licence/Diploma");
-    const licenceIdx = ACCREDITATION_LEVELS.indexOf(licence as any);
-    if (minMentorIdx >= 0 && licenceIdx < minMentorIdx) {
-      setError("Your coaching accreditation isn't high enough to become a mentor — a B Licence/Diploma or above is required.");
-      return;
-    }
-
     if (!agreedToTerms) {
       setError("Please agree to the Terms of Service and Privacy Policy to continue.");
       return;
@@ -519,14 +512,14 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
               ))}
             </select>
             {ACCREDITATION_LEVELS.indexOf(licence as any) < ACCREDITATION_LEVELS.indexOf("B Licence/Diploma" as any) ? (
-              <p className="mt-1 text-xs font-medium text-red-600">
-                Your coaching accreditation isn't high enough to become a mentor — a B
-                Licence/Diploma or above is required.
+              <p className="mt-1 text-xs font-medium text-amber-600">
+                A B Licence/Diploma or above is normally expected to mentor — Coach In Mind will
+                check your uploaded evidence against this before activating your profile.
               </p>
             ) : (
               <p className="mt-1 text-xs text-gray-500">
-                A B Licence/Diploma or above is required to register as a mentor, and you can
-                only be matched with coaches whose accreditation is below yours — except at A
+                A B Licence/Diploma or above is normally expected to mentor, and you can only be
+                matched with coaches whose accreditation is below yours — except at A
                 Licence/Diploma level, where you can also mentor another A Licence/Diploma coach.
               </p>
             )}
