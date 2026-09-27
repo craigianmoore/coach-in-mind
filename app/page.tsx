@@ -33,7 +33,7 @@ export default function HomePage() {
           <span className="self-center text-sm font-bold uppercase tracking-wider text-brand-gold">
             For clubs
           </span>
-          <h2 className="text-2xl font-bold leading-snug text-brand-navy">
+          <h2 className="text-center text-2xl font-bold leading-snug text-brand-navy">
             Every season and
             <br />
             the same scramble
@@ -59,7 +59,7 @@ export default function HomePage() {
           <span className="self-center text-sm font-bold uppercase tracking-wider text-brand-silver">
             For coaches
           </span>
-          <h2 className="text-2xl font-bold leading-snug text-brand-navy">
+          <h2 className="text-center text-2xl font-bold leading-snug text-brand-navy">
             The roles are out there. You just can&rsquo;t see them
           </h2>
           <p className="flex-grow text-sm leading-relaxed text-gray-600">
