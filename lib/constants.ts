@@ -360,11 +360,13 @@ export const CLUB2COACH_CLUB_PACKAGES: Record<number, number> = {
 // revenue for them (mentors typically recoup this within a session or
 // two of their own per-session rate). Same rate ladder as
 // CLUB2COACH_CLUB_PACKAGES — $75/unit with a small discount at the top
-// tier — rather than its own separate pricing shape.
+// tier — plus a 10-mentee bulk tier on top ($60/mentee) so high-capacity
+// mentors aren't capped at 5.
 export const COACH2MENTOR_MENTOR_CAPACITY_PACKAGES: Record<number, number> = {
   1: 75,
   2: 150,
   3: 225,
   4: 300,
   5: 350,
+  10: 600,
 };
