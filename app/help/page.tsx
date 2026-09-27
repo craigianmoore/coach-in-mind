@@ -136,8 +136,8 @@ export default function HelpPage() {
           </div>
         </section>
 
-        <section className="rounded-xl border bg-white p-6">
-          <h2 className="font-semibold">Coaching resources</h2>
+        <section className="rounded-xl border border-brand-gold/40 bg-brand-goldLight/20 p-6">
+          <h2 className="font-semibold text-brand-navy">Resources</h2>
           <p className="mt-1 text-sm text-gray-600">
             <a
               href="/coach-influence-manual.pdf"
