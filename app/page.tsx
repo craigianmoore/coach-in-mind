@@ -48,7 +48,7 @@ export default function HomePage() {
         </Link>
 
         <Link
-          href="/coach2mentor"
+          href="/club2coach/coach"
           className="flex flex-col gap-4 rounded-2xl bg-white p-8 text-left shadow-xl ring-1 ring-black/5 transition hover:-translate-y-2 hover:shadow-2xl"
         >
           <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-silverLight/40">
