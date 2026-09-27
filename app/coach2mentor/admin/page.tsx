@@ -132,6 +132,18 @@ function Coach2MentorAdmin() {
     await loadAll();
   }
 
+  // Evidence isn't auto-checked against the claimed licence — this just
+  // opens the file (via a short-lived signed URL, since the bucket is
+  // private) so the admin can eyeball it before marking a mentor paid.
+  async function viewMentorEvidence(path: string) {
+    const { data, error } = await supabase.storage.from("mentor-evidence").createSignedUrl(path, 60);
+    if (error || !data) {
+      setStatus(error?.message ?? "Couldn't open the evidence file.");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  }
+
   async function markMentorPaid(id: string) {
     supabase.rpc("refresh_admin_session");
     setStatus(null);
@@ -454,8 +466,21 @@ function Coach2MentorAdmin() {
                   <div key={l.id} className="flex items-center justify-between rounded-lg border bg-white p-3">
                     <div>
                       <p className="text-sm font-medium">{people[l.person_id]?.full_name ?? "Unknown"}</p>
+                      {l.licence && <p className="text-xs text-gray-500">Claims: {l.licence}</p>}
                       {l.max_mentees != null && (
                         <p className="text-xs text-blue-600">Requested capacity: {l.max_mentees} mentee{l.max_mentees === 1 ? "" : "s"}</p>
+                      )}
+                      {l.accreditation_evidence_path ? (
+                        <button
+                          onClick={() => viewMentorEvidence(l.accreditation_evidence_path!)}
+                          className="mt-1 text-xs font-semibold text-blue-700 underline hover:text-blue-900"
+                        >
+                          View evidence ({l.accreditation_evidence_filename})
+                        </button>
+                      ) : (
+                        <p className="mt-1 text-xs font-semibold text-red-600">
+                          No evidence uploaded — do not mark paid until this is provided.
+                        </p>
                       )}
                       {l.notes && <p className="mt-1 text-xs italic text-gray-400">Notes: {l.notes}</p>}
                     </div>

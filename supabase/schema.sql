@@ -652,7 +652,16 @@ create table coach2mentor_mentor_listings (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   deleted_at timestamptz, -- soft delete, so historic requests/payments still resolve
-  agreed_to_terms boolean not null default false
+  agreed_to_terms boolean not null default false,
+  -- Evidence of the claimed licence (a photo or PDF of the certificate),
+  -- required before an admin will mark the listing paid/active. The file
+  -- itself lives in the private `mentor-evidence` storage bucket, at
+  -- `{person_id}/{listing_id}-{original filename}` — not automatically
+  -- verified, an admin opens it via a signed URL and eyeballs it against
+  -- the claimed `licence` before approving.
+  accreditation_evidence_path text,
+  accreditation_evidence_filename text,
+  accreditation_evidence_uploaded_at timestamptz
 );
 
 create index c2m_mentor_listings_person_idx on coach2mentor_mentor_listings(person_id);
@@ -1427,3 +1436,49 @@ as $$
   select count(*)::integer from club2coach_club_vacancies
   where club_id = target_club_id and status not in ('filled', 'expired');
 $$;
+
+-- ---------------------------------------------------------
+-- STORAGE: mentor accreditation evidence
+-- ---------------------------------------------------------
+-- Private bucket (not public) holding the photo/PDF a Coach2Mentor
+-- mentor uploads as evidence of their claimed licence. An admin views
+-- these via a signed URL from the admin page before marking a mentor
+-- listing paid/active — see coach2mentor_mentor_listings.
+-- accreditation_evidence_path above.
+insert into storage.buckets (id, name, public)
+values ('mentor-evidence', 'mentor-evidence', false)
+on conflict (id) do nothing;
+
+create policy "mentor evidence: owner can upload own"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'mentor-evidence'
+    and (storage.foldername(name))[1] = my_person_id()::text
+  );
+
+create policy "mentor evidence: owner or admin can view"
+  on storage.objects for select
+  using (
+    bucket_id = 'mentor-evidence'
+    and (
+      is_admin_caller()
+      or (storage.foldername(name))[1] = my_person_id()::text
+    )
+  );
+
+create policy "mentor evidence: owner can replace own"
+  on storage.objects for update
+  using (
+    bucket_id = 'mentor-evidence'
+    and (storage.foldername(name))[1] = my_person_id()::text
+  );
+
+create policy "mentor evidence: owner or admin can delete"
+  on storage.objects for delete
+  using (
+    bucket_id = 'mentor-evidence'
+    and (
+      is_admin_caller()
+      or (storage.foldername(name))[1] = my_person_id()::text
+    )
+  );

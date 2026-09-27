@@ -58,6 +58,13 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
 
+  // Evidence of the claimed licence — a photo or PDF of the actual
+  // certificate. Required before an admin will mark the listing
+  // paid/active (see the admin page); not automatically verified.
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [existingEvidenceFilename, setExistingEvidenceFilename] = useState<string | null>(null);
+  const [uploadingEvidence, setUploadingEvidence] = useState(false);
+
   const [requests, setRequests] = useState<RequestWithCoachName[]>([]);
 
   useEffect(() => {
@@ -89,6 +96,8 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
     setConfirmAccurate(false);
     setAuthoriseShare(false);
     setAgreedToTerms(false);
+    setEvidenceFile(null);
+    setExistingEvidenceFilename(null);
     setRequests([]);
   }
 
@@ -135,6 +144,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       // have this field set — they still need to tick it once, same
       // as a brand-new listing, rather than being silently grandfathered in.
       setAgreedToTerms(l.agreed_to_terms ?? false);
+      setExistingEvidenceFilename(l.accreditation_evidence_filename ?? null);
 
       if (l.paid) {
         const { data: reqs } = await supabase
@@ -184,6 +194,23 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       return;
     }
 
+    if (!evidenceFile && !existingEvidenceFilename) {
+      setError("Please upload evidence of your accreditation (a photo or PDF of your certificate).");
+      return;
+    }
+
+    if (evidenceFile) {
+      const validType = ["application/pdf", "image/jpeg", "image/png"].includes(evidenceFile.type);
+      if (!validType) {
+        setError("Evidence must be a PDF, JPEG, or PNG file.");
+        return;
+      }
+      if (evidenceFile.size > 10 * 1024 * 1024) {
+        setError("Evidence file must be under 10MB.");
+        return;
+      }
+    }
+
     setSaving(true);
 
     const payload = {
@@ -212,14 +239,42 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       agreed_to_terms: agreedToTerms,
     };
 
-    const { error: saveError } = existing
-      ? await supabase.from("coach2mentor_mentor_listings").update(payload).eq("id", existing.id)
-      : await supabase.from("coach2mentor_mentor_listings").insert(payload);
+    const { data: savedRow, error: saveError } = existing
+      ? await supabase.from("coach2mentor_mentor_listings").update(payload).eq("id", existing.id).select().single()
+      : await supabase.from("coach2mentor_mentor_listings").insert(payload).select().single();
 
-    if (saveError) {
-      setError(saveError.message);
+    if (saveError || !savedRow) {
+      setError(saveError?.message ?? "Something went wrong saving your profile.");
       setSaving(false);
       return;
+    }
+
+    if (evidenceFile) {
+      setUploadingEvidence(true);
+      const path = `${person.id}/${savedRow.id}-${evidenceFile.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("mentor-evidence")
+        .upload(path, evidenceFile, { upsert: true });
+
+      if (uploadError) {
+        setError(`Your profile was saved, but the evidence file failed to upload: ${uploadError.message}`);
+        setUploadingEvidence(false);
+        setSaving(false);
+        await load();
+        return;
+      }
+
+      await supabase
+        .from("coach2mentor_mentor_listings")
+        .update({
+          accreditation_evidence_path: path,
+          accreditation_evidence_filename: evidenceFile.name,
+          accreditation_evidence_uploaded_at: new Date().toISOString(),
+        })
+        .eq("id", savedRow.id);
+
+      setUploadingEvidence(false);
+      setEvidenceFile(null);
     }
 
     await load();
@@ -494,6 +549,34 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
 
         <div>
           <label className="text-xs font-semibold uppercase text-gray-500">
+            Evidence of your accreditation *
+          </label>
+          <input
+            type="file"
+            accept="application/pdf,image/jpeg,image/png"
+            onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)}
+            className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-semibold hover:file:bg-gray-200"
+          />
+          {evidenceFile ? (
+            <p className="mt-1 text-xs text-gray-500">
+              Selected: {evidenceFile.name}
+              {existingEvidenceFilename && " (will replace the file already on file)"}
+            </p>
+          ) : existingEvidenceFilename ? (
+            <p className="mt-1 text-xs text-green-700">
+              ✓ On file: {existingEvidenceFilename} — choose a new file above to replace it.
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-gray-500">
+              A photo or PDF of your licence/diploma certificate (PDF, JPEG or PNG, under 10MB).
+              Coach In Mind checks this against your selected licence above before activating your
+              profile — it isn't automatically verified.
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold uppercase text-gray-500">
             Areas of expertise — select all that apply
           </label>
           <div className="mt-1">
@@ -710,7 +793,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
             disabled={saving || !agreedToTerms}
             className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
           >
-            {saving ? "Saving…" : existing ? "Save changes" : "Save profile"}
+            {uploadingEvidence ? "Uploading evidence…" : saving ? "Saving…" : existing ? "Save changes" : "Save profile"}
           </button>
           {existing && (
             <button

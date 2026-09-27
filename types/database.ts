@@ -156,6 +156,9 @@ export interface Coach2MentorMentorListing {
   deleted_at: string | null; // soft-delete: set instead of removing the row, so payment history stays intact
   created_at: string;
   updated_at: string;
+  accreditation_evidence_path: string | null; // path within the private "mentor-evidence" storage bucket
+  accreditation_evidence_filename: string | null; // original filename, for display
+  accreditation_evidence_uploaded_at: string | null;
 }
 
 export interface Coach2MentorRequest {
