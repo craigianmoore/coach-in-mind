@@ -358,10 +358,13 @@ export const CLUB2COACH_CLUB_PACKAGES: Record<number, number> = {
 // Coach2Mentor mentor capacity — how many mentees a mentor can take on
 // determines what they pay, since more capacity unlocks more potential
 // revenue for them (mentors typically recoup this within a session or
-// two of their own per-session rate).
+// two of their own per-session rate). Same rate ladder as
+// CLUB2COACH_CLUB_PACKAGES — $75/unit with a small discount at the top
+// tier — rather than its own separate pricing shape.
 export const COACH2MENTOR_MENTOR_CAPACITY_PACKAGES: Record<number, number> = {
-  1: 100,
-  3: 250,
+  1: 75,
+  2: 150,
+  3: 225,
+  4: 300,
   5: 350,
-  10: 500,
 };
