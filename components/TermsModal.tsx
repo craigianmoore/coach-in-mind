@@ -114,7 +114,7 @@ export default function TermsModal({ open, onAgree, onClose }: TermsModalProps) 
 function TermsContent() {
   return (
     <>
-      <p className="text-xs text-gray-500">Last updated: [DATE — fill in before publishing]</p>
+      <p className="text-xs text-gray-500">Last updated: 1 October 2026</p>
       <p className="mt-4">
         These Terms of Service ("Terms") govern your use of Coach In Mind, including Club 2 Coach and Coach 2
         Mentor (together, the "Platform"), operated by Coach In Mind ("we", "us", "our"). By creating an account
@@ -168,7 +168,14 @@ function TermsContent() {
       <h3 className="mt-6 font-semibold text-gray-900">5. Payments and refunds</h3>
       <p className="mt-2">
         Some listings require payment before they are included in matching. Payments are processed by Stripe;
-        we do not store your card details. [Full refund policy — see the complete Terms of Service at /terms.]
+        we do not store your card details. All prices are in Australian dollars and inclusive of GST. If no
+        introduction has been made under your package within 3 months of payment, you can request a full
+        refund via Support — once an introduction has been made, that package is non-refundable regardless of
+        outcome. Full details at{" "}
+        <a href="/terms" target="_blank" className="text-brand-navy underline">
+          /terms
+        </a>
+        .
       </p>
 
       <h3 className="mt-6 font-semibold text-gray-900">6–10.</h3>
@@ -187,7 +194,7 @@ function TermsContent() {
 function PrivacyContent() {
   return (
     <>
-      <p className="text-xs text-gray-500">Last updated: [DATE — fill in before publishing]</p>
+      <p className="text-xs text-gray-500">Last updated: 1 October 2026</p>
       <p className="mt-4">
         This Privacy Policy explains how Coach In Mind ("we", "us", "our") collects, uses, and protects your
         personal information. We handle your information in line with the Australian Privacy Principles under

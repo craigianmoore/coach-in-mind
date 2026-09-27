@@ -2,7 +2,7 @@ export default function TermsPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-16 text-sm leading-relaxed text-gray-700">
       <h1 className="text-2xl font-bold text-gray-900">Terms of Service</h1>
-      <p className="mt-2 text-xs text-gray-500">Last updated: [DATE — fill in before publishing]</p>
+      <p className="mt-2 text-xs text-gray-500">Last updated: 1 October 2026</p>
 
       <p className="mt-6">
         These Terms of Service ("Terms") govern your use of Coach In Mind,
@@ -92,12 +92,27 @@ export default function TermsPage() {
       <p className="mt-2">
         Some listings require payment before they are included in
         matching. Payments are processed by Stripe; we do not store
-        your card details. Fees paid for introduction packages cover
-        our effort in attempting to find and share suitable matches —
-        see Section 2 above regarding outcomes. [REFUND POLICY —
-        confirm with a lawyer and your own business decision before
-        publishing: e.g. under what circumstances, if any, a refund is
-        available if no introductions are made within a stated period.]
+        your card details. All prices shown on the Platform are in
+        Australian dollars and are inclusive of GST.
+      </p>
+      <p className="mt-2">
+        Fees paid for introduction packages cover our effort in
+        attempting to find and share suitable matches — see Section 2
+        above regarding outcomes. If no introduction has been made
+        under your package within 3 months of your payment being
+        received, you can request a full refund of that package via
+        the{" "}
+        <a href="/support" className="text-brand-navy underline">
+          Support
+        </a>{" "}
+        page. Once at least one introduction has been made under a
+        package, that package is non-refundable, regardless of whether
+        the introduction leads to a placement, agreement, or ongoing
+        relationship. We may otherwise offer a refund at our
+        discretion, including where we're unable to deliver the
+        service paid for. Nothing in this section affects any right
+        you have under the Australian Consumer Law that cannot
+        lawfully be excluded.
       </p>
 
       <h2 className="mt-8 text-lg font-semibold text-gray-900">6. Your conduct</h2>

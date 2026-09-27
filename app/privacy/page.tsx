@@ -2,7 +2,7 @@ export default function PrivacyPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-16 text-sm leading-relaxed text-gray-700">
       <h1 className="text-2xl font-bold text-gray-900">Privacy Policy</h1>
-      <p className="mt-2 text-xs text-gray-500">Last updated: [DATE — fill in before publishing]</p>
+      <p className="mt-2 text-xs text-gray-500">Last updated: 1 October 2026</p>
 
       <p className="mt-6">
         This Privacy Policy explains how Coach In Mind ("we", "us",
