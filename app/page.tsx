@@ -12,11 +12,11 @@ export default function HomePage() {
             Australian football clubs & coaches, matched properly
           </p>
           <h1 className="max-w-2xl text-3xl font-bold sm:text-4xl md:text-5xl">
-            Stop relying on the group chat to fill a coaching role
+            Stop relying on group chats to fill a coaching role
           </h1>
           <p className="max-w-xl text-white/80">
-            Coach In Mind matches accredited coaches with clubs — no
-            scrambling, no missed opportunities.
+            Coach In Mind matches accredited coaches with clubs
+            <br />— no scrambling, no missed opportunities.
           </p>
         </div>
       </div>
