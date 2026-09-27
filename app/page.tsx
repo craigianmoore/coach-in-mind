@@ -43,7 +43,7 @@ export default function HomePage() {
             Facebook groups — and half the candidates aren&rsquo;t even
             qualified for the level. Trials and the season creep closer.
           </p>
-          <span className="mt-1 self-start rounded-lg bg-brand-navy px-6 py-3 text-sm font-bold text-white">
+          <span className="mt-1 self-center rounded-lg bg-brand-navy px-6 py-3 text-sm font-bold text-white">
             Find a coach for my club
           </span>
         </Link>
@@ -68,7 +68,7 @@ export default function HomePage() {
             on a licence and season after season of experience, ready to
             coach.
           </p>
-          <span className="mt-1 self-start rounded-lg bg-brand-navy px-6 py-3 text-sm font-bold text-white">
+          <span className="mt-1 self-center rounded-lg bg-brand-navy px-6 py-3 text-sm font-bold text-white">
             Find a role near me
           </span>
         </Link>
@@ -169,7 +169,7 @@ export default function HomePage() {
               Club2Coach
             </span>
             <h3 className="text-xl font-bold text-white">Clubs ↔ Coaches</h3>
-            <p className="flex-grow text-sm leading-relaxed text-white/70">
+            <p className="flex-grow text-base leading-relaxed text-white/70">
               Admin-curated matching for head coach, assistant and
               technical director vacancies — scored on accreditation,
               level, age group and region.
@@ -184,7 +184,7 @@ export default function HomePage() {
               Coach2Mentor
             </span>
             <h3 className="text-xl font-bold text-white">Coaches ↔ Mentors</h3>
-            <p className="flex-grow text-sm leading-relaxed text-white/70">
+            <p className="flex-grow text-base leading-relaxed text-white/70">
               Browse mentor profiles directly, send a request, and connect
               — matched on specialism, career stage and availability.
             </p>
@@ -220,7 +220,7 @@ export default function HomePage() {
           <CoachInMindLogo size={44} />
           <span className="text-sm font-bold tracking-wide">COACH IN MIND</span>
         </div>
-        <p className="text-xs text-white/50">
+        <p className="text-sm text-white/50">
           Matching coaches and clubs across Australia.
         </p>
         <p className="text-xs text-white/50">© 2026 Coach In Mind</p>

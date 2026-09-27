@@ -296,6 +296,11 @@ export const AGE_GROUPS = [
 
 export const GENDER_OPTIONS = ["Female", "Male", "No preference"] as const;
 
+// The actual gender composition of an existing team on a vacancy —
+// unlike GENDER_OPTIONS above (a *preference*), a real team is Male,
+// Female or Mixed, never "no preference".
+export const TEAM_GENDER_OPTIONS = ["Male", "Female", "Mixed"] as const;
+
 // Coach2Mentor specific
 export const MENTOR_SPECIALISMS = [
   "Goalkeeping",

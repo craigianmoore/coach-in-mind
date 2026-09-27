@@ -17,6 +17,7 @@ import {
   REGIONS,
   REGIONS_BY_STATE,
   GENDER_OPTIONS,
+  TEAM_GENDER_OPTIONS,
   ACCREDITATION_LEVELS,
   CLUB2COACH_CLUB_PACKAGES,
   STATE_LABELS,
@@ -815,7 +816,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             >
               <option value="">Select…</option>
-              {GENDER_OPTIONS.map((g) => (
+              {TEAM_GENDER_OPTIONS.map((g) => (
                 <option key={g} value={g}>
                   {g}
                 </option>
