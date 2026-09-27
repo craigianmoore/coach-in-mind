@@ -12,7 +12,7 @@ export interface Person {
   updated_at: string;
 }
 
-export type ListingStatus = "draft" | "active" | "paused" | "placed" | "filled" | "expired";
+export type ListingStatus = "draft" | "active" | "paused" | "placed" | "filled" | "expired" | "refunded";
 
 export interface Club {
   id: string;
@@ -50,6 +50,7 @@ export interface Club2CoachCoachListing {
   updated_at: string;
   refund_reminder_sent_at: string | null; // set once the "refund window closing soon" admin reminder has been sent
   refund_window_notified_at: string | null; // set once the "4-month refund window reached" admin reminder has been sent
+  refunded_at: string | null; // set when a Stripe refund is recorded against this listing (status flips to "refunded" at the same time)
 }
 
 export interface Club2CoachClubVacancy {
@@ -88,6 +89,7 @@ export interface Club2CoachClubVacancy {
   updated_at: string;
   refund_reminder_sent_at: string | null; // set once the "refund window closing soon" admin reminder has been sent
   refund_window_notified_at: string | null; // set once the "4-month refund window reached" admin reminder has been sent
+  refunded_at: string | null; // set when a Stripe refund is recorded against this listing (status flips to "refunded" at the same time)
 }
 
 export interface Club2CoachShare {
@@ -128,6 +130,7 @@ export interface Coach2MentorCoachListing {
   updated_at: string;
   refund_reminder_sent_at: string | null; // set once the "refund window closing soon" admin reminder has been sent
   refund_window_notified_at: string | null; // set once the "4-month refund window reached" admin reminder has been sent
+  refunded_at: string | null; // set when a Stripe refund is recorded against this listing (status flips to "refunded" at the same time)
 }
 
 export interface Coach2MentorMentorListing {
@@ -165,6 +168,7 @@ export interface Coach2MentorMentorListing {
   accreditation_evidence_path: string | null; // path within the private "mentor-evidence" storage bucket
   accreditation_evidence_filename: string | null; // original filename, for display
   accreditation_evidence_uploaded_at: string | null;
+  refunded_at: string | null; // set when a Stripe refund is recorded against this listing (status flips to "refunded" at the same time)
 }
 
 export interface Coach2MentorRequest {
@@ -187,10 +191,13 @@ export interface Payment {
   listing_table: string;
   listing_id: string;
   amount_aud: number;
-  status: string;
+  status: string; // 'paid' | 'refunded'
   marked_by_person_id: string | null;
   notes: string | null;
   created_at: string;
+  stripe_session_id: string | null;
+  stripe_payment_intent_id: string | null;
+  refunded_at: string | null;
 }
 
 export interface Club2CoachWeights {

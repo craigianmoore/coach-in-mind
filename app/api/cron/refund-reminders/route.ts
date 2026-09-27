@@ -61,6 +61,7 @@ export async function GET(req: Request) {
     .eq("paid", true)
     .is("deleted_at", null)
     .is("refund_window_notified_at", null)
+    .is("refunded_at", null)
     .not("paid_at", "is", null);
   for (const l of coachListings ?? []) {
     candidates.push({
@@ -85,6 +86,7 @@ export async function GET(req: Request) {
     .eq("is_charity", false)
     .is("deleted_at", null)
     .is("refund_window_notified_at", null)
+    .is("refunded_at", null)
     .not("paid_at", "is", null);
   for (const v of vacancies ?? []) {
     candidates.push({
@@ -106,6 +108,7 @@ export async function GET(req: Request) {
     .eq("paid", true)
     .is("deleted_at", null)
     .is("refund_window_notified_at", null)
+    .is("refunded_at", null)
     .not("paid_at", "is", null);
   for (const c of c2mCoachListings ?? []) {
     candidates.push({

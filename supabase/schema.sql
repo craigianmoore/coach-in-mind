@@ -408,7 +408,8 @@ create table club2coach_coach_listings (
   -- Set once each reminder has actually been sent, so the daily cron
   -- job never re-sends the same reminder.
   refund_reminder_sent_at timestamptz, -- "coming up in 2 weeks" admin reminder
-  refund_window_notified_at timestamptz -- "4 months reached" admin reminder
+  refund_window_notified_at timestamptz, -- "4 months reached" admin reminder
+  refunded_at timestamptz -- set by the Stripe webhook (charge.refunded) or an admin action; status flips to 'refunded' at the same time
 );
 
 create index c2c_coach_listings_person_idx on club2coach_coach_listings(person_id);
@@ -497,7 +498,8 @@ create table club2coach_club_vacancies (
   -- Refund-window reminder tracking — see the matching columns on
   -- club2coach_coach_listings above.
   refund_reminder_sent_at timestamptz,
-  refund_window_notified_at timestamptz
+  refund_window_notified_at timestamptz,
+  refunded_at timestamptz
 );
 
 create index c2c_vacancies_person_idx on club2coach_club_vacancies(person_id);
@@ -608,7 +610,8 @@ create table coach2mentor_coach_listings (
   -- Refund-window reminder tracking — see the matching columns on
   -- club2coach_coach_listings above.
   refund_reminder_sent_at timestamptz,
-  refund_window_notified_at timestamptz
+  refund_window_notified_at timestamptz,
+  refunded_at timestamptz
 );
 
 create index c2m_coach_listings_person_idx on coach2mentor_coach_listings(person_id);
@@ -676,7 +679,8 @@ create table coach2mentor_mentor_listings (
   -- the claimed `licence` before approving.
   accreditation_evidence_path text,
   accreditation_evidence_filename text,
-  accreditation_evidence_uploaded_at timestamptz
+  accreditation_evidence_uploaded_at timestamptz,
+  refunded_at timestamptz -- set by the Stripe webhook (charge.refunded) or an admin action; status flips to 'refunded' at the same time
 );
 
 create index c2m_mentor_listings_person_idx on coach2mentor_mentor_listings(person_id);
@@ -832,7 +836,12 @@ create table payments (
   -- Set when this payment came through Stripe Checkout rather than a
   -- manual admin mark-paid — see the Stripe section further down.
   stripe_session_id text unique,
-  stripe_payment_intent_id text
+  stripe_payment_intent_id text,
+  -- Set when Stripe reports this charge refunded (charge.refunded webhook
+  -- event). status flips to 'refunded' at the same time, and the same
+  -- timestamp is mirrored onto the listing row so admin views and the
+  -- refund-reminder cron both pick it up without a join.
+  refunded_at timestamptz
 );
 
 create index payments_person_idx on payments(person_id);

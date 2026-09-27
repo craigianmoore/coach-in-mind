@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Webhook signature verification failed: ${(err as Error).message}` }, { status: 400 });
   }
 
-  if (event.type !== "checkout.session.completed") {
-    // Not the event we care about — acknowledge and move on.
+  if (event.type !== "checkout.session.completed" && event.type !== "charge.refunded") {
+    // Not an event we care about — acknowledge and move on.
     return NextResponse.json({ received: true });
   }
 
@@ -43,6 +43,54 @@ export async function POST(req: NextRequest) {
     // A unique-constraint violation here means we've already handled
     // this exact event — that's success, not failure.
     return NextResponse.json({ received: true, note: "already processed" });
+  }
+
+  if (event.type === "charge.refunded") {
+    // A refund was issued in the Stripe dashboard (refunds are manual —
+    // see Terms of Service §5, there's no in-app refund button). This
+    // charge isn't necessarily one made through Checkout, so look it up
+    // by payment_intent via our own payments ledger rather than trusting
+    // any metadata on the charge itself.
+    const charge = event.data.object as Stripe.Charge;
+    const paymentIntentId =
+      typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id ?? null;
+
+    if (!paymentIntentId) {
+      console.error("Stripe webhook: charge.refunded with no payment_intent", charge.id);
+      return NextResponse.json({ received: true, note: "no payment_intent on charge" });
+    }
+
+    const { data: payment, error: paymentLookupError } = await supabase
+      .from("payments")
+      .select("id, listing_table, listing_id")
+      .eq("stripe_payment_intent_id", paymentIntentId)
+      .maybeSingle();
+
+    if (paymentLookupError || !payment) {
+      // Nothing in our ledger matches this payment_intent — most likely
+      // a manual/legacy payment that predates Stripe entirely. Nothing
+      // to reconcile automatically; an admin can note it manually.
+      console.error("Stripe webhook: no payments row for refunded payment_intent", paymentIntentId);
+      return NextResponse.json({ received: true, note: "no matching payment record" });
+    }
+
+    const now = new Date().toISOString();
+
+    await supabase.from("payments").update({ status: "refunded", refunded_at: now }).eq("id", payment.id);
+
+    // Mirror onto the listing itself: flips it out of "active" (so it
+    // drops out of matching, same as draft/paused/placed already do)
+    // and records when, so admin views and the refund-reminder cron
+    // both see it without a join.
+    const { error: listingUpdateError } = await supabase
+      .from(payment.listing_table)
+      .update({ status: "refunded", refunded_at: now })
+      .eq("id", payment.listing_id);
+    if (listingUpdateError) {
+      console.error("Stripe webhook: failed to mark listing refunded", payment.listing_table, payment.listing_id, listingUpdateError);
+    }
+
+    return NextResponse.json({ received: true });
   }
 
   const session = event.data.object as Stripe.Checkout.Session;
