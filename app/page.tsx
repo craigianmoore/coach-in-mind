@@ -175,7 +175,7 @@ export default function HomePage() {
             </p>
             <Link
               href="/club2coach"
-              className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg bg-brand-goldLight px-5 py-2.5 text-base font-bold text-brand-navy transition hover:bg-white"
+              className="mt-1 inline-flex w-fit self-center items-center gap-1.5 rounded-lg bg-brand-goldLight px-5 py-2.5 text-base font-bold text-brand-navy transition hover:bg-white"
             >
               Explore Club2Coach →
             </Link>
@@ -192,7 +192,7 @@ export default function HomePage() {
             </p>
             <Link
               href="/coach2mentor"
-              className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg bg-brand-silverLight px-5 py-2.5 text-base font-bold text-brand-navy transition hover:bg-white"
+              className="mt-1 inline-flex w-fit self-center items-center gap-1.5 rounded-lg bg-brand-silverLight px-5 py-2.5 text-base font-bold text-brand-navy transition hover:bg-white"
             >
               Explore Coach2Mentor →
             </Link>
