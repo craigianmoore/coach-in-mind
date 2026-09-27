@@ -15,8 +15,17 @@ import type {
   AdminSettings,
 } from "@/types/database";
 
-type Tab = "unpaid" | "matches" | "requests" | "weighting" | "listings";
+type Tab = "unpaid" | "matches" | "requests" | "weighting" | "listings" | "admins";
 type RequestStatus = "pending" | "accepted" | "declined";
+
+// Mirrors the same row club2coach/admin/page.tsx reads and writes —
+// platform_settings has a single row (id = true) shared by both
+// products, so this toggle and that one always reflect and control the
+// same underlying switch. Not part of types/database.ts, since it's a
+// singleton settings row rather than a per-product/per-listing one.
+interface PlatformSettings {
+  stripe_payments_enabled: boolean;
+}
 
 function FilterPills<T extends string>({
   value,
@@ -67,6 +76,8 @@ function Coach2MentorAdmin() {
   const [topupAmount, setTopupAmount] = useState<Record<string, string>>({});
   const [mentorCapacity, setMentorCapacity] = useState<Record<string, number>>({});
   const [mentorAmount, setMentorAmount] = useState<Record<string, string>>({});
+  const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
+  const [isMasterSession, setIsMasterSession] = useState(false);
 
   useEffect(() => {
     loadAll();
@@ -75,12 +86,13 @@ function Coach2MentorAdmin() {
 
   async function loadAll() {
     setLoading(true);
-    const [{ data: cl }, { data: ml }, { data: rq }, { data: ppl }, { data: st }] = await Promise.all([
+    const [{ data: cl }, { data: ml }, { data: rq }, { data: ppl }, { data: st }, { data: ps }] = await Promise.all([
       supabase.from("coach2mentor_coach_listings").select("*"),
       supabase.from("coach2mentor_mentor_listings").select("*"),
       supabase.from("coach2mentor_requests").select("*"),
       supabase.from("people").select("*"),
       supabase.from("admin_settings").select("*").eq("product", "coach2mentor").maybeSingle(),
+      supabase.from("platform_settings").select("*").maybeSingle(),
     ]);
 
     setCoachListings((cl as Coach2MentorCoachListing[]) ?? []);
@@ -90,10 +102,28 @@ function Coach2MentorAdmin() {
     ((ppl as Person[]) ?? []).forEach((p) => (peopleMap[p.id] = p));
     setPeople(peopleMap);
     setSettings(st as AdminSettings | null);
+    // Defaults to true if the row's somehow missing, same fail-open
+    // behaviour as club2coach/admin/page.tsx.
+    setPlatformSettings((ps as PlatformSettings | null) ?? { stripe_payments_enabled: true });
     setLoading(false);
   }
 
+  async function loadIsMasterSession() {
+    const { data } = await supabase.rpc("am_i_master_admin");
+    setIsMasterSession(Boolean(data));
+  }
+
+  // Writes the same shared row club2coach/admin/page.tsx does — toggling
+  // here or there is the same action, and either page shows the other's
+  // change on its next load.
+  async function toggleStripePayments(value: boolean) {
+    supabase.rpc("refresh_admin_session");
+    setPlatformSettings({ stripe_payments_enabled: value });
+    await supabase.from("platform_settings").update({ stripe_payments_enabled: value }).eq("id", true);
+  }
+
   useEffect(() => {
+    if (tab === "admins") loadIsMasterSession();
     if (tab === "matches" && settings) runAutoMatchSweep();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
@@ -371,7 +401,7 @@ function Coach2MentorAdmin() {
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2 border-b border-white/20">
-        {(["unpaid", "matches", "requests", "weighting", "listings"] as Tab[]).map((t) => (
+        {(["unpaid", "matches", "requests", "weighting", "listings", "admins"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -941,6 +971,41 @@ function Coach2MentorAdmin() {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {tab === "admins" && (
+        <div className="mt-6 max-w-xl">
+          <div className="rounded-xl border bg-white p-4">
+            <h2 className="text-sm font-semibold text-gray-700">Card payments (Stripe)</h2>
+            <p className="mt-1 text-xs text-gray-500">
+              A platform-wide switch — checked by the payment system itself before it ever
+              creates a Stripe checkout, not just a UI toggle. Turning this off removes the "Pay
+              with card" option everywhere (Club 2 Coach and Coach 2 Mentor, coaches, clubs, and
+              mentors alike); the existing manual "mark as paid" flow keeps working regardless,
+              and nobody's already-paid listing is affected either way. This is the same switch
+              as the one on Club 2 Coach's Admins tab — toggling it here or there does the same
+              thing.
+            </p>
+            <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={platformSettings?.stripe_payments_enabled ?? true}
+                disabled={!isMasterSession}
+                onChange={(e) => toggleStripePayments(e.target.checked)}
+              />
+              Card payments are currently{" "}
+              <strong>{platformSettings?.stripe_payments_enabled ?? true ? "enabled" : "disabled"}</strong>
+            </label>
+            {!isMasterSession && (
+              <p className="mt-2 text-xs text-amber-700">This switch is master-only — you can see its current state, but not change it.</p>
+            )}
+          </div>
+
+          <p className="mt-6 text-sm text-gray-600">
+            Admin PINs are managed from Club 2 Coach's Admins tab — PINs are shared across
+            both products, so there's nothing separate to manage here.
+          </p>
         </div>
       )}
     </div>
