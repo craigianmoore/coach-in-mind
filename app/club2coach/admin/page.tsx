@@ -14,6 +14,9 @@ import type {
   AdminSettings,
   SupportQuery,
   CoachCreditRequest,
+  Coach2MentorCoachListing,
+  Coach2MentorMentorListing,
+  Coach2MentorRequest,
 } from "@/types/database";
 
 type Tab = "unpaid" | "matches" | "weighting" | "listings" | "admins" | "support" | "people";
@@ -40,6 +43,13 @@ function Club2CoachAdmin() {
   const [vacancies, setVacancies] = useState<Club2CoachClubVacancy[]>([]);
   const [people, setPeople] = useState<Record<string, Person>>({});
   const [shares, setShares] = useState<Club2CoachShare[]>([]);
+  // Coach2Mentor's own listings/requests — loaded here too (read-only,
+  // this page never writes them) purely so the People tab below can
+  // show a person's full activity across BOTH products, not just
+  // whichever one they signed up under. people is one shared table.
+  const [c2mCoachListings, setC2mCoachListings] = useState<Coach2MentorCoachListing[]>([]);
+  const [c2mMentorListings, setC2mMentorListings] = useState<Coach2MentorMentorListing[]>([]);
+  const [c2mRequests, setC2mRequests] = useState<Coach2MentorRequest[]>([]);
   const [settings, setSettings] = useState<AdminSettings | null>(null);
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -101,7 +111,19 @@ function Club2CoachAdmin() {
     // support_queries is loaded here too — not just lazily on tab
     // click — so the "Support (N)" badge count is correct the moment
     // the page loads, not just after you've already opened that tab.
-    const [{ data: cl }, { data: cv }, { data: ppl }, { data: sh }, { data: st }, { data: sq }, { data: cr }, { data: ps }] = await Promise.all([
+    const [
+      { data: cl },
+      { data: cv },
+      { data: ppl },
+      { data: sh },
+      { data: st },
+      { data: sq },
+      { data: cr },
+      { data: ps },
+      { data: c2mcl },
+      { data: c2mml },
+      { data: c2mrq },
+    ] = await Promise.all([
       supabase.from("club2coach_coach_listings").select("*"),
       supabase.from("club2coach_club_vacancies").select("*"),
       supabase.from("people").select("*"),
@@ -110,6 +132,9 @@ function Club2CoachAdmin() {
       supabase.from("support_queries").select("*").order("created_at", { ascending: false }),
       supabase.from("coach_credit_requests").select("*").eq("status", "pending"),
       supabase.from("platform_settings").select("*").maybeSingle(),
+      supabase.from("coach2mentor_coach_listings").select("*"),
+      supabase.from("coach2mentor_mentor_listings").select("*"),
+      supabase.from("coach2mentor_requests").select("*"),
     ]);
 
     setCoachListings((cl as Club2CoachCoachListing[]) ?? []);
@@ -121,6 +146,9 @@ function Club2CoachAdmin() {
     setSettings(st as AdminSettings | null);
     setCreditRequests((cr as CoachCreditRequest[]) ?? []);
     setSupportQueries((sq as SupportQuery[]) ?? []);
+    setC2mCoachListings((c2mcl as Coach2MentorCoachListing[]) ?? []);
+    setC2mMentorListings((c2mml as Coach2MentorMentorListing[]) ?? []);
+    setC2mRequests((c2mrq as Coach2MentorRequest[]) ?? []);
     // stripe_payments_enabled defaults to true if the row's somehow
     // missing (e.g. the migration hasn't run yet) — fail open to "on"
     // rather than silently disabling card payments platform-wide.
@@ -616,13 +644,18 @@ function Club2CoachAdmin() {
   const filteredVacanciesForListingsTab = vacancies.filter(passesListingsFilter);
 
   // Everything this one person has been matched with, across every
-  // role they hold — a coach listing's shares (which clubs), a club
-  // vacancy's shares (which coaches), or both if they somehow hold
-  // both roles. Built from data already loaded for the other tabs, so
-  // this needs no extra query.
+  // role they hold and BOTH products — a Club2Coach coach listing's
+  // shares (which clubs), a club vacancy's shares (which coaches), a
+  // Coach2Mentor coach listing's requests (which mentors), a mentor
+  // listing's requests (which coaches). One person can hold any
+  // combination of these four roles. Built from data already loaded
+  // for the other tabs (plus the read-only Coach2Mentor tables loaded
+  // alongside them), so this needs no extra query.
   function activityForPerson(personId: string) {
     const asCoachListings = coachListings.filter((l) => l.person_id === personId);
     const asClubVacancies = vacancies.filter((v) => v.person_id === personId);
+    const asC2mCoachListings = c2mCoachListings.filter((l) => l.person_id === personId);
+    const asC2mMentorListings = c2mMentorListings.filter((m) => m.person_id === personId);
 
     const coachSide = asCoachListings.map((listing) => {
       const listingShares = shares.filter((s) => s.coach_listing_id === listing.id);
@@ -652,7 +685,79 @@ function Club2CoachAdmin() {
       return { vacancy, matches };
     });
 
-    return { coachSide, clubSide };
+    // Coach2Mentor: this person as a coach seeking a mentor.
+    const c2mCoachSide = asC2mCoachListings.map((listing) => {
+      const listingRequests = c2mRequests
+        .filter((r) => r.coach_listing_id === listing.id)
+        .map((r) => {
+          const mentorListing = c2mMentorListings.find((m) => m.id === r.mentor_listing_id);
+          const mentorPerson = mentorListing ? people[mentorListing.person_id] : undefined;
+          return mentorListing ? { request: r, mentorListing, mentorPerson } : null;
+        })
+        .filter(
+          (
+            m
+          ): m is { request: Coach2MentorRequest; mentorListing: Coach2MentorMentorListing; mentorPerson: Person | undefined } =>
+            m !== null
+        )
+        .sort((a, b) => new Date(b.request.created_at).getTime() - new Date(a.request.created_at).getTime());
+      return { listing, requests: listingRequests };
+    });
+
+    // Coach2Mentor: this person as a mentor.
+    const c2mMentorSide = asC2mMentorListings.map((listing) => {
+      const listingRequests = c2mRequests
+        .filter((r) => r.mentor_listing_id === listing.id)
+        .map((r) => {
+          const coachListing = c2mCoachListings.find((c) => c.id === r.coach_listing_id);
+          const coachPerson = coachListing ? people[coachListing.person_id] : undefined;
+          return coachListing ? { request: r, coachListing, coachPerson } : null;
+        })
+        .filter(
+          (
+            m
+          ): m is { request: Coach2MentorRequest; coachListing: Coach2MentorCoachListing; coachPerson: Person | undefined } =>
+            m !== null
+        )
+        .sort((a, b) => new Date(b.request.created_at).getTime() - new Date(a.request.created_at).getTime());
+      return { listing, requests: listingRequests };
+    });
+
+    return { coachSide, clubSide, c2mCoachSide, c2mMentorSide };
+  }
+
+  // Compact "label: value" line, skipped entirely when there's nothing
+  // to show — keeps the detail panels from filling up with empty rows
+  // for optional fields nobody filled in.
+  function DetailLine({ label, value }: { label: string; value: string | null | undefined }) {
+    if (!value) return null;
+    return (
+      <p className="text-xs text-gray-600">
+        <span className="font-semibold text-gray-500">{label}:</span> {value}
+      </p>
+    );
+  }
+
+  function formatSalaryRange(min: number | null, max: number | null, negotiable?: boolean) {
+    const parts: string[] = [];
+    if (min != null || max != null) {
+      if (min != null && max != null) parts.push(`$${min.toLocaleString()}–$${max.toLocaleString()}`);
+      else parts.push(`$${(min ?? max)!.toLocaleString()}`);
+    }
+    if (negotiable) parts.push("negotiable");
+    return parts.length > 0 ? parts.join(", ") : null;
+  }
+
+  function requestStatusBadge(status: Coach2MentorRequest["status"]) {
+    const styles: Record<Coach2MentorRequest["status"], string> = {
+      accepted: "bg-green-100 text-green-700",
+      pending: "bg-blue-100 text-blue-700",
+      suggested: "bg-gray-100 text-gray-600",
+      declined: "bg-red-100 text-red-600",
+    };
+    return (
+      <span className={`rounded-full px-2 py-0.5 font-medium ${styles[status]}`}>{status}</span>
+    );
   }
 
 
@@ -1510,7 +1615,10 @@ function Club2CoachAdmin() {
             const isExpanded = expandedPersonId === p.id;
             const activity = isExpanded ? activityForPerson(p.id) : null;
             const hasAnyListing =
-              coachListings.some((l) => l.person_id === p.id) || vacancies.some((v) => v.person_id === p.id);
+              coachListings.some((l) => l.person_id === p.id) ||
+              vacancies.some((v) => v.person_id === p.id) ||
+              c2mCoachListings.some((l) => l.person_id === p.id) ||
+              c2mMentorListings.some((m) => m.person_id === p.id);
             return (
               <div key={p.id} className="rounded-lg border bg-white">
                 <button
@@ -1544,15 +1652,33 @@ function Club2CoachAdmin() {
 
                 {isExpanded && activity && (
                   <div className="border-t bg-gray-50 p-3">
-                    {activity.coachSide.length === 0 && activity.clubSide.length === 0 && (
-                      <p className="text-xs text-gray-500">No listings for this person.</p>
-                    )}
+                    {activity.coachSide.length === 0 &&
+                      activity.clubSide.length === 0 &&
+                      activity.c2mCoachSide.length === 0 &&
+                      activity.c2mMentorSide.length === 0 && (
+                        <p className="text-xs text-gray-500">No listings for this person.</p>
+                      )}
 
                     {activity.coachSide.map(({ listing, matches }) => (
-                      <div key={listing.id} className="mb-3 last:mb-0">
+                      <div key={listing.id} className="mb-3 last:mb-0 rounded-lg border border-gray-200 bg-white p-2">
                         <p className="text-xs font-semibold uppercase text-gray-500">
-                          As a coach — {listing.role_sought}
+                          Club2Coach — coach seeking a club ({listing.role_sought})
                         </p>
+                        <div className="mt-1 flex flex-col gap-0.5">
+                          <DetailLine label="Status" value={`${listing.status}${listing.paid ? "" : " · unpaid"}`} />
+                          <DetailLine
+                            label="Salary"
+                            value={formatSalaryRange(listing.salary_min, listing.salary_max, listing.salary_negotiable)}
+                          />
+                          <DetailLine label="Ability levels" value={listing.ability_levels.join(", ")} />
+                          <DetailLine label="Competition levels" value={listing.preferred_competition_levels.join(", ")} />
+                          <DetailLine label="Age groups" value={listing.preferred_age_groups.join(", ")} />
+                          <DetailLine label="Preferred regions" value={listing.preferred_regions.join(", ")} />
+                          <DetailLine label="Open to relocating" value={listing.open_to_relocating ? "Yes" : undefined} />
+                          <DetailLine label="Overview" value={listing.overview} />
+                          <DetailLine label="Admin notes" value={listing.notes} />
+                        </div>
+                        <p className="mt-2 text-xs font-semibold text-gray-500">Matched clubs</p>
                         {matches.length === 0 ? (
                           <p className="mt-1 text-xs text-gray-400">No clubs matched yet.</p>
                         ) : (
@@ -1560,7 +1686,7 @@ function Club2CoachAdmin() {
                             {matches.map(({ share, vacancy }) => (
                               <div
                                 key={share.id}
-                                className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs"
+                                className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs"
                               >
                                 <span>
                                   {vacancy.club_name} — {vacancy.role_being_recruited}
@@ -1587,10 +1713,30 @@ function Club2CoachAdmin() {
                     ))}
 
                     {activity.clubSide.map(({ vacancy, matches }) => (
-                      <div key={vacancy.id} className="mb-3 last:mb-0">
+                      <div key={vacancy.id} className="mb-3 last:mb-0 rounded-lg border border-gray-200 bg-white p-2">
                         <p className="text-xs font-semibold uppercase text-gray-500">
-                          As a club — {vacancy.club_name}: {vacancy.role_being_recruited}
+                          Club2Coach — club recruiting ({vacancy.club_name}: {vacancy.role_being_recruited})
                         </p>
+                        <div className="mt-1 flex flex-col gap-0.5">
+                          <DetailLine
+                            label="Status"
+                            value={`${vacancy.status}${vacancy.is_charity ? " · gifted" : vacancy.paid ? "" : " · unpaid"}`}
+                          />
+                          <DetailLine
+                            label="Salary"
+                            value={formatSalaryRange(vacancy.salary_min, vacancy.salary_max, vacancy.salary_negotiable)}
+                          />
+                          <DetailLine label="Competition level" value={vacancy.competition_level} />
+                          <DetailLine
+                            label="Age group"
+                            value={vacancy.age_group_max ? `${vacancy.age_group}–${vacancy.age_group_max}` : vacancy.age_group}
+                          />
+                          <DetailLine label="Region" value={vacancy.region} />
+                          <DetailLine label="Required accreditation" value={vacancy.required_accreditation} />
+                          <DetailLine label="Overview" value={vacancy.overview} />
+                          <DetailLine label="Admin notes" value={vacancy.notes} />
+                        </div>
+                        <p className="mt-2 text-xs font-semibold text-gray-500">Matched coaches</p>
                         {matches.length === 0 ? (
                           <p className="mt-1 text-xs text-gray-400">No coaches matched yet.</p>
                         ) : (
@@ -1598,7 +1744,7 @@ function Club2CoachAdmin() {
                             {matches.map(({ share, coachPerson }) => (
                               <div
                                 key={share.id}
-                                className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs"
+                                className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs"
                               >
                                 <span>{coachPerson?.full_name ?? "Unknown coach"}</span>
                                 <span className="flex items-center gap-2 text-gray-500">
@@ -1613,6 +1759,95 @@ function Club2CoachAdmin() {
                                   </span>
                                   {share.score != null && `${Math.round(share.score * 100)}%`}
                                   {new Date(share.shared_at).toLocaleDateString("en-GB")}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {activity.c2mCoachSide.map(({ listing, requests }) => (
+                      <div key={listing.id} className="mb-3 last:mb-0 rounded-lg border border-gray-200 bg-white p-2">
+                        <p className="text-xs font-semibold uppercase text-gray-500">
+                          Coach2Mentor — coach seeking a mentor
+                        </p>
+                        <div className="mt-1 flex flex-col gap-0.5">
+                          <DetailLine label="Status" value={`${listing.status}${listing.paid ? "" : " · unpaid"}`} />
+                          <DetailLine label="Career stage" value={listing.current_career_stage} />
+                          <DetailLine label="Availability" value={listing.availability} />
+                          <DetailLine label="Support areas" value={listing.support_areas.join(", ")} />
+                          <DetailLine label="Preferred regions" value={listing.preferred_regions.join(", ")} />
+                          <DetailLine label="Budget" value={formatSalaryRange(listing.budget_min, listing.budget_max)} />
+                          <DetailLine label="Goals" value={listing.goals} />
+                          <DetailLine label="Admin notes" value={listing.notes} />
+                        </div>
+                        <p className="mt-2 text-xs font-semibold text-gray-500">Matched mentors</p>
+                        {requests.length === 0 ? (
+                          <p className="mt-1 text-xs text-gray-400">No mentors matched yet.</p>
+                        ) : (
+                          <div className="mt-1 flex flex-col gap-1">
+                            {requests.map(({ request, mentorPerson }) => (
+                              <div
+                                key={request.id}
+                                className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs"
+                              >
+                                <span>{mentorPerson?.full_name ?? "Unknown mentor"}</span>
+                                <span className="flex items-center gap-2 text-gray-500">
+                                  {requestStatusBadge(request.status)}
+                                  {request.score != null && `${Math.round(request.score * 100)}%`}
+                                  {new Date(request.created_at).toLocaleDateString("en-GB")}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {activity.c2mMentorSide.map(({ listing, requests }) => (
+                      <div key={listing.id} className="mb-3 last:mb-0 rounded-lg border border-gray-200 bg-white p-2">
+                        <p className="text-xs font-semibold uppercase text-gray-500">Coach2Mentor — mentor</p>
+                        <div className="mt-1 flex flex-col gap-0.5">
+                          <DetailLine
+                            label="Status"
+                            value={`${listing.status}${listing.paid ? "" : " · unpaid"}${listing.currently_open ? "" : " · closed to new mentees"}`}
+                          />
+                          <DetailLine label="Licence" value={listing.licence} />
+                          <DetailLine label="Career stage" value={listing.career_stage} />
+                          <DetailLine label="Availability" value={listing.availability} />
+                          <DetailLine label="Specialisms" value={listing.specialisms.join(", ")} />
+                          <DetailLine label="Regions served" value={listing.regions_served.join(", ")} />
+                          <DetailLine label="Capacity" value={listing.max_mentees != null ? `${listing.max_mentees} mentees/year` : undefined} />
+                          <DetailLine
+                            label="Rate"
+                            value={
+                              listing.rate_type === "free"
+                                ? "Free"
+                                : listing.rate_amount != null
+                                  ? `$${listing.rate_amount}${listing.rate_unit ? ` ${listing.rate_unit}` : ""}${listing.rate_negotiable ? " (negotiable)" : ""}`
+                                  : undefined
+                            }
+                          />
+                          <DetailLine label="Bio" value={listing.bio} />
+                          <DetailLine label="Intro video" value={listing.intro_video_url} />
+                          <DetailLine label="Admin notes" value={listing.notes} />
+                        </div>
+                        <p className="mt-2 text-xs font-semibold text-gray-500">Matched coaches</p>
+                        {requests.length === 0 ? (
+                          <p className="mt-1 text-xs text-gray-400">No coaches matched yet.</p>
+                        ) : (
+                          <div className="mt-1 flex flex-col gap-1">
+                            {requests.map(({ request, coachPerson }) => (
+                              <div
+                                key={request.id}
+                                className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs"
+                              >
+                                <span>{coachPerson?.full_name ?? "Unknown coach"}</span>
+                                <span className="flex items-center gap-2 text-gray-500">
+                                  {requestStatusBadge(request.status)}
+                                  {request.score != null && `${Math.round(request.score * 100)}%`}
+                                  {new Date(request.created_at).toLocaleDateString("en-GB")}
                                 </span>
                               </div>
                             ))}
