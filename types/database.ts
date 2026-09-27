@@ -48,6 +48,8 @@ export interface Club2CoachCoachListing {
   deleted_at: string | null; // soft-delete: set instead of removing the row, so payment history stays intact
   created_at: string;
   updated_at: string;
+  refund_reminder_sent_at: string | null; // set once the "refund window closing soon" admin reminder has been sent
+  refund_window_notified_at: string | null; // set once the "4-month refund window reached" admin reminder has been sent
 }
 
 export interface Club2CoachClubVacancy {
@@ -84,6 +86,8 @@ export interface Club2CoachClubVacancy {
   deleted_at: string | null; // soft-delete: set instead of removing the row, so payment history stays intact
   created_at: string;
   updated_at: string;
+  refund_reminder_sent_at: string | null; // set once the "refund window closing soon" admin reminder has been sent
+  refund_window_notified_at: string | null; // set once the "4-month refund window reached" admin reminder has been sent
 }
 
 export interface Club2CoachShare {
@@ -122,6 +126,8 @@ export interface Coach2MentorCoachListing {
   deleted_at: string | null; // soft-delete: set instead of removing the row, so payment history stays intact
   created_at: string;
   updated_at: string;
+  refund_reminder_sent_at: string | null; // set once the "refund window closing soon" admin reminder has been sent
+  refund_window_notified_at: string | null; // set once the "4-month refund window reached" admin reminder has been sent
 }
 
 export interface Coach2MentorMentorListing {

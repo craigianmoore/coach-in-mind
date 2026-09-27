@@ -130,10 +130,11 @@ function TermsContent() {
 
       <h3 className="mt-6 font-semibold text-gray-900">2. No guarantee of a match or outcome</h3>
       <p className="mt-2">
-        We do not guarantee that you will be matched, that a match will lead to a placement or relationship, or
-        that any match will be the best possible one available. Paying for a package of introductions entitles
-        you to that number of introductions being attempted in good faith — not a guarantee of any resulting
-        agreement.
+        An "introduction" means us sharing your contact details with another user, or theirs with you,
+        following a match. We do not guarantee that you will be matched, that a match will lead to a placement
+        or relationship, or that any match will be the best possible one available. Paying for a package of
+        introductions entitles you to that number of introductions being attempted in good faith — not a
+        guarantee of any resulting agreement.
       </p>
 
       <h3 className="mt-6 font-semibold text-gray-900">3. Accuracy of information</h3>
@@ -169,7 +170,7 @@ function TermsContent() {
       <p className="mt-2">
         Some listings require payment before they are included in matching. Payments are processed by Stripe;
         we do not store your card details. All prices are in Australian dollars and inclusive of GST. If no
-        introduction has been made under your package within 3 months of payment, you can request a full
+        introduction has been made under your package within 4 months of payment, you can request a full
         refund via Support — once an introduction has been made, that package is non-refundable regardless of
         outcome. Full details at{" "}
         <a href="/terms" target="_blank" className="text-brand-navy underline">

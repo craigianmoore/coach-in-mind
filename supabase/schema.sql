@@ -401,7 +401,14 @@ create table club2coach_coach_listings (
   included_introductions integer, -- how many admin-shared intros this listing's package covers
   topup_requested integer, -- set when the coach has asked to buy more intros; cleared by confirm_club2coach_coach_topup()
   state_preferences text[] not null default '{}', -- states (not just regions) the coach is open to, multi-state search
-  agreed_to_terms boolean not null default false
+  agreed_to_terms boolean not null default false,
+  -- Refund-window reminder tracking (Terms of Service §5): if no
+  -- introduction (an approved club2coach_shares row) has been made
+  -- within 4 months of paid_at, the coach is entitled to a refund.
+  -- Set once each reminder has actually been sent, so the daily cron
+  -- job never re-sends the same reminder.
+  refund_reminder_sent_at timestamptz, -- "coming up in 2 weeks" admin reminder
+  refund_window_notified_at timestamptz -- "4 months reached" admin reminder
 );
 
 create index c2c_coach_listings_person_idx on club2coach_coach_listings(person_id);
@@ -486,7 +493,11 @@ create table club2coach_club_vacancies (
   included_introductions integer, -- how many admin-shared intros this vacancy's package covers
   is_charity boolean not null default false, -- true for vacancies gifted via gift_club2coach_vacancy() rather than actually paid for
   state text, -- which state's competition/region lists this vacancy was created under
-  agreed_to_terms boolean not null default false
+  agreed_to_terms boolean not null default false,
+  -- Refund-window reminder tracking — see the matching columns on
+  -- club2coach_coach_listings above.
+  refund_reminder_sent_at timestamptz,
+  refund_window_notified_at timestamptz
 );
 
 create index c2c_vacancies_person_idx on club2coach_club_vacancies(person_id);
@@ -593,7 +604,11 @@ create table coach2mentor_coach_listings (
   topup_requested integer, -- set when the coach has asked to buy more intros; cleared by confirm_coach2mentor_coach_topup()
   preferred_regions text[] not null default '{}',
   state_preferences text[] not null default '{}', -- states (not just regions) the coach is open to, multi-state search
-  agreed_to_terms boolean not null default false
+  agreed_to_terms boolean not null default false,
+  -- Refund-window reminder tracking — see the matching columns on
+  -- club2coach_coach_listings above.
+  refund_reminder_sent_at timestamptz,
+  refund_window_notified_at timestamptz
 );
 
 create index c2m_coach_listings_person_idx on coach2mentor_coach_listings(person_id);

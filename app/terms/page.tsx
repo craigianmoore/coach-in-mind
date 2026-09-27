@@ -26,14 +26,16 @@ export default function TermsPage() {
       <h2 className="mt-8 text-lg font-semibold text-gray-900">2. No guarantee of a match or outcome</h2>
       <p className="mt-2">
         We use the information you provide to suggest and, in some
-        cases, introduce you to other users. We do not guarantee that
-        you will be matched, that a match will lead to a coaching role,
-        mentoring relationship, or any other outcome, or that any match
-        will be the best possible one available. Paying for a package
-        of introductions entitles you to that number of introductions
-        being attempted in good faith — it is not a guarantee that any
-        of them will result in a placement, agreement, or ongoing
-        relationship.
+        cases, introduce you to other users. An "introduction" means us
+        sharing your contact details (mobile number and/or email) with
+        another user, or theirs with you, following a match. We do not
+        guarantee that you will be matched, that a match will lead to a
+        coaching role, mentoring relationship, or any other outcome, or
+        that any match will be the best possible one available. Paying
+        for a package of introductions entitles you to that number of
+        introductions being attempted in good faith — it is not a
+        guarantee that any of them will result in a placement,
+        agreement, or ongoing relationship.
       </p>
 
       <h2 className="mt-8 text-lg font-semibold text-gray-900">3. Accuracy of information</h2>
@@ -99,7 +101,7 @@ export default function TermsPage() {
         Fees paid for introduction packages cover our effort in
         attempting to find and share suitable matches — see Section 2
         above regarding outcomes. If no introduction has been made
-        under your package within 3 months of your payment being
+        under your package within 4 months of your payment being
         received, you can request a full refund of that package via
         the{" "}
         <a href="/support" className="text-brand-navy underline">
