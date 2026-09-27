@@ -305,15 +305,22 @@ $$;
 -- so if they ever log back in, RequireProfile sends them to /profile
 -- to start a fresh one, same as any brand-new signup.
 --
--- Refuses outright if the person has ANY payments ledger row, either
--- as the payer or as the admin who marked someone else's payment paid
--- (marked_by_person_id) — payments.person_id cascades on delete same
--- as everything else, and letting that happen would silently erase
--- real payment history, which every other delete path in this app
+-- Refuses outright if the person has ANY payments ledger row AS THE
+-- PAYER (payments.person_id, which cascades on delete same as
+-- everything else) — letting that happen would silently erase real
+-- payment history, which every other delete path in this app
 -- (soft-delete-first for listings) is deliberately built to avoid.
 -- Use the Listings tab's own delete controls for a person who has
 -- ever actually paid; this function is for cleaning up bare/junk
 -- signups and unpaid listings only.
+--
+-- A person can also show up as marked_by_person_id on OTHER people's
+-- payments (they were the admin who clicked "mark as paid" on that
+-- listing) — that column has no cascade, so it would otherwise block
+-- the delete with a raw FK error despite carrying no financial
+-- record of its own. Cleared to null instead: the payment row, its
+-- amount, and its person_id (the actual payer) are untouched: this
+-- only loses the "who processed it" attribution for that one row.
 --
 -- Master-only, like the other irreversible/platform-wide admin
 -- actions (admin PIN management, the Stripe payments switch).
@@ -331,13 +338,14 @@ begin
   end if;
 
   select exists(
-    select 1 from payments
-    where person_id = target_person_id or marked_by_person_id = target_person_id
+    select 1 from payments where person_id = target_person_id
   ) into has_payment_history;
 
   if has_payment_history then
     raise exception 'Cannot delete: this person has payment history. Delete their paid listing(s) individually instead - that keeps the payments ledger intact.';
   end if;
+
+  update payments set marked_by_person_id = null where marked_by_person_id = target_person_id;
 
   delete from people where id = target_person_id;
 end;
