@@ -164,7 +164,7 @@ export default function HomePage() {
 
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="flex flex-col gap-3 rounded-2xl bg-brand-navy p-8 text-left">
-            <span className="text-xs font-bold uppercase tracking-wider text-brand-goldLight underline decoration-brand-goldLight/70 underline-offset-4">
+            <span className="text-xl font-bold uppercase tracking-wider text-brand-goldLight underline decoration-brand-goldLight/70 underline-offset-4">
               Club2Coach
             </span>
             <h3 className="text-xl font-bold text-white">Clubs ↔ Coaches</h3>
@@ -182,7 +182,7 @@ export default function HomePage() {
           </div>
 
           <div className="flex flex-col gap-3 rounded-2xl bg-brand-navy p-8 text-left">
-            <span className="text-xs font-bold uppercase tracking-wider text-brand-silverLight underline decoration-brand-silverLight/70 underline-offset-4">
+            <span className="text-xl font-bold uppercase tracking-wider text-brand-silverLight underline decoration-brand-silverLight/70 underline-offset-4">
               Coach2Mentor
             </span>
             <h3 className="text-xl font-bold text-white">Coaches ↔ Mentors</h3>
