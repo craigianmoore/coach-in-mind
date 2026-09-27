@@ -168,13 +168,18 @@ export default function HomePage() {
             <span className="text-xs font-bold uppercase tracking-wider text-brand-goldLight">
               Club2Coach
             </span>
-            <h3 className="text-xl font-bold text-white">Clubs ↔ Coaches</h3>
-            <p className="flex-grow text-base leading-relaxed text-white/70">
+            <h3 className="text-xl font-bold text-white underline decoration-brand-goldLight/70 underline-offset-4">
+              Clubs ↔ Coaches
+            </h3>
+            <p className="flex-grow text-base italic leading-relaxed text-white/70">
               Admin-curated matching for head coach, assistant and
               technical director vacancies — scored on accreditation,
               level, age group and region.
             </p>
-            <Link href="/club2coach" className="text-sm font-bold text-brand-goldLight hover:underline">
+            <Link
+              href="/club2coach"
+              className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg bg-brand-goldLight px-5 py-2.5 text-base font-bold text-brand-navy transition hover:bg-white"
+            >
               Explore Club2Coach →
             </Link>
           </div>
@@ -183,12 +188,17 @@ export default function HomePage() {
             <span className="text-xs font-bold uppercase tracking-wider text-brand-silverLight">
               Coach2Mentor
             </span>
-            <h3 className="text-xl font-bold text-white">Coaches ↔ Mentors</h3>
-            <p className="flex-grow text-base leading-relaxed text-white/70">
+            <h3 className="text-xl font-bold text-white underline decoration-brand-silverLight/70 underline-offset-4">
+              Coaches ↔ Mentors
+            </h3>
+            <p className="flex-grow text-base italic leading-relaxed text-white/70">
               Browse mentor profiles directly, send a request, and connect
               — matched on specialism, career stage and availability.
             </p>
-            <Link href="/coach2mentor" className="text-sm font-bold text-brand-silverLight hover:underline">
+            <Link
+              href="/coach2mentor"
+              className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg bg-brand-silverLight px-5 py-2.5 text-base font-bold text-brand-navy transition hover:bg-white"
+            >
               Explore Coach2Mentor →
             </Link>
           </div>
