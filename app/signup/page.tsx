@@ -18,6 +18,7 @@ function SignupForm() {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [confirmEmailSent, setConfirmEmailSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,7 +39,37 @@ function SignupForm() {
       return;
     }
 
+    // Supabase Auth has "Confirm email" enabled, so signUp() returns a
+    // user but no session until the confirmation link is clicked. In
+    // that case, don't redirect somewhere that requires being logged
+    // in (that would just bounce back to /login) — tell the person to
+    // check their inbox instead. If a session did come back, they're
+    // already logged in, so continue straight through as normal.
+    if (!data.session) {
+      setConfirmEmailSent(true);
+      setLoading(false);
+      return;
+    }
+
     router.push(`/profile?next=${encodeURIComponent(next)}`);
+  }
+
+  if (confirmEmailSent) {
+    return (
+      <div className="mx-auto max-w-md py-16">
+        <h1 className="text-2xl font-bold">Check your email</h1>
+        <p className="mt-3 text-sm text-gray-600">
+          We've sent a confirmation link to <strong>{email}</strong>. Click it to
+          activate your account, then log in below.
+        </p>
+        <Link
+          href={`/login?next=${encodeURIComponent(next)}`}
+          className="mt-6 inline-block rounded-lg bg-brand-navy px-4 py-2 font-semibold text-white hover:bg-brand-navyLight"
+        >
+          Go to login
+        </Link>
+      </div>
+    );
   }
 
   return (

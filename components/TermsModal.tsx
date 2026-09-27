@@ -91,7 +91,12 @@ export default function TermsModal({ open, onAgree, onClose }: TermsModalProps) 
               type="button"
               onClick={onAgree}
               disabled={!readToBottom}
-              className="btn-accent rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
+              // Hardcoded brand-navy rather than the shared .btn-accent
+              // class: this modal is used on pages like /signup that
+              // aren't wrapped in a .theme-club2coach/.theme-coach2mentor
+              // class, so .btn-accent's var(--accent-dark) is undefined
+              // there and the button renders invisible.
+              className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:bg-brand-navyLight disabled:opacity-50"
             >
               I agree
             </button>
