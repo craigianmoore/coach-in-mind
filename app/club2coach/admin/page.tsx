@@ -430,6 +430,32 @@ function Club2CoachAdmin() {
     await loadAll();
   }
 
+  // Permanent delete — only ever offered on an already soft-deleted
+  // entry (see the "(deleted)" branch below), as a second, separate
+  // confirmation. Unlike deleteListing above, this cannot be undone:
+  // the row itself is gone. Any club2coach_shares referencing it are
+  // cascade-deleted with it; the payments ledger row (if any) is left
+  // in place but its listing_id will no longer resolve.
+  async function permanentlyDeleteListing(
+    table: "club2coach_coach_listings" | "club2coach_club_vacancies",
+    id: string
+  ) {
+    if (
+      !window.confirm(
+        "Permanently delete this listing? This cannot be undone — the entry and its match history will be gone for good. (Any payment record stays in the payments ledger.)"
+      )
+    ) {
+      return;
+    }
+    supabase.rpc("refresh_admin_session");
+    const { error } = await supabase.from(table).delete().eq("id", id);
+    if (error) {
+      window.alert(`Couldn't permanently delete: ${error.message}`);
+      return;
+    }
+    await loadAll();
+  }
+
   async function addAdminPin(e: React.FormEvent) {
     e.preventDefault();
     setStatus(null);
@@ -1182,12 +1208,20 @@ function Club2CoachAdmin() {
                     </p>
                   </div>
                   {l.deleted_at ? (
-                    <button
-                      onClick={() => restoreListing("club2coach_coach_listings", l.id)}
-                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
-                    >
-                      Restore
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => restoreListing("club2coach_coach_listings", l.id)}
+                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                      >
+                        Restore
+                      </button>
+                      <button
+                        onClick={() => permanentlyDeleteListing("club2coach_coach_listings", l.id)}
+                        className="rounded-lg border border-red-600 bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700"
+                      >
+                        Delete permanently
+                      </button>
+                    </div>
                   ) : (
                     <button
                       onClick={() => deleteListing("club2coach_coach_listings", l.id)}
@@ -1222,12 +1256,20 @@ function Club2CoachAdmin() {
                     </p>
                   </div>
                   {v.deleted_at ? (
-                    <button
-                      onClick={() => restoreListing("club2coach_club_vacancies", v.id)}
-                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
-                    >
-                      Restore
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => restoreListing("club2coach_club_vacancies", v.id)}
+                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                      >
+                        Restore
+                      </button>
+                      <button
+                        onClick={() => permanentlyDeleteListing("club2coach_club_vacancies", v.id)}
+                        className="rounded-lg border border-red-600 bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700"
+                      >
+                        Delete permanently
+                      </button>
+                    </div>
                   ) : (
                     <button
                       onClick={() => deleteListing("club2coach_club_vacancies", v.id)}

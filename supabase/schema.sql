@@ -435,6 +435,14 @@ create policy "owner or admin can update coach listing"
     or person_id = my_person_id()
   );
 
+-- Permanent (hard) delete is admin-only — the owner-facing "delete"
+-- action only ever soft-deletes via deleted_at above. This is for the
+-- admin's own "permanently delete" action on an already soft-deleted
+-- entry.
+create policy "admin can permanently delete coach listing"
+  on club2coach_coach_listings for delete
+  using (is_admin_caller());
+
 -- ---------------------------------------------------------
 -- CLUBS — a lightweight directory of clubs, linked from vacancies so
 -- the same club's open-vacancy count can be queried without scanning
@@ -524,6 +532,10 @@ create policy "owner or admin can update vacancy"
     is_admin_caller()
     or person_id = my_person_id()
   );
+
+create policy "admin can permanently delete vacancy"
+  on club2coach_club_vacancies for delete
+  using (is_admin_caller());
 
 -- ---------------------------------------------------------
 -- CLUB2COACH: admin-confirmed shares
@@ -636,6 +648,10 @@ create policy "owner or admin can update coach2mentor coach listing"
     or person_id = my_person_id()
   );
 
+create policy "admin can permanently delete coach2mentor coach listing"
+  on coach2mentor_coach_listings for delete
+  using (is_admin_caller());
+
 -- ---------------------------------------------------------
 -- COACH2MENTOR: mentor listings — the browsable side
 -- ---------------------------------------------------------
@@ -719,6 +735,10 @@ create policy "owner or admin can update mentor listing"
     is_admin_caller()
     or person_id = my_person_id()
   );
+
+create policy "admin can permanently delete mentor listing"
+  on coach2mentor_mentor_listings for delete
+  using (is_admin_caller());
 
 -- ---------------------------------------------------------
 -- COACH2MENTOR: requests (coach -> specific mentor)

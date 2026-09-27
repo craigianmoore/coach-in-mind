@@ -192,6 +192,32 @@ function Coach2MentorAdmin() {
     await loadAll();
   }
 
+  // Permanent delete — only ever offered on an already soft-deleted
+  // entry (see the "(deleted)" branch below), as a second, separate
+  // confirmation. Unlike deleteListing above, this cannot be undone:
+  // the row itself is gone. Any coach2mentor_requests referencing it
+  // are cascade-deleted with it; the payments ledger row (if any) is
+  // left in place but its listing_id will no longer resolve.
+  async function permanentlyDeleteListing(
+    table: "coach2mentor_coach_listings" | "coach2mentor_mentor_listings",
+    id: string
+  ) {
+    if (
+      !window.confirm(
+        "Permanently delete this listing? This cannot be undone — the entry and its match history will be gone for good. (Any payment record stays in the payments ledger.)"
+      )
+    ) {
+      return;
+    }
+    supabase.rpc("refresh_admin_session");
+    const { error } = await supabase.from(table).delete().eq("id", id);
+    if (error) {
+      window.alert(`Couldn't permanently delete: ${error.message}`);
+      return;
+    }
+    await loadAll();
+  }
+
   // How many of a coach's paid intro slots are already spoken for —
   // declined ones don't count against their quota, everything else does.
   function coachUsedSlots(coachId: string) {
@@ -808,12 +834,20 @@ function Coach2MentorAdmin() {
                     <p className="text-xs text-gray-500">{l.paid ? "Paid" : "Unpaid"} · {l.status}</p>
                   </div>
                   {l.deleted_at ? (
-                    <button
-                      onClick={() => restoreListing("coach2mentor_coach_listings", l.id)}
-                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
-                    >
-                      Restore
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => restoreListing("coach2mentor_coach_listings", l.id)}
+                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                      >
+                        Restore
+                      </button>
+                      <button
+                        onClick={() => permanentlyDeleteListing("coach2mentor_coach_listings", l.id)}
+                        className="rounded-lg border border-red-600 bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700"
+                      >
+                        Delete permanently
+                      </button>
+                    </div>
                   ) : (
                     <button
                       onClick={() => deleteListing("coach2mentor_coach_listings", l.id)}
@@ -848,12 +882,20 @@ function Coach2MentorAdmin() {
                     </p>
                   </div>
                   {m.deleted_at ? (
-                    <button
-                      onClick={() => restoreListing("coach2mentor_mentor_listings", m.id)}
-                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
-                    >
-                      Restore
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => restoreListing("coach2mentor_mentor_listings", m.id)}
+                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                      >
+                        Restore
+                      </button>
+                      <button
+                        onClick={() => permanentlyDeleteListing("coach2mentor_mentor_listings", m.id)}
+                        className="rounded-lg border border-red-600 bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700"
+                      >
+                        Delete permanently
+                      </button>
+                    </div>
                   ) : (
                     <button
                       onClick={() => deleteListing("coach2mentor_mentor_listings", m.id)}
