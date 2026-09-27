@@ -296,6 +296,53 @@ as $$
   select id, label, created_at, is_master from admin_pins order by is_master desc, created_at asc;
 $$;
 
+-- Permanently deletes a person's shared identity record — cascades to
+-- every listing/vacancy they hold on either product (club2coach_*,
+-- coach2mentor_*), their shares/requests, and any coach_credit_requests
+-- (all FK'd "on delete cascade"); support_queries are kept but their
+-- person_id is nulled out. Their auth.users login is untouched — this
+-- only removes the `people` profile row, not the ability to sign in —
+-- so if they ever log back in, RequireProfile sends them to /profile
+-- to start a fresh one, same as any brand-new signup.
+--
+-- Refuses outright if the person has ANY payments ledger row, either
+-- as the payer or as the admin who marked someone else's payment paid
+-- (marked_by_person_id) — payments.person_id cascades on delete same
+-- as everything else, and letting that happen would silently erase
+-- real payment history, which every other delete path in this app
+-- (soft-delete-first for listings) is deliberately built to avoid.
+-- Use the Listings tab's own delete controls for a person who has
+-- ever actually paid; this function is for cleaning up bare/junk
+-- signups and unpaid listings only.
+--
+-- Master-only, like the other irreversible/platform-wide admin
+-- actions (admin PIN management, the Stripe payments switch).
+create or replace function admin_delete_person(target_person_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  has_payment_history boolean;
+begin
+  if not is_master_caller() then
+    raise exception 'Only a master PIN can delete a person.';
+  end if;
+
+  select exists(
+    select 1 from payments
+    where person_id = target_person_id or marked_by_person_id = target_person_id
+  ) into has_payment_history;
+
+  if has_payment_history then
+    raise exception 'Cannot delete: this person has payment history. Delete their paid listing(s) individually instead - that keeps the payments ledger intact.';
+  end if;
+
+  delete from people where id = target_person_id;
+end;
+$$;
+
 create or replace function add_admin_pin(new_pin text, new_label text default null)
 returns void
 language plpgsql

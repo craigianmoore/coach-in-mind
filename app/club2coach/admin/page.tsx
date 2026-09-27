@@ -189,6 +189,9 @@ function Club2CoachAdmin() {
       loadAdminPins();
       loadIsMasterSession();
     }
+    // People tab's per-row Delete button is master-only too, so it
+    // needs the same check.
+    if (tab === "people") loadIsMasterSession();
     if (tab === "matches" && weights) runAutoMatchSweep();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
@@ -481,6 +484,30 @@ function Club2CoachAdmin() {
       window.alert(`Couldn't permanently delete: ${error.message}`);
       return;
     }
+    await loadAll();
+  }
+
+  // Permanently deletes a person's whole shared profile — every listing
+  // they hold on either product goes with them. Master-only (same tier
+  // as PIN management and the Stripe switch) and refused server-side
+  // (admin_delete_person) if they have any payment history, so this is
+  // really for cleaning up bare/junk signups and unpaid listings, not
+  // an alternative to the Listings tab's own delete controls.
+  async function deletePerson(personId: string, name: string) {
+    if (
+      !window.confirm(
+        `Permanently delete ${name}? This removes their profile and every listing they hold on Club2Coach and Coach2Mentor. This cannot be undone. (Refused automatically if they have any payment history.)`
+      )
+    ) {
+      return;
+    }
+    supabase.rpc("refresh_admin_session");
+    const { error } = await supabase.rpc("admin_delete_person", { target_person_id: personId });
+    if (error) {
+      window.alert(`Couldn't delete: ${error.message}`);
+      return;
+    }
+    if (expandedPersonId === personId) setExpandedPersonId(null);
     await loadAll();
   }
 
@@ -1621,34 +1648,45 @@ function Club2CoachAdmin() {
               c2mMentorListings.some((m) => m.person_id === p.id);
             return (
               <div key={p.id} className="rounded-lg border bg-white">
-                <button
-                  type="button"
-                  onClick={() => setExpandedPersonId(isExpanded ? null : p.id)}
-                  disabled={!hasAnyListing}
-                  className="flex w-full items-center justify-between p-3 text-left disabled:cursor-default"
-                >
-                  <div>
-                    <p className="text-sm font-medium">
-                      {p.full_name}
-                      {isNew && (
-                        <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                          New
-                        </span>
+                <div className="flex w-full items-center justify-between p-3">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedPersonId(isExpanded ? null : p.id)}
+                    disabled={!hasAnyListing}
+                    className="flex flex-1 items-center justify-between text-left disabled:cursor-default"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">
+                        {p.full_name}
+                        {isNew && (
+                          <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                            New
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {p.email} · {p.mobile} · {p.region ?? "No region set"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <p className="text-xs text-gray-400">
+                        Joined {new Date(p.created_at).toLocaleDateString("en-GB")}
+                      </p>
+                      {hasAnyListing && (
+                        <span className="text-xs font-semibold text-gray-400">{isExpanded ? "▲" : "▼"}</span>
                       )}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {p.email} · {p.mobile} · {p.region ?? "No region set"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <p className="text-xs text-gray-400">
-                      Joined {new Date(p.created_at).toLocaleDateString("en-GB")}
-                    </p>
-                    {hasAnyListing && (
-                      <span className="text-xs font-semibold text-gray-400">{isExpanded ? "▲" : "▼"}</span>
-                    )}
-                  </div>
-                </button>
+                    </div>
+                  </button>
+                  {isMasterSession && (
+                    <button
+                      type="button"
+                      onClick={() => deletePerson(p.id, p.full_name)}
+                      className="ml-3 shrink-0 rounded-lg border border-red-200 px-2 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
 
                 {isExpanded && activity && (
                   <div className="border-t bg-gray-50 p-3">
