@@ -220,7 +220,7 @@ export default function HomePage() {
           <CoachInMindLogo size={44} />
           <span className="text-sm font-bold tracking-wide">COACH IN MIND</span>
         </div>
-        <p className="text-sm text-white/50">
+        <p className="text-base font-semibold text-brand-gold">
           Matching coaches and clubs across Australia.
         </p>
         <p className="text-xs text-white/50">© 2026 Coach In Mind</p>
