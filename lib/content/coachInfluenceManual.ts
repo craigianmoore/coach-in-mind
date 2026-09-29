@@ -21,6 +21,11 @@ export type ManualSection = {
   footnote?: { text: string };
 };
 
+// Each section's icon badge, pulled straight from the original PDF
+// (public/manual-icons/<id>.png) so the jump-to-topic buttons and
+// section headings carry the same symbols as the source document.
+export const SECTION_ICON_PATH = (id: string) => `/manual-icons/${id}.png`;
+
 export const CALM_STEPS = [
   {
     step: "Clarify",

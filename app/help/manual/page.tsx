@@ -1,8 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   CALM_STEPS,
   MANUAL_SECTIONS,
   QUICK_REFERENCE_CHECKLIST,
+  SECTION_ICON_PATH,
 } from "@/lib/content/coachInfluenceManual";
 
 export const metadata = {
@@ -43,14 +45,21 @@ export default function ManualPage() {
             <a
               key={section.id}
               href={`#${section.id}`}
-              className="rounded-full border border-brand-gold/40 bg-brand-goldLight/20 px-3 py-1.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold hover:text-white"
+              className="flex items-center gap-2 rounded-full border border-brand-gold/40 bg-brand-goldLight/20 py-1.5 pl-1.5 pr-3.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold hover:text-white"
             >
+              <Image
+                src={SECTION_ICON_PATH(section.id)}
+                alt=""
+                width={24}
+                height={24}
+                className="h-6 w-6 flex-shrink-0"
+              />
               {section.number}. {section.title}
             </a>
           ))}
           <a
             href="#quick-reference"
-            className="rounded-full border border-brand-silver/40 bg-brand-silverLight/30 px-3 py-1.5 text-sm font-medium text-brand-navy transition hover:bg-brand-silver hover:text-white"
+            className="flex items-center gap-2 rounded-full border border-brand-silver/40 bg-brand-silverLight/30 py-1.5 pl-3.5 pr-3.5 text-sm font-medium text-brand-navy transition hover:bg-brand-silver hover:text-white"
           >
             Quick reference checklist
           </a>
@@ -104,7 +113,14 @@ export default function ManualPage() {
             id={section.id}
             className="scroll-mt-6 rounded-xl border bg-white p-6"
           >
-            <h2 className="text-xl font-bold text-brand-navy">
+            <h2 className="flex items-center gap-3 text-xl font-bold text-brand-navy">
+              <Image
+                src={SECTION_ICON_PATH(section.id)}
+                alt=""
+                width={40}
+                height={40}
+                className="h-10 w-10 flex-shrink-0"
+              />
               {section.number}. {section.title}
             </h2>
             <p className="mt-2 text-sm text-gray-600">{section.intro}</p>
