@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import RequireProfile from "@/components/RequireProfile";
+import EmptyState from "@/components/EmptyState";
 import CheckboxGroup from "@/components/CheckboxGroup";
 import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
@@ -864,10 +865,9 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
             )}
           </div>
           {requests.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-500">
-              No introductions yet — Coach In Mind reviews coaches looking for a mentor and will
-              put suitable matches in front of you here once your profile's live.
-            </p>
+            <div className="mt-3">
+              <EmptyState message="No introductions yet — Coach In Mind reviews coaches looking for a mentor and will put suitable matches in front of you here once your profile's live." />
+            </div>
           ) : (
             <div className="mt-4 flex flex-col gap-2">
               {requests.map((r) => (

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import RequireProfile from "@/components/RequireProfile";
+import EmptyState from "@/components/EmptyState";
 import CheckboxGroup from "@/components/CheckboxGroup";
 import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
@@ -419,9 +420,9 @@ function Club2CoachClubForm({ person }: { person: Person }) {
         )}
 
         {vacancies.length === 0 ? (
-          <p className="mt-6 text-sm text-gray-500">
-            No vacancies advertised yet. Click "Advertise a Vacancy" to add your first one.
-          </p>
+          <div className="mt-6">
+            <EmptyState message='No vacancies advertised yet — click "Advertise a Vacancy" to add your first one.' />
+          </div>
         ) : (
           <div className="mt-6 flex flex-col gap-3">
             {vacancies.map((v) => {
