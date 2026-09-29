@@ -5,7 +5,7 @@ export default function HomePage() {
   return (
     <div className="bg-white">
       {/* HERO */}
-      <div className="bg-brand-navy pb-24 pt-12 text-white sm:pt-14">
+      <div className="bg-navy-gradient pb-24 pt-12 text-white shadow-lg sm:pt-14">
         <div className="mx-auto flex max-w-4xl flex-col items-center gap-5 px-4 text-center">
           <CoachInMindLogo size={130} />
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-goldLight">
@@ -165,7 +165,7 @@ export default function HomePage() {
         </h2>
 
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <div className="flex flex-col gap-3 rounded-2xl bg-brand-navy p-8 text-left">
+          <div className="flex flex-col gap-3 rounded-2xl bg-navy-gradient p-8 text-left shadow-lg transition hover:-translate-y-1 hover:shadow-xl">
             <h3 className="text-xl font-bold text-white">Clubs ↔ Coaches</h3>
             <span className="text-xs font-bold uppercase tracking-wider text-brand-goldLight underline decoration-brand-goldLight/70 underline-offset-4">
               Club2Coach
@@ -183,7 +183,7 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="flex flex-col gap-3 rounded-2xl bg-brand-navy p-8 text-left">
+          <div className="flex flex-col gap-3 rounded-2xl bg-navy-gradient p-8 text-left shadow-lg transition hover:-translate-y-1 hover:shadow-xl">
             <h3 className="text-xl font-bold text-white">Coaches ↔ Mentors</h3>
             <span className="text-xs font-bold uppercase tracking-wider text-brand-silverLight underline decoration-brand-silverLight/70 underline-offset-4">
               Coach2Mentor

@@ -14,7 +14,7 @@
   --accent: #D4AF6A;
   --accent-dark: #B8935A;
   --accent-contrast: #191B41;
-  --header-bg: #D4AF6A;
+  --header-bg: linear-gradient(135deg, #E6C083 0%, #D4AF6A 55%, #B8935A 100%);
   --header-text: #191B41;
   background-color: #F7EFDD;
   min-height: 100vh;
@@ -28,7 +28,7 @@
   --accent: #E8791A;
   --accent-dark: #B85A0C;
   --accent-contrast: #ffffff;
-  --header-bg: #191B41;
+  --header-bg: linear-gradient(135deg, #2A2D6B 0%, #191B41 60%, #0F1029 100%);
   --header-text: #ffffff;
   background-color: #D5D9E0;
   min-height: 100vh;
@@ -36,6 +36,36 @@
 
 body {
   @apply bg-gray-50 text-gray-900;
+}
+
+/* Sitewide heading typeface — loaded once in app/layout.tsx via
+   next/font/google and exposed as --font-display, so every h1-h3
+   picks it up automatically without touching individual pages. */
+h1, h2, h3 {
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+/* Navy gradient — replaces flat bg-brand-navy on hero/feature blocks
+   for a bit more depth, while keeping the same base colour. */
+.bg-navy-gradient {
+  background: linear-gradient(135deg, #2A2D6B 0%, #191B41 60%, #12143A 100%);
+}
+
+/* Subtle lift on hover for the rounded-white-card language used across
+   admin dashboards, the manual page, etc. — targets the existing
+   Tailwind utility combination directly so it applies everywhere that
+   pattern is already used, with no per-page markup changes. */
+@media (hover: hover) {
+  .rounded-xl.border.bg-white,
+  .rounded-lg.border.bg-white {
+    transition: box-shadow 150ms ease, transform 150ms ease;
+  }
+  .rounded-xl.border.bg-white:hover,
+  .rounded-lg.border.bg-white:hover {
+    box-shadow: 0 6px 18px -6px rgba(25, 27, 65, 0.16);
+    transform: translateY(-1px);
+  }
 }
 
 .btn-accent {
