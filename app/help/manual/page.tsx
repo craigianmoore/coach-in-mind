@@ -45,21 +45,21 @@ export default function ManualPage() {
             <a
               key={section.id}
               href={`#${section.id}`}
-              className="flex items-center gap-2 rounded-full border border-brand-gold/40 bg-brand-goldLight/20 py-1.5 pl-1.5 pr-3.5 text-sm font-medium text-brand-navy transition hover:bg-brand-gold hover:text-white"
+              className="flex h-9 items-center gap-2 rounded-full border border-brand-gold/40 bg-brand-goldLight/20 pr-3.5 text-xs font-medium text-brand-navy transition hover:bg-brand-gold hover:text-white"
             >
               <Image
                 src={SECTION_ICON_PATH(section.id)}
                 alt=""
-                width={24}
-                height={24}
-                className="h-6 w-6 flex-shrink-0"
+                width={34}
+                height={34}
+                className="h-[34px] w-[34px] flex-shrink-0"
               />
               {section.number}. {section.title}
             </a>
           ))}
           <a
             href="#quick-reference"
-            className="flex items-center gap-2 rounded-full border border-brand-silver/40 bg-brand-silverLight/30 py-1.5 pl-3.5 pr-3.5 text-sm font-medium text-brand-navy transition hover:bg-brand-silver hover:text-white"
+            className="flex h-9 items-center rounded-full border border-brand-silver/40 bg-brand-silverLight/30 px-4 text-xs font-medium text-brand-navy transition hover:bg-brand-silver hover:text-white"
           >
             Quick reference checklist
           </a>
