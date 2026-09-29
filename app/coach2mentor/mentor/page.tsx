@@ -8,6 +8,7 @@ import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
 import PayWithCardButton from "@/components/PayWithCardButton";
+import { useStripePaymentsEnabled } from "@/lib/useStripePaymentsEnabled";
 import {
   GENDER_OPTIONS,
   AVAILABILITY_OPTIONS,
@@ -29,6 +30,10 @@ interface RequestWithCoachName extends Coach2MentorRequest {
 
 function Coach2MentorMentorForm({ person }: { person: Person }) {
   const supabase = createClient();
+  // While card payments are administratively off (trial mode, see the
+  // Admins tab), package selection is capped to 1 mentee so Moorey can
+  // control volume during the trial.
+  const stripeEnabled = useStripePaymentsEnabled();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +77,10 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!stripeEnabled) setSelectedCapacity(1);
+  }, [stripeEnabled]);
 
   function resetForm() {
     setExisting(null);
@@ -350,31 +359,40 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
             How many mentees can you take on?
           </p>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {Object.entries(COACH2MENTOR_MENTOR_CAPACITY_PACKAGES).map(([count, price]) => (
-              <label
-                key={count}
-                className={`cursor-pointer rounded-lg border-2 p-3 text-center ${
-                  selectedCapacity === Number(count) ? "border-brand-navy bg-brand-navy/5" : "border-gray-200"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="capacity"
-                  className="sr-only"
-                  checked={selectedCapacity === Number(count)}
-                  onChange={() => setSelectedCapacity(Number(count))}
-                />
-                <p className="font-semibold">
-                  {count} mentee{count === "1" ? "" : "s"}
-                </p>
-                <p className="text-sm text-gray-500">${price} AUD</p>
-              </label>
-            ))}
+            {Object.entries(COACH2MENTOR_MENTOR_CAPACITY_PACKAGES)
+              .filter(([count]) => stripeEnabled || Number(count) === 1)
+              .map(([count, price]) => (
+                <label
+                  key={count}
+                  className={`cursor-pointer rounded-lg border-2 p-3 text-center ${
+                    selectedCapacity === Number(count) ? "border-brand-navy bg-brand-navy/5" : "border-gray-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="capacity"
+                    className="sr-only"
+                    checked={selectedCapacity === Number(count)}
+                    onChange={() => setSelectedCapacity(Number(count))}
+                  />
+                  <p className="font-semibold">
+                    {count} mentee{count === "1" ? "" : "s"}
+                  </p>
+                  <p className="text-sm text-gray-500">${price} AUD</p>
+                </label>
+              ))}
           </div>
-          <p className="mt-2 text-xs text-gray-500">
-            More capacity costs more upfront, but most mentors recoup it within a session or two
-            at their own rate.
-          </p>
+          {!stripeEnabled ? (
+            <p className="mt-2 text-xs text-gray-500">
+              Coach In Mind is running a trial at the moment, so capacity is capped at 1 mentee —
+              larger capacity returns once full pricing is live.
+            </p>
+          ) : (
+            <p className="mt-2 text-xs text-gray-500">
+              More capacity costs more upfront, but most mentors recoup it within a session or two
+              at their own rate.
+            </p>
+          )}
         </div>
       )}
 

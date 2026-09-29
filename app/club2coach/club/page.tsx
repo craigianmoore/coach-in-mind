@@ -8,6 +8,7 @@ import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
 import PayWithCardButton from "@/components/PayWithCardButton";
+import { useStripePaymentsEnabled } from "@/lib/useStripePaymentsEnabled";
 import {
   COACHING_ROLES,
   ABILITY_LEVELS,
@@ -161,6 +162,10 @@ function statusBadge(v: Club2CoachClubVacancy) {
 
 function Club2CoachClubForm({ person }: { person: Person }) {
   const supabase = createClient();
+  // While card payments are administratively off (trial mode, see the
+  // Admins tab), package selection is capped to 1 introduction so
+  // Moorey can control volume during the trial.
+  const stripeEnabled = useStripePaymentsEnabled();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -184,6 +189,10 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     loadClubs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!stripeEnabled) setSelectedVacancyPackage(1);
+  }, [stripeEnabled]);
 
   async function loadClubs() {
     const { data } = await supabase.from("clubs").select("*").order("name", { ascending: true });
@@ -538,28 +547,30 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             How many coach introductions do you want?
           </p>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
-            {Object.entries(CLUB2COACH_CLUB_PACKAGES).map(([count, price]) => (
-              <label
-                key={count}
-                className={`cursor-pointer rounded-lg border-2 p-3 text-center ${
-                  selectedVacancyPackage === Number(count)
-                    ? "border-brand-navy bg-brand-navy/5"
-                    : "border-gray-200"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="vacancy-package"
-                  className="sr-only"
-                  checked={selectedVacancyPackage === Number(count)}
-                  onChange={() => setSelectedVacancyPackage(Number(count))}
-                />
-                <p className="font-semibold">
-                  {count} intro{count === "1" ? "" : "s"}
-                </p>
-                <p className="text-sm text-gray-500">${price} AUD</p>
-              </label>
-            ))}
+            {Object.entries(CLUB2COACH_CLUB_PACKAGES)
+              .filter(([count]) => stripeEnabled || Number(count) === 1)
+              .map(([count, price]) => (
+                <label
+                  key={count}
+                  className={`cursor-pointer rounded-lg border-2 p-3 text-center ${
+                    selectedVacancyPackage === Number(count)
+                      ? "border-brand-navy bg-brand-navy/5"
+                      : "border-gray-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="vacancy-package"
+                    className="sr-only"
+                    checked={selectedVacancyPackage === Number(count)}
+                    onChange={() => setSelectedVacancyPackage(Number(count))}
+                  />
+                  <p className="font-semibold">
+                    {count} intro{count === "1" ? "" : "s"}
+                  </p>
+                  <p className="text-sm text-gray-500">${price} AUD</p>
+                </label>
+              ))}
           </div>
           {existing ? (
             <div className="mt-3">
@@ -570,6 +581,11 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 mode="new"
               />
             </div>
+          ) : !stripeEnabled ? (
+            <p className="mt-2 text-xs text-gray-500">
+              Coach In Mind is running a trial at the moment, so vacancies are capped at 1
+              introduction each — larger packages return once full pricing is live.
+            </p>
           ) : (
             <p className="mt-2 text-xs text-gray-500">
               We'll match you with your top-scoring coaches, up to this many, based on your

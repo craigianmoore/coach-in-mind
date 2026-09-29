@@ -7,6 +7,7 @@ import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
 import PayWithCardButton from "@/components/PayWithCardButton";
+import { useStripePaymentsEnabled } from "@/lib/useStripePaymentsEnabled";
 import {
   GENDER_OPTIONS,
   AVAILABILITY_OPTIONS,
@@ -38,6 +39,10 @@ const WEIGHT_LABELS: Record<keyof Coach2MentorWeights, string> = {
 
 function Coach2MentorCoachForm({ person }: { person: Person }) {
   const supabase = createClient();
+  // While card payments are administratively off (trial mode, see the
+  // Admins tab), package selection is capped to 1 introduction so
+  // Moorey can control volume during the trial.
+  const stripeEnabled = useStripePaymentsEnabled();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +84,13 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!stripeEnabled) {
+      setSelectedPackage(1);
+      setTopupPackage(1);
+    }
+  }, [stripeEnabled]);
 
   function resetForm() {
     setExisting(null);
@@ -347,6 +359,11 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
               {existing.topup_requested === 1 ? "" : "s"}) — Coach In Mind will be in touch about
               payment.
             </p>
+          ) : !stripeEnabled ? (
+            <p className="mt-2 text-sm text-blue-800">
+              Top-ups aren't available during the current trial period — get in touch with Coach
+              In Mind if you'd like another introduction.
+            </p>
           ) : (
             <>
               <p className="mt-1 text-sm text-blue-800">
@@ -402,27 +419,35 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
             How many mentor introductions do you want?
           </p>
           <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-            {Object.entries(CLUB2COACH_COACH_PACKAGES).map(([count, price]) => (
-              <label
-                key={count}
-                className={`flex-1 cursor-pointer rounded-lg border-2 p-3 text-center ${
-                  selectedPackage === Number(count) ? "border-brand-navy bg-brand-navy/5" : "border-gray-200"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="package"
-                  className="sr-only"
-                  checked={selectedPackage === Number(count)}
-                  onChange={() => setSelectedPackage(Number(count))}
-                />
-                <p className="font-semibold">
-                  {count} introduction{count === "1" ? "" : "s"}
-                </p>
-                <p className="text-sm text-gray-500">${price} AUD</p>
-              </label>
-            ))}
+            {Object.entries(CLUB2COACH_COACH_PACKAGES)
+              .filter(([count]) => stripeEnabled || Number(count) === 1)
+              .map(([count, price]) => (
+                <label
+                  key={count}
+                  className={`flex-1 cursor-pointer rounded-lg border-2 p-3 text-center ${
+                    selectedPackage === Number(count) ? "border-brand-navy bg-brand-navy/5" : "border-gray-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="package"
+                    className="sr-only"
+                    checked={selectedPackage === Number(count)}
+                    onChange={() => setSelectedPackage(Number(count))}
+                  />
+                  <p className="font-semibold">
+                    {count} introduction{count === "1" ? "" : "s"}
+                  </p>
+                  <p className="text-sm text-gray-500">${price} AUD</p>
+                </label>
+              ))}
           </div>
+          {!stripeEnabled && (
+            <p className="mt-2 text-xs text-gray-500">
+              Coach In Mind is running a trial at the moment, so signups are capped at 1
+              introduction each — larger packages return once full pricing is live.
+            </p>
+          )}
         </div>
       )}
 
