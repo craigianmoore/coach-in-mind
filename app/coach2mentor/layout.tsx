@@ -10,20 +10,28 @@ export default function Coach2MentorLayout({ children }: { children: React.React
             <h1 className="text-3xl font-bold" style={{ color: "var(--header-text)" }}>
               Coach <span style={{ color: "var(--accent)" }}>2</span> Mentor
             </h1>
-            <p className="text-sm text-white/70">Coach mentoring matching</p>
-            <nav className="mt-3 flex gap-4 text-sm font-medium text-white/90">
-              <Link href="/coach2mentor/coach" className="hover:underline">
+            <p className="text-sm font-medium tracking-wide text-white/70">
+              Coach &amp; Mentor Matching
+            </p>
+            <nav className="mt-4 flex gap-3 text-sm font-semibold text-white/90">
+              <Link
+                href="/coach2mentor/coach"
+                className="rounded-full bg-white/10 px-4 py-2 transition hover:bg-white/20"
+              >
                 Find a Mentor
               </Link>
-              <Link href="/coach2mentor/mentor" className="hover:underline">
+              <Link
+                href="/coach2mentor/mentor"
+                className="rounded-full bg-white/10 px-4 py-2 transition hover:bg-white/20"
+              >
                 Become a Mentor
-              </Link>
-              <Link href="/coach2mentor/admin" className="hover:underline">
-                Admin
               </Link>
             </nav>
           </div>
-          <CoachInMindLogo />
+          {/* Doubles as the admin entry point — deliberately unlabelled */}
+          <Link href="/coach2mentor/admin">
+            <CoachInMindLogo />
+          </Link>
         </div>
       </header>
 

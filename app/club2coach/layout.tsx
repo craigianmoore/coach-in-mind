@@ -10,22 +10,28 @@ export default function Club2CoachLayout({ children }: { children: React.ReactNo
             <h1 className="text-3xl font-bold" style={{ color: "var(--header-text)" }}>
               Club <span className="text-white">2</span> Coach
             </h1>
-            <p className="text-sm" style={{ color: "var(--header-text)" }}>
-              Coach placement matching
+            <p className="text-sm font-medium tracking-wide" style={{ color: "var(--header-text)" }}>
+              Club &amp; Coach Matching
             </p>
-            <nav className="mt-3 flex gap-4 text-sm font-medium" style={{ color: "var(--header-text)" }}>
-              <Link href="/club2coach/coach" className="hover:underline">
-                Find a Role
+            <nav className="mt-4 flex gap-3 text-sm font-semibold" style={{ color: "var(--header-text)" }}>
+              <Link
+                href="/club2coach/coach"
+                className="rounded-full bg-black/10 px-4 py-2 transition hover:bg-black/20"
+              >
+                Find a Coaching Role
               </Link>
-              <Link href="/club2coach/club" className="hover:underline">
-                Advertise a Vacancy
-              </Link>
-              <Link href="/club2coach/admin" className="hover:underline">
-                Admin
+              <Link
+                href="/club2coach/club"
+                className="rounded-full bg-black/10 px-4 py-2 transition hover:bg-black/20"
+              >
+                Advertise a Coaching Vacancy
               </Link>
             </nav>
           </div>
-          <CoachInMindLogo />
+          {/* Doubles as the admin entry point — deliberately unlabelled */}
+          <Link href="/club2coach/admin">
+            <CoachInMindLogo />
+          </Link>
         </div>
       </header>
 
