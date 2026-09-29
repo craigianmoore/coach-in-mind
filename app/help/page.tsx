@@ -31,17 +31,21 @@ export default function HelpPage() {
         <section className="rounded-xl border border-brand-gold/40 bg-brand-goldLight/20 p-6">
           <h2 className="font-semibold text-brand-navy">Resources</h2>
           <p className="mt-1 text-sm text-gray-600">
+            <Link href="/help/manual" className="font-medium text-brand-navy underline">
+              Navigating Difficult Conversations &amp; Scenarios
+            </Link>{" "}
+            — a practical guide covering parents, players, committees, sponsors, other coaches,
+            new coaches, female coaches, goalkeeping coaches, weather calls, officials, club
+            expectations, and keeping a healthy balance. Browse it by topic, or{" "}
             <a
               href="/coach-influence-manual.pdf"
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-brand-navy underline"
             >
-              Navigating Difficult Conversations &amp; Scenarios
-            </a>{" "}
-            — a practical guide covering parents, players, committees, sponsors, other coaches,
-            new coaches, female coaches, goalkeeping coaches, weather calls, officials, club
-            expectations, and keeping a healthy balance.
+              download the PDF
+            </a>
+            .
           </p>
           <p className="mt-3 text-sm text-gray-600">
             <a
