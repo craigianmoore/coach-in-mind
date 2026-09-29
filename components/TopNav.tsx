@@ -38,6 +38,9 @@ export default function TopNav() {
           </a>
           {!isLandingPage && (
             <>
+              <Link href="/" className="hover:text-brand-goldLight">
+                Home
+              </Link>
               <Link href="/club2coach" className="hover:text-brand-goldLight">
                 Club 2 Coach
               </Link>
