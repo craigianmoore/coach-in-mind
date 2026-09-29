@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import PinGate from "@/components/PinGate";
+import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
 import { scoreCoach2MentorMatch } from "@/lib/scoring";
 import { getEmbedUrl } from "@/lib/videoEmbed";
@@ -459,7 +460,7 @@ function Coach2MentorAdmin() {
           <div>
             <h2 className="font-semibold">Coach profiles awaiting payment</h2>
             {unpaidCoaches.length === 0 ? (
-              <p className="mt-2 text-sm text-gray-500">None right now.</p>
+              <EmptyState message="No coach profiles awaiting payment right now." />
             ) : (
               <div className="mt-2 flex flex-col gap-2">
                 {unpaidCoaches.map((l) => (
@@ -518,7 +519,7 @@ function Coach2MentorAdmin() {
           <div>
             <h2 className="font-semibold">Mentor profiles awaiting payment</h2>
             {unpaidMentors.length === 0 ? (
-              <p className="mt-2 text-sm text-gray-500">None right now.</p>
+              <EmptyState message="No mentor profiles awaiting payment right now." />
             ) : (
               <div className="mt-2 flex flex-col gap-2">
                 {unpaidMentors.map((l) => (
@@ -632,7 +633,7 @@ function Coach2MentorAdmin() {
           </label>
 
           {coachGroups.length === 0 ? (
-            <p className="text-sm text-gray-500">No active, paid coach profiles yet — nothing to match.</p>
+            <EmptyState message="No active, paid coach profiles yet — nothing to match." />
           ) : (
             <div className="flex flex-col gap-4">
               {coachGroups.map(({ coach, suggestedCount, entitled, remaining, existingCandidates }) => (
@@ -789,9 +790,9 @@ function Coach2MentorAdmin() {
             />
           </div>
           {filteredRequests.length === 0 ? (
-            <p className="text-sm text-gray-500">
-              {requests.length === 0 ? "No requests yet." : "Nothing matches this filter."}
-            </p>
+            <EmptyState
+              message={requests.length === 0 ? "No requests yet." : "Nothing matches this filter."}
+            />
           ) : (
             <div className="flex flex-col gap-2">
               {filteredRequests.map((r) => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import PinGate from "@/components/PinGate";
+import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
 import { scoreClub2CoachMatch } from "@/lib/scoring";
 import { CLUB2COACH_COACH_PACKAGES, CLUB2COACH_CLUB_PACKAGES, STATE_LABELS } from "@/lib/constants";
@@ -934,7 +935,7 @@ function Club2CoachAdmin() {
           <div>
             <h2 className="font-semibold">Coach listings awaiting payment</h2>
             {unpaidCoaches.length === 0 ? (
-              <p className="mt-2 text-sm text-gray-500">None right now.</p>
+              <EmptyState message="No coach listings awaiting payment right now." />
             ) : (
               <div className="mt-2 flex flex-col gap-2">
                 {unpaidCoaches.map((l) => (
@@ -995,7 +996,7 @@ function Club2CoachAdmin() {
           <div>
             <h2 className="font-semibold">Vacancies awaiting payment</h2>
             {unpaidVacancies.length === 0 ? (
-              <p className="mt-2 text-sm text-gray-500">None right now.</p>
+              <EmptyState message="No vacancies awaiting payment right now." />
             ) : (
               <div className="mt-2 flex flex-col gap-2">
                 {unpaidVacancies.map((v) => (
@@ -1109,11 +1110,13 @@ function Club2CoachAdmin() {
           </label>
 
           {vacancyGroups.length === 0 ? (
-            <p className="text-sm text-gray-500">
-              {activeVacancies.length === 0
-                ? "No active, paid vacancies yet — nothing to match."
-                : "No vacancies match this filter."}
-            </p>
+            <EmptyState
+              message={
+                activeVacancies.length === 0
+                  ? "No active, paid vacancies yet — nothing to match."
+                  : "No vacancies match this filter."
+              }
+            />
           ) : (
             <div className="flex flex-col gap-4">
               {vacancyGroups.map(({ vacancy, approvedCount, suggestedCount, entitled, remaining, candidates }) => (
@@ -1589,11 +1592,13 @@ function Club2CoachAdmin() {
             ]}
           />
           {filteredSupportQueries.length === 0 ? (
-            <p className="text-sm text-gray-500">
-              {supportQueries.length === 0
-                ? "No queries or complaints have been submitted."
-                : "Nothing matches this filter."}
-            </p>
+            <EmptyState
+              message={
+                supportQueries.length === 0
+                  ? "No queries or complaints have been submitted."
+                  : "Nothing matches this filter."
+              }
+            />
           ) : (
             filteredSupportQueries.map((q) => (
               <div
