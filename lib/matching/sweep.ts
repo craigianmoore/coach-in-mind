@@ -80,7 +80,8 @@ export async function runClub2CoachMatchSweep(
       .filter((c) => !sharedPairs.has(`${c.id}:${vacancy.id}`))
       .map((coach) => {
         const coachPerson = people[coach.person_id];
-        const breakdown = scoreClub2CoachMatch(coach, coachPerson?.current_licence ?? null, vacancy, weights);
+        const vacancyWeights = vacancy.personal_weights ?? weights;
+        const breakdown = scoreClub2CoachMatch(coach, coachPerson?.current_licence ?? null, vacancy, vacancyWeights);
         return { coach, breakdown };
       })
       .filter(({ breakdown }) => breakdown.eligible)

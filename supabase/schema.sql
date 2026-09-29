@@ -562,7 +562,11 @@ create table club2coach_club_vacancies (
   -- club2coach_coach_listings above.
   refund_reminder_sent_at timestamptz,
   refund_window_notified_at timestamptz,
-  refunded_at timestamptz
+  refunded_at timestamptz,
+  -- Admin-only override of the global Club2Coach matching weights, scoped to
+  -- this single vacancy row. Null = use the global default from
+  -- admin_settings. Never exposed in club-facing UI.
+  personal_weights jsonb
 );
 
 create index c2c_vacancies_person_idx on club2coach_club_vacancies(person_id);

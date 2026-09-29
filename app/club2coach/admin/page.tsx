@@ -80,6 +80,9 @@ function Club2CoachAdmin() {
   const [matchesFilter, setMatchesFilter] = useState<"all" | "unshared" | "shared">("all");
   const [matchesClubFilter, setMatchesClubFilter] = useState<string>("all");
   const [matchesStateFilter, setMatchesStateFilter] = useState<string>("all");
+  // Which vacancy cards have their per-vacancy weighting override expanded
+  // — admin-only, quiet tool, so it stays collapsed by default.
+  const [expandedWeighting, setExpandedWeighting] = useState<Set<string>>(new Set());
   const [vacancyPackage, setVacancyPackage] = useState<Record<string, number>>({});
   const [vacancyAmount, setVacancyAmount] = useState<Record<string, string>>({});
   const [coachPackage, setCoachPackage] = useState<Record<string, number>>({});
@@ -326,7 +329,8 @@ function Club2CoachAdmin() {
         .filter((c) => !sharedPairs.has(`${c.id}:${vacancy.id}`))
         .map((coach) => {
           const coachPerson = people[coach.person_id];
-          const breakdown = scoreClub2CoachMatch(coach, coachPerson?.current_licence ?? null, vacancy, weights);
+          const vacancyWeights = vacancy.personal_weights ?? weights;
+          const breakdown = scoreClub2CoachMatch(coach, coachPerson?.current_licence ?? null, vacancy, vacancyWeights);
           return { coach, breakdown };
         })
         .filter(({ breakdown }) => breakdown.eligible) // a wrong-state pairing is never a candidate, auto or manual
@@ -445,6 +449,25 @@ function Club2CoachAdmin() {
     const newWeights = { ...(settings.weights as Club2CoachWeights), [key]: value };
     setSettings({ ...settings, weights: newWeights });
     await supabase.from("admin_settings").update({ weights: newWeights }).eq("id", settings.id);
+  }
+
+  // Per-vacancy weighting override — admin-only, never surfaced to clubs.
+  // Starts from the vacancy's current effective weights (its own override,
+  // or the global default) so the first slider nudge doesn't jump every
+  // other criterion back to some blank state.
+  async function updateVacancyWeight(vacancy: Club2CoachClubVacancy, key: keyof Club2CoachWeights, value: number) {
+    if (!weights) return;
+    supabase.rpc("refresh_admin_session");
+    const base = vacancy.personal_weights ?? weights;
+    const newWeights = { ...base, [key]: value };
+    setVacancies((prev) => prev.map((v) => (v.id === vacancy.id ? { ...v, personal_weights: newWeights } : v)));
+    await supabase.from("club2coach_club_vacancies").update({ personal_weights: newWeights }).eq("id", vacancy.id);
+  }
+
+  async function resetVacancyWeights(vacancyId: string) {
+    supabase.rpc("refresh_admin_session");
+    setVacancies((prev) => prev.map((v) => (v.id === vacancyId ? { ...v, personal_weights: null } : v)));
+    await supabase.from("club2coach_club_vacancies").update({ personal_weights: null }).eq("id", vacancyId);
   }
 
   async function deleteListing(table: "club2coach_coach_listings" | "club2coach_club_vacancies", id: string) {
@@ -626,11 +649,12 @@ function Club2CoachAdmin() {
       const usedSlots = approvedCount + suggestedCount; // a pending suggestion still reserves its slot
       const entitled = vacancy.included_introductions;
       const remaining = entitled != null ? Math.max(0, entitled - usedSlots) : null;
-      const candidates = weights
+      const vacancyWeights = weights ? vacancy.personal_weights ?? weights : undefined;
+      const candidates = vacancyWeights
         ? activeCoaches
             .map((coach) => {
               const coachPerson = people[coach.person_id];
-              const breakdown = scoreClub2CoachMatch(coach, coachPerson?.current_licence ?? null, vacancy, weights);
+              const breakdown = scoreClub2CoachMatch(coach, coachPerson?.current_licence ?? null, vacancy, vacancyWeights);
               const shareRow = shares.find(
                 (s) => s.coach_listing_id === coach.id && s.club_vacancy_id === vacancy.id
               );
@@ -1164,6 +1188,64 @@ function Club2CoachAdmin() {
                     <p className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-800">
                       ✓ All paid introductions for this vacancy have been approved and shared.
                     </p>
+                  )}
+
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      onClick={() =>
+                        setExpandedWeighting((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(vacancy.id)) next.delete(vacancy.id);
+                          else next.add(vacancy.id);
+                          return next;
+                        })
+                      }
+                      className="text-xs font-semibold text-gray-500 hover:underline"
+                    >
+                      {expandedWeighting.has(vacancy.id) ? "Hide weighting" : "Customise weighting"}
+                    </button>
+                    {vacancy.personal_weights && (
+                      <span className="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">
+                        Custom weighting active
+                      </span>
+                    )}
+                  </div>
+
+                  {expandedWeighting.has(vacancy.id) && weights && (
+                    <div className="mt-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-gray-500">
+                          Overrides the global weighting for this vacancy only. Not shown to the club.
+                        </p>
+                        {vacancy.personal_weights && (
+                          <button
+                            onClick={() => resetVacancyWeights(vacancy.id)}
+                            className="text-xs font-semibold text-red-500 hover:underline"
+                          >
+                            Reset to default
+                          </button>
+                        )}
+                      </div>
+                      {(Object.keys(weights) as (keyof Club2CoachWeights)[]).map((key) => {
+                        const effective = vacancy.personal_weights ?? weights;
+                        return (
+                          <div key={key} className="mt-3">
+                            <div className="flex justify-between text-xs">
+                              <span className="capitalize">{key.replace("_", " ")}</span>
+                              <span>{effective[key]}</span>
+                            </div>
+                            <input
+                              type="range"
+                              min={1}
+                              max={10}
+                              value={effective[key]}
+                              onChange={(e) => updateVacancyWeight(vacancy, key, Number(e.target.value))}
+                              className="w-full"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
 
                   <div className="mt-3 flex flex-col gap-1.5">

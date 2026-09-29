@@ -90,6 +90,7 @@ export interface Club2CoachClubVacancy {
   refund_reminder_sent_at: string | null; // set once the "refund window closing soon" admin reminder has been sent
   refund_window_notified_at: string | null; // set once the "4-month refund window reached" admin reminder has been sent
   refunded_at: string | null; // set when a Stripe refund is recorded against this listing (status flips to "refunded" at the same time)
+  personal_weights: Club2CoachWeights | null; // admin-only override of the global matching weights, scoped to this vacancy row. Null = use the global default. Never surfaced to clubs.
 }
 
 export interface Club2CoachShare {
