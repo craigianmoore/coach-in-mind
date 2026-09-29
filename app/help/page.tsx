@@ -3,7 +3,10 @@ import Link from "next/link";
 export default function HelpPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <Link href="/" className="text-sm text-gray-500 hover:text-brand-navy">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1 rounded-full bg-brand-goldLight/40 px-4 py-1.5 text-base font-semibold text-brand-navy transition hover:bg-brand-gold hover:text-white"
+      >
         ← Back to Coach In Mind
       </Link>
 
@@ -22,6 +25,36 @@ export default function HelpPage() {
             other's details, and reach their own arrangement. Coach In Mind takes no
             responsibility or liability for the accuracy of information entered by users, or for
             the conduct, decisions, or outcomes of anyone using it.
+          </p>
+        </section>
+
+        <section className="rounded-xl border border-brand-gold/40 bg-brand-goldLight/20 p-6">
+          <h2 className="font-semibold text-brand-navy">Resources</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            <a
+              href="/coach-influence-manual.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-brand-navy underline"
+            >
+              Navigating Difficult Conversations &amp; Scenarios
+            </a>{" "}
+            — a practical guide covering parents, players, committees, sponsors, other coaches,
+            new coaches, female coaches, goalkeeping coaches, weather calls, officials, club
+            expectations, and keeping a healthy balance.
+          </p>
+          <p className="mt-3 text-sm text-gray-600">
+            <a
+              href="/coach-interview-checklist.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-brand-navy underline"
+            >
+              Interviewing a Coach — Checklist for Clubs
+            </a>{" "}
+            — a one-page checklist to work through when interviewing a coach: sighting their
+            current Licence/Diploma, confirming a valid WWCC, checking Play Football
+            registration, and asking about any disciplinary history.
           </p>
         </section>
 
@@ -134,36 +167,6 @@ export default function HelpPage() {
               </p>
             </div>
           </div>
-        </section>
-
-        <section className="rounded-xl border border-brand-gold/40 bg-brand-goldLight/20 p-6">
-          <h2 className="font-semibold text-brand-navy">Resources</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            <a
-              href="/coach-influence-manual.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-brand-navy underline"
-            >
-              Navigating Difficult Conversations &amp; Scenarios
-            </a>{" "}
-            — a practical guide covering parents, players, committees, sponsors, other coaches,
-            new coaches, female coaches, goalkeeping coaches, weather calls, officials, club
-            expectations, and keeping a healthy balance.
-          </p>
-          <p className="mt-3 text-sm text-gray-600">
-            <a
-              href="/coach-interview-checklist.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-brand-navy underline"
-            >
-              Interviewing a Coach — Checklist for Clubs
-            </a>{" "}
-            — a one-page checklist to work through when interviewing a coach: sighting their
-            current Licence/Diploma, confirming a valid WWCC, checking Play Football
-            registration, and asking about any disciplinary history.
-          </p>
         </section>
 
         <section className="rounded-xl border bg-white p-6">

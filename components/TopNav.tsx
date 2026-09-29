@@ -25,7 +25,7 @@ export default function TopNav() {
           className="flex items-center gap-2 font-semibold tracking-wide hover:text-brand-goldLight"
         >
           <CoachInMindLogo size={32} />
-          Coach In Mind
+          COACH IN MIND (Resources)
         </Link>
         <nav className="flex items-center gap-4">
           <a

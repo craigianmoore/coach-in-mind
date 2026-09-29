@@ -223,10 +223,10 @@ export default function HomePage() {
 
       {/* FOOTER */}
       <div className="flex flex-col items-center justify-between gap-4 bg-brand-navy px-4 py-8 text-white sm:flex-row">
-        <div className="flex items-center gap-3">
+        <Link href="/help" className="flex items-center gap-3 hover:text-brand-goldLight">
           <CoachInMindLogo size={44} />
-          <span className="text-sm font-bold tracking-wide">COACH IN MIND</span>
-        </div>
+          <span className="text-sm font-bold tracking-wide">COACH IN MIND (Resources)</span>
+        </Link>
         <p className="text-base font-semibold text-brand-gold">
           Matching coaches and clubs across Australia
         </p>
