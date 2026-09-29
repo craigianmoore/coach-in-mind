@@ -28,7 +28,7 @@
   --accent: #E8791A;
   --accent-dark: #B85A0C;
   --accent-contrast: #ffffff;
-  --header-bg: linear-gradient(135deg, #454BA0 0%, #191B41 50%, #040510 100%);
+  --header-bg: linear-gradient(135deg, #040510 0%, #191B41 50%, #454BA0 100%);
   --header-text: #ffffff;
   background-color: #D5D9E0;
   min-height: 100vh;
