@@ -315,6 +315,7 @@ function Club2CoachAdmin() {
     const targets = activeVacancies.filter((v) => {
       if (vacancyIds && !vacancyIds.includes(v.id)) return false;
       if (v.included_introductions == null) return false;
+      if (awaitingOutcome.has(v.id)) return false;
       const usedSlots = shares.filter((s) => s.club_vacancy_id === v.id).length;
       return usedSlots < v.included_introductions;
     });
@@ -415,6 +416,10 @@ function Club2CoachAdmin() {
   }
 
   async function shareMatch(coachListingId: string, vacancyId: string, score: number) {
+    if (awaitingOutcome.has(vacancyId)) {
+      setStatus("This club hasn't said yet whether their last introduction worked out — waiting on their response before offering another.");
+      return;
+    }
     supabase.rpc("refresh_admin_session"); // keep the idle-timeout session alive
     setStatus(null);
     const { error } = await supabase.from("club2coach_shares").insert({
@@ -632,6 +637,14 @@ function Club2CoachAdmin() {
   );
   const sharedPairs = new Set(shares.map((s) => `${s.coach_listing_id}:${s.club_vacancy_id}`));
 
+  // A vacancy with an approved share the club hasn't yet said "filled"
+  // or "not filled" about is held back from any further match — manual
+  // or auto — until they respond. Every match is still charged the
+  // moment it's made; this only paces how many can pile up unanswered.
+  const awaitingOutcome = new Set(
+    shares.filter((s) => s.status === "approved" && s.outcome === "pending").map((s) => s.club_vacancy_id)
+  );
+
   const weights = settings?.weights as Club2CoachWeights | undefined;
 
   // Grouped by vacancy rather than a flat coach×vacancy list — this is
@@ -662,7 +675,7 @@ function Club2CoachAdmin() {
             })
             .sort((a, b) => b.breakdown.total - a.breakdown.total)
         : [];
-      return { vacancy, approvedCount, suggestedCount, entitled, remaining, candidates };
+      return { vacancy, approvedCount, suggestedCount, entitled, remaining, candidates, awaitingOutcome: awaitingOutcome.has(vacancy.id) };
     })
     .filter((g) => {
       if (matchesFilter === "all") return true;
@@ -1143,7 +1156,7 @@ function Club2CoachAdmin() {
             />
           ) : (
             <div className="flex flex-col gap-4">
-              {vacancyGroups.map(({ vacancy, approvedCount, suggestedCount, entitled, remaining, candidates }) => (
+              {vacancyGroups.map(({ vacancy, approvedCount, suggestedCount, entitled, remaining, candidates, awaitingOutcome }) => (
                 <div key={vacancy.id} className="rounded-xl border bg-white p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
@@ -1187,6 +1200,13 @@ function Club2CoachAdmin() {
                   {entitled != null && remaining === 0 && suggestedCount === 0 && (
                     <p className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-800">
                       ✓ All paid introductions for this vacancy have been approved and shared.
+                    </p>
+                  )}
+
+                  {awaitingOutcome && (
+                    <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      Waiting on the club to confirm whether their last introduction worked out —
+                      no further match will be offered for this vacancy until they respond.
                     </p>
                   )}
 
@@ -1320,8 +1340,10 @@ function Club2CoachAdmin() {
                         </div>
                       ))}
 
-                    {/* Other available candidates — only while slots remain */}
-                    {(entitled == null || remaining! > 0) &&
+                    {/* Other available candidates — only while slots remain and the
+                        club has told us what happened with their last one */}
+                    {!awaitingOutcome &&
+                      (entitled == null || remaining! > 0) &&
                       candidates
                         .filter((c) => !c.shareRow && c.breakdown.eligible) // a wrong-state pairing is never offered as a new candidate
                         .slice(0, 10)

@@ -609,8 +609,17 @@ create table club2coach_shares (
   admin_notes text,
   shared_at timestamptz not null default now(),
   status text not null default 'approved', -- 'approved' | future statuses if a review step is added later
+  -- Set by the club once an approved introduction has run its course:
+  -- 'pending' (default) | 'filled' | 'not_filled'. The admin UI and the
+  -- auto-match sweep both skip a vacancy with any approved share still
+  -- 'pending' — every match is paid for regardless of outcome, but the
+  -- club must say what happened with the last one before another is
+  -- offered.
+  outcome text not null default 'pending',
   unique (coach_listing_id, club_vacancy_id)
 );
+alter table club2coach_shares add constraint club2coach_shares_outcome_check
+  check (outcome in ('pending', 'filled', 'not_filled'));
 
 alter table club2coach_shares enable row level security;
 
@@ -632,6 +641,28 @@ create policy "involved parties can view their own share"
         select 1 from club2coach_club_vacancies cv
         where cv.id = club_vacancy_id and cv.person_id = my_person_id()
       )
+    )
+  );
+
+-- Lets the club record the outcome of their own approved introduction
+-- (filled / not filled) — the only field this policy is meant to let
+-- the club change; like other owner-update policies in this schema, it
+-- doesn't column-restrict, so protection of the rest of the row relies
+-- on the client (the club page) only ever sending { outcome }.
+create policy club_record_share_outcome
+  on club2coach_shares for update
+  using (
+    status = 'approved'
+    and exists (
+      select 1 from club2coach_club_vacancies cv
+      where cv.id = club_vacancy_id and cv.person_id = my_person_id()
+    )
+  )
+  with check (
+    status = 'approved'
+    and exists (
+      select 1 from club2coach_club_vacancies cv
+      where cv.id = club_vacancy_id and cv.person_id = my_person_id()
     )
   );
 

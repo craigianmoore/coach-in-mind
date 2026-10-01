@@ -183,6 +183,10 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   const [selectedVacancyPackage, setSelectedVacancyPackage] = useState(1);
   const [openCountMessage, setOpenCountMessage] = useState<string | null>(null);
   const [activity, setActivity] = useState<Club2CoachShare[] | null>(null);
+  // Coach name for each introduced share, keyed by coach_listing_id —
+  // only fetched for the current vacancy's activity, so the outcome
+  // prompt below can name who the club was introduced to.
+  const [activityCoachNames, setActivityCoachNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     load();
@@ -235,6 +239,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     setOpenCountMessage(null);
     setError(null);
     setActivity(null);
+    setActivityCoachNames({});
     setMemberFederation("");
   }
 
@@ -245,6 +250,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     setOpenCountMessage(null);
     setError(null);
     setActivity(null);
+    setActivityCoachNames({});
     setMemberFederation(v.state ?? "");
 
     const { data } = await supabase
@@ -252,13 +258,36 @@ function Club2CoachClubForm({ person }: { person: Person }) {
       .select("*")
       .eq("club_vacancy_id", v.id)
       .order("shared_at", { ascending: true });
-    setActivity((data as Club2CoachShare[]) ?? []);
+    const vacancyActivity = (data as Club2CoachShare[]) ?? [];
+    setActivity(vacancyActivity);
+
+    // Only need a name for whichever share is actually awaiting a
+    // response — that's the one the prompt below will name.
+    const pending = vacancyActivity.find((s) => s.status === "approved" && s.outcome === "pending");
+    if (pending) {
+      const { data: listing } = await supabase
+        .from("club2coach_coach_listings")
+        .select("person_id")
+        .eq("id", pending.coach_listing_id)
+        .maybeSingle();
+      if (listing?.person_id) {
+        const { data: coachPerson } = await supabase
+          .from("people")
+          .select("full_name")
+          .eq("id", listing.person_id)
+          .maybeSingle();
+        if (coachPerson?.full_name) {
+          setActivityCoachNames((prev) => ({ ...prev, [pending.coach_listing_id]: coachPerson.full_name }));
+        }
+      }
+    }
   }
 
   function closeForm() {
     setShowForm(false);
     setEditingId(null);
     setActivity(null);
+    setActivityCoachNames({});
     setMemberFederation("");
   }
 
@@ -276,8 +305,40 @@ function Club2CoachClubForm({ person }: { person: Person }) {
       .from("club2coach_club_vacancies")
       .update({ status: "filled", filled_at: new Date().toISOString() })
       .eq("id", v.id);
+    // Resolve any still-pending introduction too — the vacancy closing
+    // already stops further matching, but this keeps the share's own
+    // outcome from being left dangling at "pending" forever.
+    if (activity) {
+      const pending = activity.find((s) => s.status === "approved" && s.outcome === "pending");
+      if (pending) {
+        await supabase.from("club2coach_shares").update({ outcome: "filled" }).eq("id", pending.id);
+      }
+    }
     await load();
     if (editingId === v.id) closeForm();
+  }
+
+  // The per-introduction prompt: did this specific match work out?
+  // "filled" also closes the vacancy (same effect as markFilled);
+  // "not_filled" just clears the block so the next match can be offered
+  // — it doesn't refund or extend anything, the club simply pays for
+  // their next introduction same as any other.
+  async function confirmShareOutcome(v: Club2CoachClubVacancy, share: Club2CoachShare, outcome: "filled" | "not_filled") {
+    await supabase.from("club2coach_shares").update({ outcome }).eq("id", share.id);
+    if (outcome === "filled") {
+      await supabase
+        .from("club2coach_club_vacancies")
+        .update({ status: "filled", filled_at: new Date().toISOString() })
+        .eq("id", v.id);
+    }
+    await load();
+    if (editingId === v.id) {
+      if (outcome === "filled") {
+        closeForm();
+      } else {
+        await openEditForm(v);
+      }
+    }
   }
 
   async function deleteVacancy(v: Club2CoachClubVacancy) {
@@ -492,6 +553,10 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   }
 
   const existing = editingId !== "new" ? vacancies.find((v) => v.id === editingId) ?? null : null;
+  // The one approved introduction still awaiting a filled/not-filled
+  // response, if any — matching for this vacancy is paused admin-side
+  // until the club answers this.
+  const pendingShare = activity?.find((s) => s.status === "approved" && s.outcome === "pending") ?? null;
 
   return (
     <div className="py-8">
@@ -601,7 +666,10 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700">Activity history</h2>
             <div className="flex items-center gap-2">
-              {existing.status !== "filled" && existing.status !== "expired" && (
+              {/* While a specific introduction is awaiting a response, the
+                  dedicated prompt below covers "filled" — this generic
+                  button stays for the case of a fill reached off-platform. */}
+              {existing.status !== "filled" && existing.status !== "expired" && !pendingShare && (
                 <button
                   type="button"
                   onClick={() => markFilled(existing)}
@@ -662,6 +730,40 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 Interviewing a Coach — checklist for clubs
               </a>
               .
+            </div>
+          )}
+
+          {/* Blocks the admin from offering another match for this
+              vacancy until answered — every introduction is paid for the
+              moment it's made, so there's no free re-match either way;
+              this just makes sure we're not still sending (and charging
+              for) coaches after the role's already been filled. */}
+          {pendingShare && (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <p className="font-semibold">
+                Did you fill this role with{" "}
+                {activityCoachNames[pendingShare.coach_listing_id] ?? "the coach you were introduced to"}?
+              </p>
+              <p className="mt-1 text-xs text-amber-800">
+                We won't put forward another coach for this vacancy until you let us know —
+                your next introduction (if you need one) will be a fresh match, same as this one.
+              </p>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => confirmShareOutcome(existing, pendingShare, "filled")}
+                  className="btn-accent rounded-lg px-3 py-1.5 text-xs font-semibold"
+                >
+                  Yes — hired, mark vacancy filled
+                </button>
+                <button
+                  type="button"
+                  onClick={() => confirmShareOutcome(existing, pendingShare, "not_filled")}
+                  className="rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+                >
+                  No — keep matching
+                </button>
+              </div>
             </div>
           )}
         </div>

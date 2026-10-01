@@ -63,9 +63,19 @@ export async function runClub2CoachMatchSweep(
   );
   const sharedPairs = new Set(shares.map((s) => `${s.coach_listing_id}:${s.club_vacancy_id}`));
 
+  // A vacancy with an approved-but-unresolved introduction is held back
+  // from any further match (manual or auto) until the club says what
+  // happened with it — every match is still paid for the moment it's
+  // made, this just paces how many a club can be charged for in a row
+  // without telling us how the last one went.
+  const awaitingOutcome = new Set(
+    shares.filter((s) => s.status === "approved" && s.outcome === "pending").map((s) => s.club_vacancy_id)
+  );
+
   const targets = activeVacancies.filter((v) => {
     if (opts.vacancyIds && !opts.vacancyIds.includes(v.id)) return false;
     if (v.included_introductions == null) return false;
+    if (awaitingOutcome.has(v.id)) return false;
     const usedSlots = shares.filter((s) => s.club_vacancy_id === v.id).length;
     return usedSlots < v.included_introductions;
   });

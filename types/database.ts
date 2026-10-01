@@ -101,6 +101,13 @@ export interface Club2CoachShare {
   admin_notes: string | null;
   status: "suggested" | "approved"; // suggested = admin-only, no contact info revealed yet; approved = both parties can see each other's details
   shared_at: string;
+  // Set by the club once an approved introduction has run its course.
+  // 'pending' blocks any further match on this vacancy — admin and the
+  // auto-sweep both skip a vacancy with a pending-outcome approved
+  // share — until the club says what happened. Charging already
+  // happened at match time regardless of outcome; this only gates
+  // whether another (also-chargeable) match can be offered.
+  outcome: "pending" | "filled" | "not_filled";
 }
 
 export interface Coach2MentorCoachListing {
