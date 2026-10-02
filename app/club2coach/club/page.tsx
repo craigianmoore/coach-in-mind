@@ -148,6 +148,9 @@ function statusBadge(v: Club2CoachClubVacancy) {
   if (v.status === "expired") {
     return <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">Expired</span>;
   }
+  if (v.status === "superseded") {
+    return <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">Replaced</span>;
+  }
   if (!v.paid) {
     return (
       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
@@ -187,6 +190,11 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   // only fetched for the current vacancy's activity, so the outcome
   // prompt below can name who the club was introduced to.
   const [activityCoachNames, setActivityCoachNames] = useState<Record<string, string>>({});
+  // Set while the form is pre-filled from an existing vacancy via
+  // "Repost" — on submit, this is the OLD vacancy that gets retired
+  // (status -> "superseded") once the new one is saved, so the two
+  // never both sit active and contest the same coaches.
+  const [repostingFromId, setRepostingFromId] = useState<string | null>(null);
 
   useEffect(() => {
     load();
@@ -218,7 +226,11 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     // Runs on every load rather than a scheduled job — self-corrects
     // the moment anyone views the list.
     const toExpire = list.filter(
-      (v) => v.status !== "filled" && v.status !== "expired" && isPastContactWindow(v)
+      (v) =>
+        v.status !== "filled" &&
+        v.status !== "expired" &&
+        v.status !== "superseded" &&
+        isPastContactWindow(v)
     );
     if (toExpire.length > 0) {
       await supabase
@@ -241,6 +253,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     setActivity(null);
     setActivityCoachNames({});
     setMemberFederation("");
+    setRepostingFromId(null);
   }
 
   async function openEditForm(v: Club2CoachClubVacancy) {
@@ -252,6 +265,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     setActivity(null);
     setActivityCoachNames({});
     setMemberFederation(v.state ?? "");
+    setRepostingFromId(null);
 
     const { data } = await supabase
       .from("club2coach_shares")
@@ -285,9 +299,14 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
   // Reuse a previous vacancy's details to start a new one — same idea as
   // openEditForm, but editingId stays "new" so submitting inserts a fresh
-  // row (new package, new payment, new contact window) instead of
-  // updating the old one. Lets a club readvertise with a couple of
-  // tweaks instead of re-typing the whole role from scratch.
+  // row instead of updating the old one. Lets a club readvertise with a
+  // couple of tweaks instead of re-typing the whole role from scratch.
+  // On submit, the old row (repostingFromId) is retired to "superseded"
+  // so it never sits alongside the new one contesting the same coaches —
+  // see handleSubmit. If the old vacancy's contact window was still
+  // running, the new one inherits its shared_at so the clock keeps
+  // counting rather than resetting; a vacancy that had already been
+  // filled or had expired gets a genuinely fresh window instead.
   function openRepostForm(v: Club2CoachClubVacancy) {
     setForm(formFromVacancy(v));
     setEditingId("new");
@@ -297,6 +316,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     setActivity(null);
     setActivityCoachNames({});
     setMemberFederation(v.state ?? "");
+    setRepostingFromId(v.id);
   }
 
   function closeForm() {
@@ -305,6 +325,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     setActivity(null);
     setActivityCoachNames({});
     setMemberFederation("");
+    setRepostingFromId(null);
   }
 
   function toggleHint(value: string) {
@@ -396,6 +417,21 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
     setSaving(true);
 
+    const isNew = editingId === "new";
+
+    // Reposting an existing vacancy: if that vacancy's one-month contact
+    // window was still running (it hadn't been filled or expired), the
+    // new row inherits its shared_at so the clock keeps counting for this
+    // role rather than giving a free extension just for editing it. A
+    // vacancy that had already been filled or expired gets a genuinely
+    // fresh window instead, since that's a new attempt at the role.
+    const repostSource =
+      isNew && repostingFromId ? vacancies.find((v) => v.id === repostingFromId) ?? null : null;
+    const carriedSharedAt =
+      repostSource && repostSource.status !== "filled" && repostSource.status !== "expired"
+        ? repostSource.shared_at
+        : null;
+
     const payload = {
       person_id: person.id,
       club_id: matchedClub.id,
@@ -418,9 +454,8 @@ function Club2CoachClubForm({ person }: { person: Person }) {
       notes: form.notes,
       authorise_share: form.authoriseShare,
       agreed_to_terms: form.agreedToTerms,
+      ...(repostSource ? { shared_at: carriedSharedAt } : {}),
     };
-
-    const isNew = editingId === "new";
 
     const { data: savedRow, error: saveError } = isNew
       ? await supabase.from("club2coach_club_vacancies").insert(payload).select().single()
@@ -432,13 +467,27 @@ function Club2CoachClubForm({ person }: { person: Person }) {
       return;
     }
 
+    // Retire the old vacancy now that its replacement exists — it drops
+    // out of matching (see the activeVacancies/awaitingOutcome filters)
+    // but stays visible as history rather than disappearing, and
+    // superseded_by links straight to what replaced it.
+    if (isNew && repostSource && savedRow) {
+      await supabase
+        .from("club2coach_club_vacancies")
+        .update({ status: "superseded", superseded_by: savedRow.id })
+        .eq("id", repostSource.id);
+    }
+    setRepostingFromId(null);
+
     await load();
     setSaving(false);
 
     if (isNew) {
       notifyAdmin(
-        "new vacancy advertised",
-        `${matchedClub.name} — ${form.roleBeingRecruited}\nAdvertised by: ${person.full_name} (${person.email}, ${person.mobile})\nCompetition: ${form.competitionLevel} · ${ageGroupLabel(form.ageGroup, form.ageGroupMax)} · ${form.region}`
+        repostSource ? "vacancy reposted with edits" : "new vacancy advertised",
+        `${matchedClub.name} — ${form.roleBeingRecruited}${
+          repostSource ? " (reposted, replacing a previous vacancy)" : ""
+        }\nAdvertised by: ${person.full_name} (${person.email}, ${person.mobile})\nCompetition: ${form.competitionLevel} · ${ageGroupLabel(form.ageGroup, form.ageGroupMax)} · ${form.region}`
       );
 
       // Club-scoped, not person-scoped: this counts every open vacancy
@@ -513,7 +562,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           <div className="mt-6 flex flex-col gap-3">
             {vacancies.map((v) => {
               const daysLeft = daysLeftInContactWindow(v);
-              const canMarkFilled = v.status !== "filled" && v.status !== "expired";
+              const canMarkFilled = v.status !== "filled" && v.status !== "expired" && v.status !== "superseded";
               return (
                 <div
                   key={v.id}
@@ -551,14 +600,16 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                         Mark as filled
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => openRepostForm(v)}
-                      title="Start a new vacancy pre-filled with these details"
-                      className="whitespace-nowrap rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                    >
-                      Repost
-                    </button>
+                    {v.status !== "superseded" && (
+                      <button
+                        type="button"
+                        onClick={() => openRepostForm(v)}
+                        title="Start a new vacancy pre-filled with these details"
+                        className="whitespace-nowrap rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                      >
+                        Repost
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => deleteVacancy(v)}
@@ -581,6 +632,10 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   // response, if any — matching for this vacancy is paused admin-side
   // until the club answers this.
   const pendingShare = activity?.find((s) => s.status === "approved" && s.outcome === "pending") ?? null;
+  // The vacancy that replaced this one via Repost, if this one has been
+  // superseded — lets the banner below link straight to the current
+  // live version instead of leaving the club to go hunting for it.
+  const replacement = existing?.superseded_by ? vacancies.find((v) => v.id === existing.superseded_by) ?? null : null;
 
   return (
     <div className="py-8">
@@ -602,14 +657,31 @@ function Club2CoachClubForm({ person }: { person: Person }) {
       {existing && (
         <div
           className={`mt-4 rounded-lg border p-4 text-sm ${
-            existing.status === "filled" || existing.status === "expired"
+            existing.status === "filled" || existing.status === "expired" || existing.status === "superseded"
               ? "border-gray-200 bg-gray-50 text-gray-700"
               : existing.paid
               ? "border-green-200 bg-green-50 text-green-800"
               : "border-amber-200 bg-amber-50 text-amber-900"
           }`}
         >
-          {existing.status === "filled" ? (
+          {existing.status === "superseded" ? (
+            <>
+              This vacancy was replaced by a repost and is no longer active.
+              {replacement && (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    onClick={() => openEditForm(replacement)}
+                    className="font-semibold underline"
+                  >
+                    View the current vacancy
+                  </button>
+                  .
+                </>
+              )}
+            </>
+          ) : existing.status === "filled" ? (
             <>This vacancy is marked as filled.</>
           ) : existing.status === "expired" ? (
             <>
@@ -630,7 +702,8 @@ function Club2CoachClubForm({ person }: { person: Person }) {
         </div>
       )}
 
-      {(!existing || (!existing.paid && existing.status !== "filled")) && (
+      {(!existing ||
+        (!existing.paid && existing.status !== "filled" && existing.status !== "superseded")) && (
         <div className="mt-4 rounded-xl border bg-white p-4">
           <p className="text-xs font-semibold uppercase text-gray-500">
             How many coach introductions do you want?
@@ -693,23 +766,28 @@ function Club2CoachClubForm({ person }: { person: Person }) {
               {/* While a specific introduction is awaiting a response, the
                   dedicated prompt below covers "filled" — this generic
                   button stays for the case of a fill reached off-platform. */}
-              {existing.status !== "filled" && existing.status !== "expired" && !pendingShare && (
+              {existing.status !== "filled" &&
+                existing.status !== "expired" &&
+                existing.status !== "superseded" &&
+                !pendingShare && (
+                  <button
+                    type="button"
+                    onClick={() => markFilled(existing)}
+                    className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                  >
+                    Mark as filled
+                  </button>
+                )}
+              {existing.status !== "superseded" && (
                 <button
                   type="button"
-                  onClick={() => markFilled(existing)}
+                  onClick={() => openRepostForm(existing)}
+                  title="Start a new vacancy pre-filled with these details"
                   className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
                 >
-                  Mark as filled
+                  Repost
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => openRepostForm(existing)}
-                title="Start a new vacancy pre-filled with these details"
-                className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-              >
-                Repost
-              </button>
               <button
                 type="button"
                 onClick={() => deleteVacancy(existing)}

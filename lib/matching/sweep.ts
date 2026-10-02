@@ -59,7 +59,13 @@ export async function runClub2CoachMatchSweep(
     return true;
   });
   const activeVacancies = vacancies.filter(
-    (v) => v.paid && v.status !== "filled" && v.status !== "expired" && v.status !== "refunded" && !v.deleted_at
+    (v) =>
+      v.paid &&
+      v.status !== "filled" &&
+      v.status !== "expired" &&
+      v.status !== "refunded" &&
+      v.status !== "superseded" && // retired by its own club via Repost — the new vacancy is what's live
+      !v.deleted_at
   );
   const sharedPairs = new Set(shares.map((s) => `${s.coach_listing_id}:${s.club_vacancy_id}`));
 

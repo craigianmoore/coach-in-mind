@@ -12,7 +12,15 @@ export interface Person {
   updated_at: string;
 }
 
-export type ListingStatus = "draft" | "active" | "paused" | "placed" | "filled" | "expired" | "refunded";
+export type ListingStatus =
+  | "draft"
+  | "active"
+  | "paused"
+  | "placed"
+  | "filled"
+  | "expired"
+  | "refunded"
+  | "superseded"; // replaced by a newer repost of the same role — retired from matching, kept for history
 
 export interface Club {
   id: string;
@@ -91,6 +99,11 @@ export interface Club2CoachClubVacancy {
   refund_window_notified_at: string | null; // set once the "4-month refund window reached" admin reminder has been sent
   refunded_at: string | null; // set when a Stripe refund is recorded against this listing (status flips to "refunded" at the same time)
   personal_weights: Club2CoachWeights | null; // admin-only override of the global matching weights, scoped to this vacancy row. Null = use the global default. Never surfaced to clubs.
+  // Set on the OLD row when a club reposts it with edits — points at the
+  // new row that replaced it. The old row's status flips to "superseded"
+  // at the same time, so it's retired from matching but still visible as
+  // history rather than disappearing.
+  superseded_by: string | null;
 }
 
 export interface Club2CoachShare {

@@ -566,7 +566,12 @@ create table club2coach_club_vacancies (
   -- Admin-only override of the global Club2Coach matching weights, scoped to
   -- this single vacancy row. Null = use the global default from
   -- admin_settings. Never exposed in club-facing UI.
-  personal_weights jsonb
+  personal_weights jsonb,
+  -- Set on the OLD row when a club reposts it with edits (status flips to
+  -- 'superseded' at the same time) — points at the new row that replaced
+  -- it, so the two never compete for the same coaches but the history
+  -- stays linked rather than disappearing.
+  superseded_by uuid references club2coach_club_vacancies(id)
 );
 
 create index c2c_vacancies_person_idx on club2coach_club_vacancies(person_id);
@@ -1558,8 +1563,10 @@ as $$
   );
 $$;
 
--- How many open (not filled/expired) vacancies a given club currently
--- has, via the clubs directory link (club2coach_club_vacancies.club_id).
+-- How many open (not filled/expired/superseded) vacancies a given club
+-- currently has, via the clubs directory link
+-- (club2coach_club_vacancies.club_id). A superseded vacancy is a retired
+-- prior version of a reposted role — the new row is what's actually open.
 create or replace function get_c2c_open_vacancy_count(target_club_id uuid)
 returns integer
 language sql
@@ -1568,7 +1575,7 @@ set search_path = public
 set row_security = off
 as $$
   select count(*)::integer from club2coach_club_vacancies
-  where club_id = target_club_id and status not in ('filled', 'expired');
+  where club_id = target_club_id and status not in ('filled', 'expired', 'superseded');
 $$;
 
 -- ---------------------------------------------------------

@@ -617,7 +617,9 @@ function Club2CoachAdmin() {
 
   const unpaidCoaches = coachListings.filter((l) => !l.paid && !l.deleted_at);
   const topupRequests = coachListings.filter((l) => l.topup_requested != null && !l.deleted_at);
-  const unpaidVacancies = vacancies.filter((v) => !v.paid && !v.deleted_at);
+  // A superseded vacancy was retired by its own club via Repost — it's
+  // history, not something still waiting on your approval.
+  const unpaidVacancies = vacancies.filter((v) => !v.paid && !v.deleted_at && v.status !== "superseded");
   // Flags a club stacking up unapproved vacancies — not a hard limit
   // (a club legitimately hiring two roles at once looks the same), just
   // a nudge to glance twice before approving another one for them.
@@ -640,7 +642,13 @@ function Club2CoachAdmin() {
     return true;
   });
   const activeVacancies = vacancies.filter(
-    (v) => v.paid && v.status !== "filled" && v.status !== "expired" && v.status !== "refunded" && !v.deleted_at
+    (v) =>
+      v.paid &&
+      v.status !== "filled" &&
+      v.status !== "expired" &&
+      v.status !== "refunded" &&
+      v.status !== "superseded" && // retired by its own club via Repost — the new vacancy is what's live
+      !v.deleted_at
   );
   const sharedPairs = new Set(shares.map((s) => `${s.coach_listing_id}:${s.club_vacancy_id}`));
 
