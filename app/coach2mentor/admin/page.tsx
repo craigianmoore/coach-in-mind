@@ -5,6 +5,7 @@ import PinGate from "@/components/PinGate";
 import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
 import { scoreCoach2MentorMatch } from "@/lib/scoring";
+import { copyShareBlurbToClipboard } from "@/lib/shareBlurb";
 import { getEmbedUrl } from "@/lib/videoEmbed";
 import { CLUB2COACH_COACH_PACKAGES, COACH2MENTOR_MENTOR_CAPACITY_PACKAGES, ACCREDITATION_LEVELS } from "@/lib/constants";
 import type {
@@ -66,19 +67,14 @@ function Coach2MentorAdmin() {
   const [loading, setLoading] = useState(true);
   const [shareCopied, setShareCopied] = useState(false);
 
-  // Copies a plain link to the Coach In Mind homepage — for passing on
-  // to a coach or mentor who's asked about the service, not tied to any
-  // specific listing. Falls back to a copyable prompt if the clipboard
-  // API is blocked (older browsers, non-HTTPS, etc).
+  // Copies a ready-to-paste email blurb introducing Coach In Mind — logo,
+  // a short overview, the homepage link, and a sign-off — for passing on
+  // to a coach or mentor who's asked about the service. Not tied to any
+  // specific listing; see lib/shareBlurb.ts for the actual copy.
   async function copyShareLink() {
-    const url = `${window.location.origin}/`;
-    try {
-      await navigator.clipboard.writeText(url);
-      setShareCopied(true);
-      setTimeout(() => setShareCopied(false), 2000);
-    } catch {
-      window.prompt("Copy this link:", url);
-    }
+    await copyShareBlurbToClipboard(window.location.origin);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2000);
   }
   const [status, setStatus] = useState<string | null>(null);
 
@@ -420,10 +416,10 @@ function Coach2MentorAdmin() {
         <button
           type="button"
           onClick={copyShareLink}
-          title="Copy a link to the Coach In Mind homepage to send to anyone interested"
+          title="Copy a ready-to-paste email introducing Coach In Mind, with the logo and homepage link"
           className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
         >
-          {shareCopied ? "Link copied!" : "Share"}
+          {shareCopied ? "Copied!" : "Share"}
         </button>
       </div>
 
