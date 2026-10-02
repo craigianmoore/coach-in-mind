@@ -618,6 +618,13 @@ function Club2CoachAdmin() {
   const unpaidCoaches = coachListings.filter((l) => !l.paid && !l.deleted_at);
   const topupRequests = coachListings.filter((l) => l.topup_requested != null && !l.deleted_at);
   const unpaidVacancies = vacancies.filter((v) => !v.paid && !v.deleted_at);
+  // Flags a club stacking up unapproved vacancies — not a hard limit
+  // (a club legitimately hiring two roles at once looks the same), just
+  // a nudge to glance twice before approving another one for them.
+  const unpaidVacancyCountByClub = unpaidVacancies.reduce<Record<string, number>>((acc, v) => {
+    acc[v.club_name] = (acc[v.club_name] ?? 0) + 1;
+    return acc;
+  }, {});
   // Excludes coaches who've used up their own paid introduction quota
   // — once shared to as many clubs as they paid for, they stop being
   // a candidate anywhere until they top up, regardless of how well
@@ -1039,7 +1046,17 @@ function Club2CoachAdmin() {
                 {unpaidVacancies.map((v) => (
                   <div key={v.id} className="flex items-center justify-between rounded-lg border bg-white p-3">
                     <div>
-                      <p className="text-sm font-medium">{v.club_name}</p>
+                      <p className="text-sm font-medium">
+                        {v.club_name}
+                        {unpaidVacancyCountByClub[v.club_name] > 1 && (
+                          <span
+                            className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800"
+                            title="This club has more than one unapproved vacancy open right now"
+                          >
+                            {unpaidVacancyCountByClub[v.club_name]} unpaid at this club
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs text-gray-500">
                         {v.role_being_recruited} · {v.competition_level}
                       </p>
