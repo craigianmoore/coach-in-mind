@@ -12,7 +12,6 @@ export function buildShareBlurb(origin: string) {
 
   const html = `
 <div style="font-family: Arial, Helvetica, sans-serif; color: #2A2E3A; max-width: 540px; line-height: 1.55;">
-  <img src="${logoUrl}" alt="Coach In Mind" width="110" style="display:block; margin-bottom: 18px;" />
   <p>Hi,</p>
   <p>I wanted to share <strong>Coach In Mind</strong> — an Australian platform that properly matches football clubs, coaches and mentors, instead of relying on group chats and word-of-mouth.</p>
   <ul style="padding-left: 20px; margin: 12px 0;">
@@ -21,6 +20,7 @@ export function buildShareBlurb(origin: string) {
   </ul>
   <p>Have a look here: <a href="${url}" style="color: #191B41; font-weight: bold;">${url}</a></p>
   <p style="margin-top: 20px;">Kind regards,<br/>The Coach In Mind Team</p>
+  <img src="${logoUrl}" alt="Coach In Mind" width="110" style="display:block; margin-top: 18px;" />
 </div>`.trim();
 
   const text = [
