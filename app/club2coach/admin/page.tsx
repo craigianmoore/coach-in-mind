@@ -69,6 +69,22 @@ function Club2CoachAdmin() {
   // either it simply expired, or a master PIN logged in elsewhere and
   // force-ended every other active admin session, this one included.
   const [sessionNotice, setSessionNotice] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  // Copies a plain link to the Coach In Mind homepage — for passing on
+  // to a club, coach, or mentor who's asked about the service, not tied
+  // to any specific listing. Falls back to a copyable prompt if the
+  // clipboard API is blocked (older browsers, non-HTTPS, etc).
+  async function copyShareLink() {
+    const url = `${window.location.origin}/`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      window.prompt("Copy this link:", url);
+    }
+  }
 
   const [supportQueries, setSupportQueries] = useState<SupportQuery[]>([]);
   const [creditRequests, setCreditRequests] = useState<CoachCreditRequest[]>([]);
@@ -889,6 +905,14 @@ function Club2CoachAdmin() {
         <p className="text-sm text-gray-600">
           {coachListings.length} coach listings · {vacancies.length} vacancies
         </p>
+        <button
+          type="button"
+          onClick={copyShareLink}
+          title="Copy a link to the Coach In Mind homepage to send to anyone interested"
+          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+        >
+          {shareCopied ? "Link copied!" : "Share"}
+        </button>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 border-b">
