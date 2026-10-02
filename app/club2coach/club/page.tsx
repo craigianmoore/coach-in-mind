@@ -283,6 +283,22 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     }
   }
 
+  // Reuse a previous vacancy's details to start a new one — same idea as
+  // openEditForm, but editingId stays "new" so submitting inserts a fresh
+  // row (new package, new payment, new contact window) instead of
+  // updating the old one. Lets a club readvertise with a couple of
+  // tweaks instead of re-typing the whole role from scratch.
+  function openRepostForm(v: Club2CoachClubVacancy) {
+    setForm(formFromVacancy(v));
+    setEditingId("new");
+    setShowForm(true);
+    setOpenCountMessage(null);
+    setError(null);
+    setActivity(null);
+    setActivityCoachNames({});
+    setMemberFederation(v.state ?? "");
+  }
+
   function closeForm() {
     setShowForm(false);
     setEditingId(null);
@@ -537,6 +553,14 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                     )}
                     <button
                       type="button"
+                      onClick={() => openRepostForm(v)}
+                      title="Start a new vacancy pre-filled with these details"
+                      className="whitespace-nowrap rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                    >
+                      Repost
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => deleteVacancy(v)}
                       className="whitespace-nowrap rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
                     >
@@ -591,7 +615,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             <>
               This vacancy's one-month contact window has closed. Most
               clubs will have made contact by now — if the role's still
-              open, advertise it again.
+              open, use the Repost button below to readvertise it.
             </>
           ) : existing.paid ? (
             <>✓ Your vacancy is active and included in matching.</>
@@ -678,6 +702,14 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                   Mark as filled
                 </button>
               )}
+              <button
+                type="button"
+                onClick={() => openRepostForm(existing)}
+                title="Start a new vacancy pre-filled with these details"
+                className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+              >
+                Repost
+              </button>
               <button
                 type="button"
                 onClick={() => deleteVacancy(existing)}
