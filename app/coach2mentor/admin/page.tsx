@@ -64,6 +64,22 @@ function Coach2MentorAdmin() {
   const [people, setPeople] = useState<Record<string, Person>>({});
   const [settings, setSettings] = useState<AdminSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  // Copies a plain link to the Coach In Mind homepage — for passing on
+  // to a coach or mentor who's asked about the service, not tied to any
+  // specific listing. Falls back to a copyable prompt if the clipboard
+  // API is blocked (older browsers, non-HTTPS, etc).
+  async function copyShareLink() {
+    const url = `${window.location.origin}/`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      window.prompt("Copy this link:", url);
+    }
+  }
   const [status, setStatus] = useState<string | null>(null);
 
   const [requestsFilter, setRequestsFilter] = useState<RequestStatus | "all">("all");
@@ -396,10 +412,20 @@ function Coach2MentorAdmin() {
 
   return (
     <div className="py-8">
-      <p className="text-sm text-gray-600">
-        {coachListings.length} coach profiles · {mentorListings.length} mentor profiles ·{" "}
-        {requests.length} requests
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-600">
+          {coachListings.length} coach profiles · {mentorListings.length} mentor profiles ·{" "}
+          {requests.length} requests
+        </p>
+        <button
+          type="button"
+          onClick={copyShareLink}
+          title="Copy a link to the Coach In Mind homepage to send to anyone interested"
+          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+        >
+          {shareCopied ? "Link copied!" : "Share"}
+        </button>
+      </div>
 
       <div className="mt-4 flex flex-wrap gap-2 border-b border-white/20">
         {(["unpaid", "matches", "requests", "weighting", "listings", "admins"] as Tab[]).map((t) => (
