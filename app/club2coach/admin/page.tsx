@@ -21,7 +21,16 @@ import type {
   Coach2MentorRequest,
 } from "@/types/database";
 
-type Tab = "unpaid" | "matches" | "weighting" | "listings" | "admins" | "support" | "people";
+type Tab = "unpaid" | "matches" | "weighting" | "listings" | "clubs" | "admins" | "support" | "people";
+
+interface ClubContactRow {
+  id: string;
+  name: string;
+  state: string;
+  email: string | null;
+  source: string | null;
+  confidence: string | null;
+}
 
 // Minimal local shape for the new platform_settings singleton table —
 // not part of types/database.ts yet, since it's the first thing this
@@ -71,6 +80,12 @@ function Club2CoachAdmin() {
   // force-ended every other active admin session, this one included.
   const [sessionNotice, setSessionNotice] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+  // Clubs tab — the clubs table joined with admin-only club_contacts.
+  const [clubRows, setClubRows] = useState<ClubContactRow[]>([]);
+  const [clubSearch, setClubSearch] = useState("");
+  const [clubStateFilter, setClubStateFilter] = useState("all");
+  const [clubEmailFilter, setClubEmailFilter] = useState<"all" | "with" | "without">("all");
+  const [copiedClubId, setCopiedClubId] = useState<string | null>(null);
 
   // Copies a ready-to-paste email blurb introducing Coach In Mind — logo,
   // a short overview, the homepage link, and a sign-off — for passing on
@@ -200,7 +215,38 @@ function Club2CoachAdmin() {
     }
   }
 
+  async function loadClubContacts() {
+    const [{ data: cl }, { data: cc }] = await Promise.all([
+      supabase.from("clubs").select("id,name,state").order("name", { ascending: true }),
+      supabase.from("club_contacts").select("club_id,email,source,confidence"),
+    ]);
+    const byClub = new Map<string, { email: string; source: string | null; confidence: string | null }>();
+    ((cc as { club_id: string; email: string; source: string | null; confidence: string | null }[]) ?? []).forEach((c) =>
+      byClub.set(c.club_id, c)
+    );
+    setClubRows(
+      ((cl as { id: string; name: string; state: string }[]) ?? []).map((c) => ({
+        ...c,
+        email: byClub.get(c.id)?.email ?? null,
+        source: byClub.get(c.id)?.source ?? null,
+        confidence: byClub.get(c.id)?.confidence ?? null,
+      }))
+    );
+  }
+
+  async function copyClubEmail(c: ClubContactRow) {
+    if (!c.email) return;
+    try {
+      await navigator.clipboard.writeText(c.email);
+    } catch {
+      window.prompt("Copy this email:", c.email);
+    }
+    setCopiedClubId(c.id);
+    setTimeout(() => setCopiedClubId((cur) => (cur === c.id ? null : cur)), 1500);
+  }
+
   useEffect(() => {
+    if (tab === "clubs") loadClubContacts();
     if (tab === "admins") {
       loadAdminPins();
       loadIsMasterSession();
@@ -912,7 +958,7 @@ function Club2CoachAdmin() {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 border-b">
-        {(["unpaid", "matches", "weighting", "listings", "admins", "support", "people"] as Tab[]).map((t) => (
+        {(["unpaid", "matches", "weighting", "listings", "clubs", "admins", "support", "people"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1568,6 +1614,79 @@ function Club2CoachAdmin() {
           </div>
         </div>
       )}
+
+      {tab === "clubs" && (() => {
+        const q = clubSearch.trim().toLowerCase();
+        const visible = clubRows.filter(
+          (c) =>
+            (clubStateFilter === "all" || c.state === clubStateFilter) &&
+            (clubEmailFilter === "all" || (clubEmailFilter === "with" ? !!c.email : !c.email)) &&
+            (!q || c.name.toLowerCase().includes(q) || (c.email ?? "").toLowerCase().includes(q))
+        );
+        const states = Array.from(new Set(clubRows.map((c) => c.state))).sort();
+        return (
+          <div className="mt-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                value={clubSearch}
+                onChange={(e) => setClubSearch(e.target.value)}
+                placeholder="Search clubs or emails"
+                className="rounded-lg border px-3 py-1.5 text-sm"
+              />
+              <select value={clubStateFilter} onChange={(e) => setClubStateFilter(e.target.value)} className="rounded-lg border px-2 py-1.5 text-sm">
+                <option value="all">All states</option>
+                {states.map((st) => (
+                  <option key={st} value={st}>{st}</option>
+                ))}
+              </select>
+              <select value={clubEmailFilter} onChange={(e) => setClubEmailFilter(e.target.value as "all" | "with" | "without")} className="rounded-lg border px-2 py-1.5 text-sm">
+                <option value="all">All clubs</option>
+                <option value="with">With email</option>
+                <option value="without">Without email</option>
+              </select>
+              <p className="text-xs text-gray-500">
+                {visible.length} shown · {clubRows.filter((c) => c.email).length} of {clubRows.length} clubs have an email
+              </p>
+            </div>
+            <div className="mt-3 flex flex-col gap-1">
+              {visible.map((c) => (
+                <div key={c.id} className="flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {c.name} <span className="text-xs font-normal text-gray-400">{c.state}</span>
+                    </p>
+                    {c.email ? (
+                      <p className="truncate text-xs text-gray-600" title={c.source ?? undefined}>
+                        {c.email}
+                        {c.confidence && (
+                          <span
+                            className={`ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                              c.confidence === "high" ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            {c.confidence}
+                          </span>
+                        )}
+                      </p>
+                    ) : (
+                      <p className="text-xs italic text-gray-400">No email on file</p>
+                    )}
+                  </div>
+                  {c.email && (
+                    <button
+                      type="button"
+                      onClick={() => copyClubEmail(c)}
+                      className="flex-shrink-0 rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                    >
+                      {copiedClubId === c.id ? "Copied!" : "Copy email"}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {tab === "admins" && (
         <div className="mt-6 max-w-xl">
