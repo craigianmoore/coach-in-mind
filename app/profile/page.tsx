@@ -29,6 +29,7 @@ function ProfileForm() {
   const [region, setRegion] = useState("");
   const [currentLicence, setCurrentLicence] = useState("None / In Progress");
   const [mobileWarning, setMobileWarning] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
 
   const [hasClub2CoachListing, setHasClub2CoachListing] = useState(false);
   const [hasCoach2MentorListing, setHasCoach2MentorListing] = useState(false);
@@ -38,6 +39,15 @@ function ProfileForm() {
   const [splitMentor, setSplitMentor] = useState(1);
   const [splitError, setSplitError] = useState<string | null>(null);
   const [requestingSplit, setRequestingSplit] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("cim_ref");
+      if (saved) setReferralCode(saved);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     load();
@@ -195,6 +205,16 @@ function ProfileForm() {
     setTimeout(() => setSavedMessage(null), 3000);
     window.scrollTo({ top: 0, behavior: "smooth" });
 
+    if (wasNewSignup && referralCode.trim()) {
+      // Best effort — a bad/expired code must never block the signup.
+      await supabase.rpc("apply_referral_code", { input_code: referralCode.trim() });
+      try {
+        localStorage.removeItem("cim_ref");
+      } catch {
+        /* ignore */
+      }
+    }
+
     if (wasNewSignup) {
       notifyAdmin(
         "new signup",
@@ -262,6 +282,18 @@ function ProfileForm() {
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
           />
         </div>
+
+        {!existing && (
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">Referral code (optional)</label>
+            <input
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+              placeholder="e.g. 7K2QX9A"
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>

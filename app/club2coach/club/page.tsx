@@ -8,6 +8,7 @@ import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
 import PayWithCardButton from "@/components/PayWithCardButton";
+import FreeFirstCredit from "@/components/FreeFirstCredit";
 import { useStripePaymentsEnabled } from "@/lib/useStripePaymentsEnabled";
 import {
   COACHING_ROLES,
@@ -736,6 +737,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           </div>
           {existing ? (
             <div className="mt-3">
+              <FreeFirstCredit listingTable="club2coach_club_vacancies" listingId={existing.id} onClaimed={() => load()} />
               <PayWithCardButton
                 listingTable="club2coach_club_vacancies"
                 listingId={existing.id}

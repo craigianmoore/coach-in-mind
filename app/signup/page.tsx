@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -11,6 +11,19 @@ function SignupForm() {
   const supabase = createClient();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/profile";
+
+  // Remember a referral code from /signup?ref=CODE so the profile step
+  // (which may happen after an email-confirmation round trip) can apply it.
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) {
+      try {
+        localStorage.setItem("cim_ref", ref.trim().toUpperCase());
+      } catch {
+        /* storage blocked — they can still type the code on the profile form */
+      }
+    }
+  }, [searchParams]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

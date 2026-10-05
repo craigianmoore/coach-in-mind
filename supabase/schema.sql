@@ -1638,3 +1638,227 @@ create policy "admin can manage club contacts" on club_contacts for all using (i
 -- Outreach tracking on club_contacts: when an admin last marked the club
 -- as contacted, and a permanent opt-out flag.
 alter table club_contacts add column if not exists contacted_at timestamptz, add column if not exists do_not_contact boolean not null default false;
+
+-- ---------------------------------------------------------
+-- FIRST-INTRODUCTION-FREE + COACH REFERRALS
+-- ---------------------------------------------------------
+-- Normalisers used as claim keys, so cosmetic variations of the same
+-- identity (gmail dots / +tags, "61" vs "0" mobiles, "FC" vs "SC" club
+-- names) can't be used to claim a second free introduction.
+create or replace function norm_email(e text) returns text language sql immutable as $$
+  select case
+    when split_part(lower(trim(e)), '@', 2) in ('gmail.com', 'googlemail.com')
+      then replace(split_part(split_part(lower(trim(e)), '@', 1), '+', 1), '.', '') || '@gmail.com'
+    else split_part(split_part(lower(trim(e)), '@', 1), '+', 1) || '@' || split_part(lower(trim(e)), '@', 2)
+  end;
+$$;
+
+create or replace function norm_mobile(m text) returns text language sql immutable as $$
+  select regexp_replace(regexp_replace(coalesce(m, ''), '\D', '', 'g'), '^61', '0');
+$$;
+
+create or replace function norm_club_name(n text) returns text language sql immutable as $$
+  select trim(regexp_replace(regexp_replace(regexp_replace(lower(replace(coalesce(n, ''), '&', ' and ')), '[^a-z0-9 ]', ' ', 'g'), '\m(fc|sc|jfc|jsc|afc|football|soccer|club|inc|the)\M', '', 'g'), '\s+', ' ', 'g'));
+$$;
+
+create table if not exists free_first_claims (
+  key text primary key,
+  person_id uuid,
+  listing_table text not null,
+  listing_id uuid not null,
+  claimed_at timestamptz not null default now()
+);
+alter table free_first_claims enable row level security;
+create policy "admin can view free first claims" on free_first_claims for select using (is_admin_caller());
+
+-- Grants (or, with dry_run, just checks) the one free introduction for a
+-- club (keyed by club) or a coach (keyed by email AND mobile, shared
+-- across Club2Coach and Coach2Mentor). Automatic — no admin step.
+create or replace function claim_free_first_credit(target_table text, target_listing_id uuid, dry_run boolean default false)
+returns jsonb language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+declare
+  me uuid := my_person_id();
+  p people%rowtype;
+  v club2coach_club_vacancies%rowtype;
+  l_person uuid; l_paid boolean; l_deleted timestamptz; l_status text;
+  keys text[]; prod text; rl text;
+begin
+  if me is null then raise exception 'Not signed in'; end if;
+  select * into p from people where id = me;
+
+  if target_table = 'club2coach_club_vacancies' then
+    select * into v from club2coach_club_vacancies where id = target_listing_id for update;
+    if not found or v.person_id <> me then raise exception 'Not your listing'; end if;
+    if v.paid or v.deleted_at is not null or v.status in ('filled', 'expired', 'superseded', 'refunded') then
+      return jsonb_build_object('granted', false, 'reason', 'not_eligible');
+    end if;
+    keys := array['club:' || coalesce(v.club_id::text, 'n:' || norm_club_name(v.club_name))];
+    prod := 'club2coach'; rl := 'club';
+  elsif target_table in ('club2coach_coach_listings', 'coach2mentor_coach_listings') then
+    execute format('select person_id, paid, deleted_at, status from %I where id = $1 for update', target_table)
+      into l_person, l_paid, l_deleted, l_status using target_listing_id;
+    if l_person is null or l_person <> me then raise exception 'Not your listing'; end if;
+    if l_paid or l_deleted is not null or l_status in ('placed', 'refunded') then
+      return jsonb_build_object('granted', false, 'reason', 'not_eligible');
+    end if;
+    keys := array['coach-email:' || norm_email(p.email)];
+    if norm_mobile(p.mobile) <> '' then keys := keys || ('coach-mobile:' || norm_mobile(p.mobile)); end if;
+    prod := case when target_table = 'club2coach_coach_listings' then 'club2coach' else 'coach2mentor' end;
+    rl := 'coach';
+  else
+    raise exception 'Free first introduction does not apply to this listing type';
+  end if;
+
+  if exists (select 1 from free_first_claims where key = any(keys)) then
+    return jsonb_build_object('granted', false, 'reason', 'already_used');
+  end if;
+  if dry_run then return jsonb_build_object('granted', false, 'eligible', true); end if;
+
+  begin
+    insert into free_first_claims (key, person_id, listing_table, listing_id)
+    select k, me, target_table, target_listing_id from unnest(keys) as k;
+  exception when unique_violation then
+    return jsonb_build_object('granted', false, 'reason', 'already_used');
+  end;
+
+  execute format(
+    'update %I set paid = true, paid_at = now(), price_aud = 0, status = ''active'', included_introductions = 1 where id = $1',
+    target_table) using target_listing_id;
+
+  insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, notes)
+  values (me, prod, rl, target_table, target_listing_id, 0, 'Free first introduction (automatic)');
+
+  return jsonb_build_object('granted', true);
+end;
+$$;
+
+-- Referrals ------------------------------------------------
+create table if not exists referral_codes (
+  person_id uuid primary key references people(id) on delete cascade,
+  code text not null unique
+);
+create table if not exists referrals (
+  referee_person_id uuid primary key references people(id) on delete cascade,
+  referrer_person_id uuid not null references people(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+create table if not exists referral_rewards (
+  id uuid primary key default uuid_generate_v4(),
+  referrer_person_id uuid not null references people(id) on delete cascade,
+  referee_person_id uuid not null unique references people(id) on delete cascade,
+  credits integer not null,
+  status text not null, -- pending (waiting for a paid coach listing to credit) | granted | capped (referrer already at 3) | rejected (same person)
+  reason text,
+  applied_table text,
+  applied_listing_id uuid,
+  created_at timestamptz not null default now(),
+  applied_at timestamptz
+);
+alter table referral_codes enable row level security;
+alter table referrals enable row level security;
+alter table referral_rewards enable row level security;
+create policy "own or admin can view referral code" on referral_codes for select using (person_id = my_person_id() or is_admin_caller());
+create policy "referrer or admin can view referrals" on referrals for select using (referrer_person_id = my_person_id() or is_admin_caller());
+create policy "referrer or admin can view referral rewards" on referral_rewards for select using (referrer_person_id = my_person_id() or is_admin_caller());
+
+create or replace function get_my_referral_code() returns text language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+declare me uuid := my_person_id(); c text; tries int := 0;
+begin
+  if me is null then raise exception 'Not signed in'; end if;
+  select code into c from referral_codes where person_id = me;
+  if c is not null then return c; end if;
+  loop
+    c := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 7));
+    begin
+      insert into referral_codes (person_id, code) values (me, c);
+      return c;
+    exception when unique_violation then
+      tries := tries + 1;
+      if tries > 10 then raise; end if;
+    end;
+  end loop;
+end;
+$$;
+
+-- Called once by a new person (within 14 days of signing up, before they
+-- have paid anything) to record who referred them.
+create or replace function apply_referral_code(input_code text) returns text language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+declare me uuid := my_person_id(); referrer uuid; me_created timestamptz;
+begin
+  if me is null then return 'not_signed_in'; end if;
+  if exists (select 1 from referrals where referee_person_id = me) then return 'already_applied'; end if;
+  select person_id into referrer from referral_codes where code = upper(trim(input_code));
+  if referrer is null then return 'invalid_code'; end if;
+  if referrer = me then return 'invalid_code'; end if;
+  select created_at into me_created from people where id = me;
+  if me_created < now() - interval '14 days' then return 'too_late'; end if;
+  if exists (select 1 from payments where person_id = me and amount_aud > 0) then return 'too_late'; end if;
+  insert into referrals (referee_person_id, referrer_person_id) values (me, referrer);
+  return 'ok';
+end;
+$$;
+
+-- Credits any pending rewards onto the referrer's paid coach listing
+-- (Club2Coach first, else Coach2Mentor).
+create or replace function apply_pending_referral_rewards(target_referrer uuid) returns void language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+declare r record; lid uuid; tbl text;
+begin
+  for r in select * from referral_rewards where referrer_person_id = target_referrer and status = 'pending' order by created_at loop
+    lid := null;
+    select id into lid from club2coach_coach_listings where person_id = target_referrer and paid and deleted_at is null and refunded_at is null order by paid_at limit 1;
+    tbl := 'club2coach_coach_listings';
+    if lid is null then
+      select id into lid from coach2mentor_coach_listings where person_id = target_referrer and paid and deleted_at is null and refunded_at is null order by paid_at limit 1;
+      tbl := 'coach2mentor_coach_listings';
+    end if;
+    if lid is null then exit; end if;
+    execute format('update %I set included_introductions = coalesce(included_introductions, 0) + $1 where id = $2', tbl) using r.credits, lid;
+    update referral_rewards set status = 'granted', applied_table = tbl, applied_listing_id = lid, applied_at = now() where id = r.id;
+  end loop;
+end;
+$$;
+
+-- Fires on EVERY payment row (admin mark-paid, Stripe webhook, top-ups).
+-- A reward is created only on the referee's first payment above $0 as a
+-- coach or club (so the free introduction and gifts never count):
+-- 1 credit for a coach, 2 for a club, max 3 rewards per referrer.
+create or replace function referral_reward_on_payment() returns trigger language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+declare ref referrals%rowtype; rr people%rowtype; re people%rowtype; n int; cr int;
+begin
+  if new.amount_aud is null or new.amount_aud <= 0 or new.role not in ('coach', 'club') then return new; end if;
+  if exists (select 1 from payments where person_id = new.person_id and amount_aud > 0 and id <> new.id) then return new; end if;
+  select * into ref from referrals where referee_person_id = new.person_id;
+  if not found then return new; end if;
+  if exists (select 1 from referral_rewards where referee_person_id = new.person_id) then return new; end if;
+  select * into rr from people where id = ref.referrer_person_id;
+  select * into re from people where id = new.person_id;
+  cr := case when new.role = 'club' then 2 else 1 end;
+  if norm_email(rr.email) = norm_email(re.email) or (norm_mobile(rr.mobile) <> '' and norm_mobile(rr.mobile) = norm_mobile(re.mobile)) then
+    insert into referral_rewards (referrer_person_id, referee_person_id, credits, status, reason) values (ref.referrer_person_id, new.person_id, cr, 'rejected', 'Same email or mobile as referrer');
+    return new;
+  end if;
+  select count(*) into n from referral_rewards where referrer_person_id = ref.referrer_person_id and status in ('pending', 'granted');
+  if n >= 3 then
+    insert into referral_rewards (referrer_person_id, referee_person_id, credits, status, reason) values (ref.referrer_person_id, new.person_id, cr, 'capped', 'Referrer already has 3 rewards');
+    return new;
+  end if;
+  insert into referral_rewards (referrer_person_id, referee_person_id, credits, status) values (ref.referrer_person_id, new.person_id, cr, 'pending');
+  perform apply_pending_referral_rewards(ref.referrer_person_id);
+  return new;
+end;
+$$;
+drop trigger if exists referral_reward_on_payment_trg on payments;
+create trigger referral_reward_on_payment_trg after insert on payments for each row execute function referral_reward_on_payment();
+
+-- When a referrer's coach listing becomes paid (incl. via the free
+-- introduction), credit any rewards that were waiting for it.
+create or replace function referral_apply_on_listing_paid() returns trigger language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+begin
+  if new.paid and not old.paid then perform apply_pending_referral_rewards(new.person_id); end if;
+  return new;
+end;
+$$;
+drop trigger if exists c2c_coach_referral_apply on club2coach_coach_listings;
+create trigger c2c_coach_referral_apply after update of paid on club2coach_coach_listings for each row execute function referral_apply_on_listing_paid();
+drop trigger if exists c2m_coach_referral_apply on coach2mentor_coach_listings;
+create trigger c2m_coach_referral_apply after update of paid on coach2mentor_coach_listings for each row execute function referral_apply_on_listing_paid();

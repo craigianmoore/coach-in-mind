@@ -21,7 +21,7 @@ import type {
   Coach2MentorRequest,
 } from "@/types/database";
 
-type Tab = "unpaid" | "matches" | "weighting" | "listings" | "clubs" | "admins" | "support" | "people";
+type Tab = "unpaid" | "matches" | "weighting" | "listings" | "clubs" | "promos" | "admins" | "support" | "people";
 
 interface ClubContactRow {
   id: string;
@@ -111,6 +111,11 @@ function Club2CoachAdmin() {
   const [clubSearch, setClubSearch] = useState("");
   const [clubStateFilter, setClubStateFilter] = useState("all");
   const [clubEmailFilter, setClubEmailFilter] = useState<"all" | "with" | "without" | "uncontacted">("all");
+  // Promos tab — free-first claims and referral rewards (read-only audit).
+  const [freeClaims, setFreeClaims] = useState<{ key: string; listing_table: string; claimed_at: string }[]>([]);
+  const [rewards, setRewards] = useState<
+    { id: string; referrer_person_id: string; referee_person_id: string; credits: number; status: string; reason: string | null; created_at: string }[]
+  >([]);
   const [copiedClubId, setCopiedClubId] = useState<string | null>(null);
 
   // Copies a ready-to-paste email blurb introducing Coach In Mind — logo,
@@ -335,7 +340,17 @@ function Club2CoachAdmin() {
     );
   }
 
+  async function loadPromos() {
+    const [{ data: fc }, { data: rw }] = await Promise.all([
+      supabase.from("free_first_claims").select("key,listing_table,claimed_at").order("claimed_at", { ascending: false }),
+      supabase.from("referral_rewards").select("*").order("created_at", { ascending: false }),
+    ]);
+    setFreeClaims((fc as typeof freeClaims) ?? []);
+    setRewards((rw as typeof rewards) ?? []);
+  }
+
   useEffect(() => {
+    if (tab === "promos") loadPromos();
     if (tab === "clubs") loadClubContacts();
     if (tab === "admins") {
       loadAdminPins();
@@ -1048,7 +1063,7 @@ function Club2CoachAdmin() {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 border-b">
-        {(["unpaid", "matches", "weighting", "listings", "clubs", "admins", "support", "people"] as Tab[]).map((t) => (
+        {(["unpaid", "matches", "weighting", "listings", "clubs", "promos", "admins", "support", "people"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1815,6 +1830,49 @@ function Club2CoachAdmin() {
           </div>
         );
       })()}
+
+      {tab === "promos" && (
+        <div className="mt-6 flex flex-col gap-6">
+          <div>
+            <h2 className="font-semibold">Free first introductions</h2>
+            <p className="mt-1 text-sm text-gray-600">
+              {freeClaims.filter((f) => f.key.startsWith("club:") || f.key.startsWith("club-name:")).length} clubs ·{" "}
+              {freeClaims.filter((f) => f.key.startsWith("coach-email:")).length} coaches have claimed their free first
+              introduction. Granted automatically — one per club (by club) and one per coach (by email and mobile).
+            </p>
+          </div>
+          <div>
+            <h2 className="font-semibold">Referral rewards</h2>
+            {rewards.length === 0 ? (
+              <EmptyState message="No referral rewards yet — they appear when a referred person makes their first payment." />
+            ) : (
+              <div className="mt-2 flex flex-col gap-1">
+                {rewards.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between rounded-lg border bg-white px-3 py-2 text-sm">
+                    <p>
+                      <strong>{people[r.referrer_person_id]?.full_name ?? "Unknown"}</strong> referred{" "}
+                      <strong>{people[r.referee_person_id]?.full_name ?? "Unknown"}</strong> ·{" "}
+                      {r.credits} credit{r.credits === 1 ? "" : "s"}
+                      {r.reason && <span className="text-xs text-gray-500"> · {r.reason}</span>}
+                    </p>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        r.status === "granted"
+                          ? "bg-green-100 text-green-800"
+                          : r.status === "pending"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {r.status} · {new Date(r.created_at).toLocaleDateString("en-GB")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {tab === "admins" && (
         <div className="mt-6 max-w-xl">

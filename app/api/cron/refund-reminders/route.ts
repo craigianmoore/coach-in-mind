@@ -59,6 +59,7 @@ export async function GET(req: Request) {
     .from("club2coach_coach_listings")
     .select("id, person_id, paid_at, price_aud, refund_reminder_sent_at, refund_window_notified_at, role_sought")
     .eq("paid", true)
+    .or("price_aud.is.null,price_aud.gt.0") // free introductions have nothing to refund
     .is("deleted_at", null)
     .is("refund_window_notified_at", null)
     .is("refunded_at", null)
@@ -83,6 +84,7 @@ export async function GET(req: Request) {
       "id, person_id, paid_at, price_aud, refund_reminder_sent_at, refund_window_notified_at, club_name, role_being_recruited"
     )
     .eq("paid", true)
+    .or("price_aud.is.null,price_aud.gt.0") // free introductions have nothing to refund
     .eq("is_charity", false)
     .is("deleted_at", null)
     .is("refund_window_notified_at", null)
@@ -106,6 +108,7 @@ export async function GET(req: Request) {
     .from("coach2mentor_coach_listings")
     .select("id, person_id, paid_at, price_aud, refund_reminder_sent_at, refund_window_notified_at")
     .eq("paid", true)
+    .or("price_aud.is.null,price_aud.gt.0") // free introductions have nothing to refund
     .is("deleted_at", null)
     .is("refund_window_notified_at", null)
     .is("refunded_at", null)

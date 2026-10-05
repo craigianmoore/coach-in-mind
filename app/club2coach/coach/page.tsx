@@ -7,6 +7,8 @@ import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
 import PayWithCardButton from "@/components/PayWithCardButton";
+import FreeFirstCredit from "@/components/FreeFirstCredit";
+import ReferralCard from "@/components/ReferralCard";
 import { useStripePaymentsEnabled } from "@/lib/useStripePaymentsEnabled";
 import {
   COACHING_ROLES,
@@ -450,6 +452,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
               payment is confirmed. Coach In Mind will be in touch about
               how to pay, or pay now to activate immediately.
               <div className="mt-3">
+                <FreeFirstCredit listingTable="club2coach_coach_listings" listingId={existing.id} onClaimed={() => load()} />
                 <PayWithCardButton
                   listingTable="club2coach_coach_listings"
                   listingId={existing.id}
@@ -461,6 +464,8 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           )}
         </div>
       )}
+
+      {existing && <ReferralCard />}
 
       {existing?.paid &&
         existing.included_introductions != null &&
