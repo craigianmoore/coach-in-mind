@@ -41,6 +41,19 @@ const FREE_MAIL_DOMAINS = new Set([
   "bigpond.net.au", "live.com.au", "live.com", "icloud.com", "optusnet.com.au", "hotmail.com.au", "protonmail.com",
 ]);
 
+// Loose club-name key: lowercase, "&" -> "and", punctuation dropped, and
+// generic words (fc / sc / football club / soccer club / junior etc.)
+// stripped, so "Berwick City Soccer Club" and "Berwick City SC" line up.
+function clubKey(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w && !["fc", "sc", "jfc", "jsc", "afc", "football", "soccer", "club", "inc", "the"].includes(w))
+    .join(" ");
+}
+
 function emailDomain(e: string | null | undefined) {
   return (e ?? "").split("@")[1]?.trim().toLowerCase() ?? "";
 }
@@ -276,7 +289,16 @@ function Club2CoachAdmin() {
   // Contact line shown on vacancy cards: the club's email on file, a copy
   // button, and a check of the poster's sign-up email domain against it.
   function renderClubContact(v: Club2CoachClubVacancy) {
-    const c = clubRows.find((r) => r.name === v.club_name);
+    // Exact name first; then the loose key; then, only if it's unambiguous,
+    // one key containing the other (e.g. "Altona Magic" vs "Altona Magic SC").
+    const key = clubKey(v.club_name);
+    const c =
+      clubRows.find((r) => r.name === v.club_name) ??
+      clubRows.find((r) => clubKey(r.name) === key) ??
+      (() => {
+        const hits = key.length >= 6 ? clubRows.filter((r) => { const k = clubKey(r.name); return k.includes(key) || key.includes(k); }) : [];
+        return hits.length === 1 ? hits[0] : undefined;
+      })();
     if (!c || !c.email) {
       return <p className="text-xs italic text-gray-400">No club email on file</p>;
     }
