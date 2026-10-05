@@ -1623,3 +1623,14 @@ create policy "mentor evidence: owner or admin can delete"
       or (storage.foldername(name))[1] = my_person_id()::text
     )
   );
+
+-- ---------------------------------------------------------
+-- CLUB CONTACTS: admin-only outreach emails per club (kept out of `clubs`
+-- so ordinary authenticated users can't read them).
+-- ---------------------------------------------------------
+create table if not exists club_contacts (club_id uuid primary key references clubs(id) on delete cascade, email text not null, source text, confidence text, created_at timestamptz not null default now());
+alter table club_contacts enable row level security;
+drop policy if exists "admin can view club contacts" on club_contacts;
+create policy "admin can view club contacts" on club_contacts for select using (is_admin_caller());
+drop policy if exists "admin can manage club contacts" on club_contacts;
+create policy "admin can manage club contacts" on club_contacts for all using (is_admin_caller()) with check (is_admin_caller());
