@@ -1634,3 +1634,7 @@ drop policy if exists "admin can view club contacts" on club_contacts;
 create policy "admin can view club contacts" on club_contacts for select using (is_admin_caller());
 drop policy if exists "admin can manage club contacts" on club_contacts;
 create policy "admin can manage club contacts" on club_contacts for all using (is_admin_caller()) with check (is_admin_caller());
+
+-- Outreach tracking on club_contacts: when an admin last marked the club
+-- as contacted, and a permanent opt-out flag.
+alter table club_contacts add column if not exists contacted_at timestamptz, add column if not exists do_not_contact boolean not null default false;

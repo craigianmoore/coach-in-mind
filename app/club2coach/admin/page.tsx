@@ -30,6 +30,19 @@ interface ClubContactRow {
   email: string | null;
   source: string | null;
   confidence: string | null;
+  contacted_at: string | null;
+  do_not_contact: boolean;
+}
+
+// Free-mail domains — a club volunteer signing up with one of these isn't
+// "wrong", but it can't be checked against the club's own domain.
+const FREE_MAIL_DOMAINS = new Set([
+  "gmail.com", "hotmail.com", "outlook.com", "yahoo.com", "yahoo.com.au", "bigpond.com",
+  "bigpond.net.au", "live.com.au", "live.com", "icloud.com", "optusnet.com.au", "hotmail.com.au", "protonmail.com",
+]);
+
+function emailDomain(e: string | null | undefined) {
+  return (e ?? "").split("@")[1]?.trim().toLowerCase() ?? "";
 }
 
 // Minimal local shape for the new platform_settings singleton table —
@@ -84,7 +97,7 @@ function Club2CoachAdmin() {
   const [clubRows, setClubRows] = useState<ClubContactRow[]>([]);
   const [clubSearch, setClubSearch] = useState("");
   const [clubStateFilter, setClubStateFilter] = useState("all");
-  const [clubEmailFilter, setClubEmailFilter] = useState<"all" | "with" | "without">("all");
+  const [clubEmailFilter, setClubEmailFilter] = useState<"all" | "with" | "without" | "uncontacted">("all");
   const [copiedClubId, setCopiedClubId] = useState<string | null>(null);
 
   // Copies a ready-to-paste email blurb introducing Coach In Mind — logo,
@@ -184,6 +197,7 @@ function Club2CoachAdmin() {
     // missing (e.g. the migration hasn't run yet) — fail open to "on"
     // rather than silently disabling card payments platform-wide.
     setPlatformSettings((ps as PlatformSettings | null) ?? { stripe_payments_enabled: true });
+    loadClubContacts();
     setLoading(false);
   }
 
@@ -218,20 +232,34 @@ function Club2CoachAdmin() {
   async function loadClubContacts() {
     const [{ data: cl }, { data: cc }] = await Promise.all([
       supabase.from("clubs").select("id,name,state").order("name", { ascending: true }),
-      supabase.from("club_contacts").select("club_id,email,source,confidence"),
+      supabase.from("club_contacts").select("club_id,email,source,confidence,contacted_at,do_not_contact"),
     ]);
-    const byClub = new Map<string, { email: string; source: string | null; confidence: string | null }>();
-    ((cc as { club_id: string; email: string; source: string | null; confidence: string | null }[]) ?? []).forEach((c) =>
+    const byClub = new Map<string, Omit<ClubContactRow, "id" | "name" | "state"> & { club_id: string }>();
+    ((cc as (Omit<ClubContactRow, "id" | "name" | "state"> & { club_id: string })[]) ?? []).forEach((c) =>
       byClub.set(c.club_id, c)
     );
     setClubRows(
-      ((cl as { id: string; name: string; state: string }[]) ?? []).map((c) => ({
-        ...c,
-        email: byClub.get(c.id)?.email ?? null,
-        source: byClub.get(c.id)?.source ?? null,
-        confidence: byClub.get(c.id)?.confidence ?? null,
-      }))
+      ((cl as { id: string; name: string; state: string }[]) ?? []).map((c) => {
+        const k = byClub.get(c.id);
+        return {
+          ...c,
+          email: k?.email ?? null,
+          source: k?.source ?? null,
+          confidence: k?.confidence ?? null,
+          contacted_at: k?.contacted_at ?? null,
+          do_not_contact: k?.do_not_contact ?? false,
+        };
+      })
     );
+  }
+
+  async function updateClubContact(c: ClubContactRow, patch: { contacted_at?: string | null; do_not_contact?: boolean }) {
+    const { error } = await supabase.from("club_contacts").update(patch).eq("club_id", c.id);
+    if (error) {
+      setStatus(`Couldn't update ${c.name}: ${error.message}`);
+      return;
+    }
+    setClubRows((rows) => rows.map((r) => (r.id === c.id ? { ...r, ...patch } : r)));
   }
 
   async function copyClubEmail(c: ClubContactRow) {
@@ -243,6 +271,46 @@ function Club2CoachAdmin() {
     }
     setCopiedClubId(c.id);
     setTimeout(() => setCopiedClubId((cur) => (cur === c.id ? null : cur)), 1500);
+  }
+
+  // Contact line shown on vacancy cards: the club's email on file, a copy
+  // button, and a check of the poster's sign-up email domain against it.
+  function renderClubContact(v: Club2CoachClubVacancy) {
+    const c = clubRows.find((r) => r.name === v.club_name);
+    if (!c || !c.email) {
+      return <p className="text-xs italic text-gray-400">No club email on file</p>;
+    }
+    const posterEmail = people[v.person_id]?.email;
+    const pd = emailDomain(posterEmail);
+    const cd = emailDomain(c.email);
+    let check: { label: string; cls: string; title: string } | null = null;
+    if (pd && cd) {
+      if (pd === cd) check = { label: "Sign-up email matches club", cls: "bg-green-100 text-green-800", title: `${posterEmail} is on the club's own domain` };
+      else if (FREE_MAIL_DOMAINS.has(pd) || FREE_MAIL_DOMAINS.has(cd))
+        check = { label: "Personal email – can't verify", cls: "bg-gray-100 text-gray-600", title: `Poster signed up with ${posterEmail}; club's email on file is ${c.email}` };
+      else check = { label: "Domain differs – check", cls: "bg-amber-100 text-amber-800", title: `Poster signed up with ${posterEmail}; club's email on file is ${c.email}` };
+    }
+    return (
+      <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+        <span>{c.email}</span>
+        {c.do_not_contact ? (
+          <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-800">Do not contact</span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => copyClubEmail(c)}
+            className="rounded border border-gray-300 px-2 py-0.5 text-[10px] font-semibold text-gray-600 hover:bg-gray-50"
+          >
+            {copiedClubId === c.id ? "Copied!" : "Copy email"}
+          </button>
+        )}
+        {check && (
+          <span title={check.title} className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${check.cls}`}>
+            {check.label}
+          </span>
+        )}
+      </p>
+    );
   }
 
   useEffect(() => {
@@ -1134,6 +1202,7 @@ function Club2CoachAdmin() {
                       <p className="text-xs text-gray-500">
                         {v.role_being_recruited} · {v.competition_level}
                       </p>
+                      {renderClubContact(v)}
                       {v.notes && <p className="mt-1 text-xs italic text-gray-400">Notes: {v.notes}</p>}
                     </div>
                     <div className="flex items-center gap-2">
@@ -1264,6 +1333,7 @@ function Club2CoachAdmin() {
                         {vacancy.competition_level} · {vacancy.region} · Advertised{" "}
                         {new Date(vacancy.created_at).toLocaleDateString("en-GB")}
                       </p>
+                      {renderClubContact(vacancy)}
                     </div>
                     <div className="flex items-center gap-2">
                       {suggestedCount > 0 && (
@@ -1620,7 +1690,8 @@ function Club2CoachAdmin() {
         const visible = clubRows.filter(
           (c) =>
             (clubStateFilter === "all" || c.state === clubStateFilter) &&
-            (clubEmailFilter === "all" || (clubEmailFilter === "with" ? !!c.email : !c.email)) &&
+            (clubEmailFilter === "all" ||
+              (clubEmailFilter === "with" ? !!c.email : clubEmailFilter === "without" ? !c.email : !!c.email && !c.contacted_at && !c.do_not_contact)) &&
             (!q || c.name.toLowerCase().includes(q) || (c.email ?? "").toLowerCase().includes(q))
         );
         const states = Array.from(new Set(clubRows.map((c) => c.state))).sort();
@@ -1639,10 +1710,11 @@ function Club2CoachAdmin() {
                   <option key={st} value={st}>{st}</option>
                 ))}
               </select>
-              <select value={clubEmailFilter} onChange={(e) => setClubEmailFilter(e.target.value as "all" | "with" | "without")} className="rounded-lg border px-2 py-1.5 text-sm">
+              <select value={clubEmailFilter} onChange={(e) => setClubEmailFilter(e.target.value as "all" | "with" | "without" | "uncontacted")} className="rounded-lg border px-2 py-1.5 text-sm">
                 <option value="all">All clubs</option>
                 <option value="with">With email</option>
                 <option value="without">Without email</option>
+                <option value="uncontacted">Not yet contacted</option>
               </select>
               <p className="text-xs text-gray-500">
                 {visible.length} shown · {clubRows.filter((c) => c.email).length} of {clubRows.length} clubs have an email
@@ -1673,13 +1745,47 @@ function Club2CoachAdmin() {
                     )}
                   </div>
                   {c.email && (
-                    <button
-                      type="button"
-                      onClick={() => copyClubEmail(c)}
-                      className="flex-shrink-0 rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                    >
-                      {copiedClubId === c.id ? "Copied!" : "Copy email"}
-                    </button>
+                    <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-1">
+                      {c.contacted_at && (
+                        <span className="text-[10px] text-gray-400">
+                          Contacted {new Date(c.contacted_at).toLocaleDateString("en-GB")}
+                        </span>
+                      )}
+                      {c.do_not_contact ? (
+                        <button
+                          type="button"
+                          onClick={() => updateClubContact(c, { do_not_contact: false })}
+                          className="rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
+                        >
+                          Do not contact (undo)
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => copyClubEmail(c)}
+                            className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                          >
+                            {copiedClubId === c.id ? "Copied!" : "Copy email"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateClubContact(c, { contacted_at: c.contacted_at ? null : new Date().toISOString() })}
+                            className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                          >
+                            {c.contacted_at ? "Unmark contacted" : "Mark contacted"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateClubContact(c, { do_not_contact: true })}
+                            className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-400 hover:bg-gray-50"
+                            title="Opted out — never email this club"
+                          >
+                            Do not contact
+                          </button>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}
