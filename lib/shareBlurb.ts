@@ -22,6 +22,7 @@ export function buildShareBlurb(origin: string) {
   <p>Have a look here: <a href="${url}" style="color: #191B41; font-weight: bold;">${url}</a></p>
   <p style="margin-top: 20px;">Kind regards,<br/>The Coach In Mind Team</p>
   <img src="${logoUrl}" alt="Coach In Mind" width="110" style="display:block; margin-top: 18px;" />
+  <p style="margin-top: 18px; font-size: 12px; color: #6B7280;">Sent by Coach In Mind (${origin.replace(/^https?:\/\//, "")}). Not relevant to you? Just reply with "unsubscribe" and we won't contact you again.</p>
 </div>`.trim();
 
   const text = [
@@ -36,6 +37,8 @@ export function buildShareBlurb(origin: string) {
     "",
     "Kind regards,",
     "The Coach In Mind Team",
+    "",
+    `Sent by Coach In Mind (${origin.replace(/^https?:\/\//, "")}). Not relevant to you? Just reply with "unsubscribe" and we won't contact you again.`,
   ].join("\n");
 
   return { html, text };

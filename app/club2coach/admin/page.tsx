@@ -111,6 +111,8 @@ function Club2CoachAdmin() {
   const [clubSearch, setClubSearch] = useState("");
   const [clubStateFilter, setClubStateFilter] = useState("all");
   const [clubEmailFilter, setClubEmailFilter] = useState<"all" | "with" | "without" | "uncontacted">("all");
+  const [clubConfFilter, setClubConfFilter] = useState<"all" | "high" | "medium">("all");
+  const [copiedAllEmails, setCopiedAllEmails] = useState(false);
   // Promos tab — free-first claims and referral rewards (read-only audit).
   const [freeClaims, setFreeClaims] = useState<{ key: string; listing_table: string; claimed_at: string }[]>([]);
   const [rewards, setRewards] = useState<
@@ -1729,9 +1731,26 @@ function Club2CoachAdmin() {
             (clubStateFilter === "all" || c.state === clubStateFilter) &&
             (clubEmailFilter === "all" ||
               (clubEmailFilter === "with" ? !!c.email : clubEmailFilter === "without" ? !c.email : !!c.email && !c.contacted_at && !c.do_not_contact)) &&
+            (clubConfFilter === "all" || c.confidence === clubConfFilter) &&
             (!q || c.name.toLowerCase().includes(q) || (c.email ?? "").toLowerCase().includes(q))
         );
         const states = Array.from(new Set(clubRows.map((c) => c.state))).sort();
+        const stateSummary = states.map((st) => {
+          const inState = clubRows.filter((c) => c.state === st);
+          return `${st} ${inState.filter((c) => c.email).length}/${inState.length}`;
+        });
+        const copyableEmails = Array.from(
+          new Set(visible.filter((c) => c.email && !c.do_not_contact).map((c) => (c.email as string).trim()))
+        );
+        async function copyAllVisible() {
+          try {
+            await navigator.clipboard.writeText(copyableEmails.join("; "));
+            setCopiedAllEmails(true);
+            setTimeout(() => setCopiedAllEmails(false), 2000);
+          } catch {
+            window.prompt("Copy these emails (use BCC):", copyableEmails.join("; "));
+          }
+        }
         return (
           <div className="mt-6">
             <div className="flex flex-wrap items-center gap-2">
@@ -1753,10 +1772,25 @@ function Club2CoachAdmin() {
                 <option value="without">Without email</option>
                 <option value="uncontacted">Not yet contacted</option>
               </select>
+              <select value={clubConfFilter} onChange={(e) => setClubConfFilter(e.target.value as "all" | "high" | "medium")} className="rounded-lg border px-2 py-1.5 text-sm">
+                <option value="all">Any confidence</option>
+                <option value="high">High confidence only</option>
+                <option value="medium">Medium confidence only</option>
+              </select>
+              <button
+                type="button"
+                disabled={copyableEmails.length === 0}
+                onClick={copyAllVisible}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                title="Copies the shown clubs' emails (excluding Do not contact) for pasting into BCC"
+              >
+                {copiedAllEmails ? "Copied!" : `Copy ${copyableEmails.length} emails (BCC)`}
+              </button>
               <p className="text-xs text-gray-500">
                 {visible.length} shown · {clubRows.filter((c) => c.email).length} of {clubRows.length} clubs have an email
               </p>
             </div>
+            <p className="mt-2 text-[11px] text-gray-400">With email / clubs: {stateSummary.join(" · ")}</p>
             <div className="mt-3 flex flex-col gap-1">
               {visible.map((c) => (
                 <div key={c.id} className="flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2">
