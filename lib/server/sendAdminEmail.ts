@@ -18,8 +18,9 @@ export async function sendAdminEmail(subject: string, text: string): Promise<{ o
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Coach In Mind <onboarding@resend.dev>",
+        from: "Coach In Mind <hello@coachinmind.com.au>",
         to: "coachinmindcim@gmail.com",
+        reply_to: "coachinmindcim@gmail.com",
         subject: `Coach In Mind — ${subject}`,
         text,
       }),

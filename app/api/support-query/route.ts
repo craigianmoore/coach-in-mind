@@ -25,7 +25,7 @@ export async function POST(req: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Coach In Mind <onboarding@resend.dev>",
+        from: "Coach In Mind <hello@coachinmind.com.au>",
         to: "coachinmindcim@gmail.com",
         reply_to: email || undefined,
         subject: `Coach In Mind — new query from ${name || "someone"}`,
