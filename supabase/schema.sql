@@ -1868,3 +1868,57 @@ create trigger c2m_coach_referral_apply after update of paid on coach2mentor_coa
 alter table clubs drop constraint if exists clubs_name_key;
 alter table clubs drop constraint if exists clubs_name_state_key;
 alter table clubs add constraint clubs_name_state_key unique (name, state);
+
+-- Gifts free introductions to a Club2Coach coach listing or club vacancy.
+-- Unpaid listings are activated at $0; already-paid ones get extra
+-- introductions added. Recorded in payments at $0 for the audit trail.
+create or replace function gift_club2coach_introductions(listing_table text, target_listing_id uuid, extra integer)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  admin_person_id uuid;
+  target_person_id uuid;
+  listing_role text;
+begin
+  if not is_admin_caller() then
+    raise exception 'Admin session required';
+  end if;
+  if extra is null or extra < 1 or extra > 20 then
+    raise exception 'Gift between 1 and 20 introductions';
+  end if;
+
+  select id into admin_person_id from people where user_id = auth.uid();
+
+  if listing_table = 'club2coach_coach_listings' then
+    listing_role := 'coach';
+    select person_id into target_person_id from club2coach_coach_listings where id = target_listing_id;
+    update club2coach_coach_listings
+    set included_introductions = case when paid then coalesce(included_introductions, 0) + extra else extra end,
+        paid_at = coalesce(paid_at, now()),
+        price_aud = coalesce(price_aud, 0),
+        paid = true,
+        status = 'active'
+    where id = target_listing_id;
+  elsif listing_table = 'club2coach_club_vacancies' then
+    listing_role := 'club';
+    select person_id into target_person_id from club2coach_club_vacancies where id = target_listing_id;
+    update club2coach_club_vacancies
+    set included_introductions = case when paid then coalesce(included_introductions, 0) + extra else extra end,
+        paid_at = coalesce(paid_at, now()),
+        price_aud = coalesce(price_aud, 0),
+        paid = true,
+        status = 'active',
+        is_charity = is_charity or not paid
+    where id = target_listing_id;
+  else
+    raise exception 'Unknown listing table';
+  end if;
+
+  insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id, notes)
+  values (target_person_id, 'club2coach', listing_role, listing_table, target_listing_id, 0, admin_person_id,
+          'Complimentary — gifted ' || extra || ' introduction(s), not a real payment');
+end;
+$$;

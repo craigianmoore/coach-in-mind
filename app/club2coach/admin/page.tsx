@@ -489,6 +489,34 @@ function Club2CoachAdmin() {
     await loadAll();
   }
 
+  async function giftIntroductions(table: "club2coach_coach_listings" | "club2coach_club_vacancies", id: string, who: string, preset?: number) {
+    let n = preset;
+    if (!n) {
+      const raw = window.prompt(`Gift how many free introductions to ${who}? (1-20)`, "1");
+      if (raw === null) return;
+      n = Number(raw);
+    }
+    if (!Number.isInteger(n) || n < 1 || n > 20) {
+      setStatus("Enter a whole number from 1 to 20.");
+      return;
+    }
+    if (!window.confirm(`Gift ${n} free introduction${n === 1 ? "" : "s"} to ${who}? Recorded as $0 — not a real payment.`)) return;
+    supabase.rpc("refresh_admin_session");
+    setStatus(null);
+    const { error } = await supabase.rpc("gift_club2coach_introductions", {
+      listing_table: table,
+      target_listing_id: id,
+      extra: n,
+    });
+    if (error) {
+      setStatus(error.message);
+      return;
+    }
+    setStatus(`Gifted ${n} free introduction${n === 1 ? "" : "s"} to ${who}.`);
+    await loadAll();
+    if (table === "club2coach_club_vacancies") await runAutoMatchSweep([id]);
+  }
+
   async function markVacancyPaid(id: string) {
     supabase.rpc("refresh_admin_session"); // keep the idle-timeout session alive
     setStatus(null);
@@ -1287,6 +1315,14 @@ function Club2CoachAdmin() {
                         Mark paid
                       </button>
                       <button
+                        onClick={() =>
+                          giftIntroductions("club2coach_coach_listings", l.id, people[l.person_id]?.full_name ?? "this coach", coachPackage[l.id] ?? l.included_introductions ?? 1)
+                        }
+                        className="rounded-lg border border-purple-200 px-3 py-1.5 text-sm font-semibold text-purple-700 hover:bg-purple-50"
+                      >
+                        Gift free
+                      </button>
+                      <button
                         onClick={() => deleteListing("club2coach_coach_listings", l.id)}
                         className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
                       >
@@ -1743,12 +1779,20 @@ function Club2CoachAdmin() {
                       </button>
                     </div>
                   ) : (
+                    <div className="flex gap-2">
+                    <button
+                      onClick={() => giftIntroductions("club2coach_coach_listings", l.id, people[l.person_id]?.full_name ?? "this coach")}
+                      className="rounded-lg border border-purple-200 px-3 py-1.5 text-sm font-semibold text-purple-700 hover:bg-purple-50"
+                    >
+                      Gift intros
+                    </button>
                     <button
                       onClick={() => deleteListing("club2coach_coach_listings", l.id)}
                       className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
                     >
                       Delete
                     </button>
+                    </div>
                   )}
                 </div>
               ))}
@@ -1791,12 +1835,20 @@ function Club2CoachAdmin() {
                       </button>
                     </div>
                   ) : (
-                    <button
-                      onClick={() => deleteListing("club2coach_club_vacancies", v.id)}
-                      className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => giftIntroductions("club2coach_club_vacancies", v.id, v.club_name)}
+                        className="rounded-lg border border-purple-200 px-3 py-1.5 text-sm font-semibold text-purple-700 hover:bg-purple-50"
+                      >
+                        Gift intros
+                      </button>
+                      <button
+                        onClick={() => deleteListing("club2coach_club_vacancies", v.id)}
+                        className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
