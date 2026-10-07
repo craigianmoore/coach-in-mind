@@ -11,14 +11,14 @@ const TEMPLATES: Record<string, { subject: string; body: (d: string) => string }
       `Thanks for signing up. Your account is ready — sign in any time to create a coaching listing or advertise a vacancy:\n${APP_URL}`,
   },
   coach_listing: {
-    subject: "We've received your coaching role submission",
+    subject: "Your coaching listing is saved — one step left to activate it",
     body: (d) =>
-      `We've received your submission for a coaching role${d ? ` (${d})` : ""}.\n\nWe'll match you with clubs looking for coaches like you, and let you know by email when you've been matched. You can review or edit your listing at any time:\n${APP_URL}/club2coach/coach`,
+      `We've received your submission for a coaching role${d ? ` (${d})` : ""}, and it's saved.\n\nIt isn't active yet: your listing is only included in matching once payment is confirmed. You can pay by card (or use any free introduction credit) from your listing page:\n${APP_URL}/club2coach/coach\n\nAs soon as it's active we'll start matching you with clubs, and email you when you've been matched.`,
   },
   vacancy: {
-    subject: "We've received your coaching vacancy",
+    subject: "Your coaching vacancy is saved — one step left to activate it",
     body: (d) =>
-      `We've received your vacancy${d ? ` (${d})` : ""}.\n\nOnce it's active we'll introduce you to suitable coaches, and let you know by email when you've been matched. You can review your vacancy at any time:\n${APP_URL}/club2coach/club`,
+      `We've received your vacancy${d ? ` (${d})` : ""}, and it's saved.\n\nIt isn't active yet: your vacancy is only included in matching once payment is confirmed. You can pay by card (or use any free introduction credit) from your vacancy page:\n${APP_URL}/club2coach/club\n\nAs soon as it's active we'll start matching coaches to it, and email you when you've been matched.`,
   },
   coach_profile: {
     subject: "We've received your Coach 2 Mentor profile",
