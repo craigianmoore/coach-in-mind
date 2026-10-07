@@ -2440,3 +2440,158 @@ language sql stable security definer set search_path = public as $$
   where is_admin_caller() or auth.role() = 'service_role' or ent.person_id = my_person_id();
 $$;
 grant execute on function coach_pool_totals() to authenticated, anon, service_role;
+-- ===== Credit bank + Activate (replaces the earlier pooled-credit and founding functions) =====
+alter table club2coach_coach_listings add column if not exists activated_at timestamptz;
+alter table club2coach_coach_listings add column if not exists active_until timestamptz;
+alter table club2coach_coach_listings add column if not exists activations_used int not null default 0;
+alter table coach2mentor_coach_listings add column if not exists activated_at timestamptz;
+alter table coach2mentor_coach_listings add column if not exists active_until timestamptz;
+alter table coach2mentor_coach_listings add column if not exists activations_used int not null default 0;
+
+-- Listings already live get a fresh clock so nothing drops out of matching today.
+update club2coach_coach_listings set activated_at = now(), active_until = now() + interval '60 days', activations_used = 1
+ where paid and status = 'active' and deleted_at is null and active_until is null;
+update coach2mentor_coach_listings set activated_at = now(), active_until = now() + interval '180 days', activations_used = 1
+ where paid and status = 'active' and deleted_at is null and active_until is null;
+
+drop function if exists claim_founding_introduction(text, uuid, boolean);
+drop function if exists founding_reminders_due();
+drop function if exists expire_founding_introductions();
+
+-- Credit bank per coach = credits bought/gifted/referred on either listing minus credits already spent.
+create or replace function coach_pool_totals()
+returns table(person_id uuid, entitled int, used int, any_paid boolean)
+language sql stable security definer set search_path = public as $$
+  with l as (
+    select person_id, paid, status, included_introductions, activations_used from club2coach_coach_listings
+    union all
+    select person_id, paid, status, included_introductions, activations_used from coach2mentor_coach_listings
+  )
+  select l.person_id,
+         coalesce(sum(coalesce(l.included_introductions,0)) filter (where l.paid and l.status <> 'refunded'),0)::int,
+         coalesce(sum(l.activations_used) filter (where l.paid and l.status <> 'refunded'),0)::int,
+         coalesce(bool_or(l.paid and l.status <> 'refunded'),false)
+  from l
+  where is_admin_caller() or auth.role() = 'service_role' or l.person_id = my_person_id()
+  group by l.person_id;
+$$;
+grant execute on function coach_pool_totals() to authenticated, anon, service_role;
+
+-- The Activate button. Spends ONE credit (or the one-off founding credit) to put this listing
+-- into matching: 60 days on Club 2 Coach, 180 days on Coach 2 Mentor.
+create or replace function activate_coach_listing(target_table text, target_listing_id uuid, use_founding boolean default false, dry_run boolean default false)
+returns jsonb language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+declare
+  me uuid := my_person_id();
+  p people%rowtype; s record; keys text[];
+  l_person uuid; l_deleted timestamptz; l_status text; l_until timestamptz; l_paid boolean;
+  bank int; days int; src text; prod text; founding_ok boolean := false; new_until timestamptz;
+begin
+  if me is null then return jsonb_build_object('activated', false, 'reason', 'not_signed_in'); end if;
+  if target_table not in ('club2coach_coach_listings', 'coach2mentor_coach_listings') then
+    return jsonb_build_object('activated', false, 'reason', 'not_eligible');
+  end if;
+  perform pg_advisory_xact_lock(60060);
+  select * into p from people where id = me;
+  execute format('select person_id, deleted_at, status, active_until, paid from %I where id = $1', target_table)
+    into l_person, l_deleted, l_status, l_until, l_paid using target_listing_id;
+  if l_person is null or l_person <> me or l_deleted is not null or l_status in ('placed', 'refunded') then
+    return jsonb_build_object('activated', false, 'reason', 'not_eligible');
+  end if;
+  if l_status = 'active' and l_until is not null and l_until > now() then
+    return jsonb_build_object('activated', false, 'reason', 'already_active');
+  end if;
+
+  select coalesce(sum(coalesce(included_introductions,0) - activations_used),0)::int into bank from (
+    select included_introductions, activations_used from club2coach_coach_listings where person_id = me and paid and status <> 'refunded'
+    union all
+    select included_introductions, activations_used from coach2mentor_coach_listings where person_id = me and paid and status <> 'refunded'
+  ) x;
+  days := case when target_table = 'club2coach_coach_listings' then 60 else 180 end;
+  prod := case when target_table = 'club2coach_coach_listings' then 'club2coach' else 'coach2mentor' end;
+
+  select * into s from founding_status();
+  keys := array['coach-email:' || norm_email(p.email)];
+  if norm_mobile(p.mobile) <> '' then keys := keys || ('coach-mobile:' || norm_mobile(p.mobile)); end if;
+  founding_ok := s.enabled and s.used < s.lim
+    and not exists (select 1 from free_first_claims where key = any(keys))
+    and not exists (select 1 from club2coach_coach_listings where person_id = me and founding_member)
+    and not exists (select 1 from coach2mentor_coach_listings where person_id = me and founding_member);
+
+  if dry_run then
+    return jsonb_build_object('eligible', bank >= 1 or founding_ok, 'bank', bank, 'founding_available', founding_ok, 'days', days);
+  end if;
+
+  if bank >= 1 and not use_founding then src := 'credit';
+  elsif founding_ok and (use_founding or bank < 1) then src := 'founding';
+  else return jsonb_build_object('activated', false, 'reason', 'no_credits', 'founding_available', founding_ok);
+  end if;
+  new_until := now() + make_interval(days => days);
+
+  if src = 'founding' then
+    insert into free_first_claims (key, person_id, listing_table, listing_id)
+    select k, me, target_table, target_listing_id from unnest(keys) as k on conflict do nothing;
+    -- founding credit lands on this listing (replacing an unpaid listing's "requested package" number), then is spent below
+    execute format('update %I set included_introductions = case when paid then coalesce(included_introductions,0) + 1 else 1 end, paid = true, paid_at = coalesce(paid_at, now()), price_aud = coalesce(price_aud, 0), founding_member = true where id = $1', target_table) using target_listing_id;
+    insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id, notes)
+    values (me, prod, 'coach', target_table, target_listing_id, 0, me, 'Founding member — free credit (not a real payment)');
+  elsif not l_paid then
+    -- credits live on the coach's other listing; this one just becomes "live"
+    execute format('update %I set paid = true, paid_at = now(), price_aud = 0, included_introductions = 0 where id = $1', target_table) using target_listing_id;
+  end if;
+
+  execute format('update %I set activations_used = activations_used + 1, activated_at = now(), active_until = $2, status = ''active'', founding_reminder_sent_at = null where id = $1', target_table)
+    using target_listing_id, new_until;
+  return jsonb_build_object('activated', true, 'source', src, 'active_until', new_until);
+end;
+$$;
+grant execute on function activate_coach_listing(text, uuid, boolean, boolean) to authenticated;
+
+-- Daily (service role): remind a week before an activation ends, once per activation.
+create or replace function coach_expiry_reminders_due()
+returns table(reminder_person_id uuid, reminder_product text, reminder_expires_at timestamptz)
+language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+begin
+  return query
+  with a as (
+    update club2coach_coach_listings l set founding_reminder_sent_at = now()
+    where l.status = 'active' and l.founding_reminder_sent_at is null and l.active_until > now() and l.active_until <= now() + interval '7 days'
+    returning l.person_id as pid, 'club2coach'::text as prod, l.active_until as exp
+  ), b as (
+    update coach2mentor_coach_listings l set founding_reminder_sent_at = now()
+    where l.status = 'active' and l.founding_reminder_sent_at is null and l.active_until > now() and l.active_until <= now() + interval '7 days'
+    returning l.person_id as pid, 'coach2mentor'::text as prod, l.active_until as exp
+  )
+  select pid, prod, exp from a union all select pid, prod, exp from b;
+end;
+$$;
+revoke all on function coach_expiry_reminders_due() from public, anon, authenticated;
+grant execute on function coach_expiry_reminders_due() to service_role;
+
+-- Daily (service role): activations whose window has ended leave matching; that credit is gone.
+create or replace function expire_coach_activations()
+returns table(expired_person_id uuid, expired_product text)
+language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+begin
+  return query
+  with due as (
+    update club2coach_coach_listings l set status = 'expired'
+    where l.status = 'active' and l.active_until is not null and l.active_until <= now()
+    returning l.id, l.person_id
+  ), clr as (
+    delete from club2coach_shares s using due where s.coach_listing_id = due.id and s.status = 'suggested'
+  )
+  select due.person_id, 'club2coach'::text from due;
+  return query
+  with due as (
+    update coach2mentor_coach_listings l set status = 'expired'
+    where l.status = 'active' and l.active_until is not null and l.active_until <= now()
+    returning l.id, l.person_id
+  ), clr as (
+    delete from coach2mentor_requests r using due where r.coach_listing_id = due.id and r.status = 'suggested'
+  )
+  select due.person_id, 'coach2mentor'::text from due;
+end;
+$$;
+revoke all on function expire_coach_activations() from public, anon, authenticated;
+grant execute on function expire_coach_activations() to service_role;

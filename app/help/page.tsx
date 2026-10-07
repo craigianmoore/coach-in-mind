@@ -91,7 +91,7 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">What am I actually paying for?</p>
               <p className="mt-1 text-gray-600">
-                A package of introductions (1–3 for coaches and mentors, 1–5 for clubs) or, for
+                A package of credits (1–3 for coaches and mentors, 1–5 for clubs; a coach credit = one application, a club credit = one advert) or, for
                 mentors, a capacity package based on how many mentees you can take on. You're
                 paying for a curated introduction, not a guaranteed outcome — what happens after
                 you're introduced is between you and the other party.
@@ -111,28 +111,29 @@ export default function HelpPage() {
               <p className="mt-1 text-gray-600">
                 For clubs on Club 2 Coach, if a role isn't filled within the one-month
                 contact window (which starts when your first coach is shared with you), the vacancy simply expires — you can advertise it again. If you run
-                out of introductions before finding the right fit, you can top up for more
-                directly from your own profile or listing page at any time.
+                out of introductions before finding the right fit, you can buy more
+                credits directly from your own profile or listing page at any time.
               </p>
             </div>
             <div>
               <p className="font-medium text-gray-800">What's the founding member offer?</p>
               <p className="mt-1 text-gray-600">
-                The first 60 coaches to save a listing can claim one free introduction, on either
+                The first 60 coaches to save a listing get one free credit, to use on either
                 Club 2 Coach or Coach 2 Mentor (you choose — one per coach, and not for mentor
-                profiles). Press Activate on your coach page when you're ready to start looking.
-                It's valid for 60 days from that day, we'll email you a week before it expires, and
-                it expires if it isn't used. Once all 60 places are taken the offer ends. Clubs
+                profiles). Press Activate on your coach page when you're ready to start looking; the
+                clock starts then (60 days on Club 2 Coach, 180 on Coach 2 Mentor) and we email you
+                a week before it ends. Once all 60 places are taken the offer ends. Clubs
                 have their own free first introduction.
               </p>
             </div>
             <div>
               <p className="font-medium text-gray-800">Do my credits expire?</p>
               <p className="mt-1 text-gray-600">
-                Coach credits don't expire — credits you buy, are gifted or earn through referrals
-                stay on your listing until they're used, and a coach's application stays live
-                until it's filled or deleted (the free founding introduction is the one
-                exception: it expires 60 days after you activate it). Club credits belong to the vacancy: it has a
+                Credits in your bank never expire, but a used credit does. One credit = one
+                application: press Activate and your listing is in matching for 60 days on Club 2
+                Coach (180 days on Coach 2 Mentor), then it ends and that credit is gone — to
+                re-apply you use or buy another. To look for both a club and a mentor you activate
+                both, one credit each; your credits are one bank shared across the two. Club credits belong to the vacancy: it has a
                 one-month contact window that starts when your first coach is shared with you, and
                 if the role isn't filled it expires and any unused introductions don't carry over —
                 to re-advertise, you use a new credit.
@@ -151,7 +152,7 @@ export default function HelpPage() {
               <p className="font-medium text-gray-800">How do referral rewards work?</p>
               <p className="mt-1 text-gray-600">
                 Share your referral code or link. When someone you refer makes their first payment
-                you earn 1 free introduction (2 if it's a club), up to 6 in total. You need a paid
+                you earn 1 free credit (2 if it's a club), up to 6 in total. You need a paid
                 or founding listing to receive them, and a club can only earn one referral reward.
               </p>
             </div>

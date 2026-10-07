@@ -52,6 +52,9 @@ export interface Club2CoachCoachListing {
   paid: boolean;
   founding_member?: boolean;
   founding_expires_at?: string | null;
+  activated_at?: string | null; // when the coach last pressed Activate (spent a credit)
+  active_until?: string | null; // in matching until then (60 days C2C / 180 days C2M after activation)
+  activations_used?: number; // credits spent on this listing, lifetime
   paid_at: string | null;
   price_aud: number | null;
   included_introductions: number | null; // package size (1, 2, or 3) — how many club introductions this coach has paid for
@@ -146,6 +149,9 @@ export interface Coach2MentorCoachListing {
   agreed_to_terms: boolean; // Terms of Service / Privacy Policy consent — required before saving
   founding_member?: boolean;
   founding_expires_at?: string | null;
+  activated_at?: string | null; // when the coach last pressed Activate (spent a credit)
+  active_until?: string | null; // in matching until then (60 days C2C / 180 days C2M after activation)
+  activations_used?: number; // credits spent on this listing, lifetime
   paid: boolean;
   paid_at: string | null;
   price_aud: number | null;

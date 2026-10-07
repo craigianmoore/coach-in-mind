@@ -1,6 +1,6 @@
 "use client";
 
-import { loadCoachPool, listingMatchable, poolRemaining, type Pool } from "@/lib/coachPool";
+import { isActivated } from "@/lib/coachPool";
 import { useEffect, useState } from "react";
 import PinGate from "@/components/PinGate";
 import AdminOverviewC2M from "@/components/AdminOverviewC2M";
@@ -66,7 +66,6 @@ function Coach2MentorAdmin() {
   const [mentorListings, setMentorListings] = useState<Coach2MentorMentorListing[]>([]);
   const [requests, setRequests] = useState<Coach2MentorRequest[]>([]);
   const [people, setPeople] = useState<Record<string, Person>>({});
-  const [coachPool, setCoachPool] = useState<Pool>(new Map());
   const [settings, setSettings] = useState<AdminSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [shareCopied, setShareCopied] = useState(false);
@@ -112,7 +111,6 @@ function Coach2MentorAdmin() {
       supabase.from("platform_settings").select("*").maybeSingle(),
     ]);
 
-    setCoachPool(await loadCoachPool(supabase));
     setCoachListings((cl as Coach2MentorCoachListing[]) ?? []);
     setMentorListings((ml as Coach2MentorMentorListing[]) ?? []);
     setRequests((rq as Coach2MentorRequest[]) ?? []);
@@ -279,8 +277,8 @@ function Coach2MentorAdmin() {
     return requests.filter((r) => r.mentor_listing_id === mentorId && r.status === "accepted").length;
   }
 
-  // Credits are one shared pool per coach across Club 2 Coach and Coach 2 Mentor.
-  const activeCoaches = coachListings.filter((l) => listingMatchable(l, coachPool));
+  // A coach is matchable only while their activation window is open (Activate button).
+  const activeCoaches = coachListings.filter((l) => isActivated(l));
   const activeMentors = mentorListings.filter((m) => {
     if (!m.paid || m.deleted_at || m.status !== "active" || !m.currently_open) return false;
     if (m.max_mentees != null && mentorAcceptedCount(m.id) >= m.max_mentees) return false;
@@ -296,8 +294,10 @@ function Coach2MentorAdmin() {
       const pendingCount = rows.filter((r) => r.status === "pending").length;
       const acceptedCount = rows.filter((r) => r.status === "accepted").length;
       const usedSlots = suggestedCount + pendingCount + acceptedCount;
-      const entitled: number | null = coachPool.get(coach.person_id)?.entitled ?? null;
-      const remaining: number | null = poolRemaining(coachPool, coach.person_id);
+      // No per-coach introduction count any more: the activation window limits a
+      // coach, and suggestions are paced to 3 open at a time.
+      const entitled: number | null = null;
+      const remaining: number | null = Math.max(0, 3 - (suggestedCount + pendingCount));
       const coachWeights = coach.personal_weights ?? weights;
       const requestedMentorIds = new Set(rows.map((r) => r.mentor_listing_id));
       const candidates = coachWeights
@@ -696,9 +696,9 @@ function Coach2MentorAdmin() {
                             : "bg-blue-50 text-blue-800"
                         }`}
                       >
-                        {entitled != null
-                          ? `${entitled - (remaining ?? 0)} of ${entitled} matched`
-                          : "no package set"}
+                        {coach.active_until
+                          ? `active until ${new Date(coach.active_until).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`
+                          : "not activated"}
                       </span>
                     </div>
                   </div>

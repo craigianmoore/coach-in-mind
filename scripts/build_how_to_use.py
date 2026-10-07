@@ -168,30 +168,31 @@ story.append(CondPageBreak(40 * mm))
 story.append(Paragraph("If you're a coach", h3_style))
 story.append(bullets([
     "Set up a profile describing the kind of role you're looking for.",
-    "Choose a package of 1–3 club introductions, or — if you're one of the first 60 coaches — use "
-    "your free founding introduction (see below).",
-    "<b>You decide when you're looking.</b> A free founding introduction only starts when you press "
-    "Activate on your coach page.",
-    "You'll get an email as soon as your listing is saved. It isn't active yet — it only joins "
-    "matching once payment is confirmed (or a free or gifted introduction is applied).",
-    "Once it's active, Coach In Mind matches you against active vacancies and introduces "
+    "Buy a package of 1–3 credits, or — if you're one of the first 60 coaches — use your free "
+    "founding credit (see below). Credits go into your bank and never expire while they sit there.",
+    "<b>You decide when you're looking.</b> One credit = one application. Press <b>Activate</b> on "
+    "your coach page to spend a credit and start the clock: your listing is in matching for "
+    "<b>60 days</b> on Club 2 Coach (<b>180 days</b> on Coach 2 Mentor), then it ends and that credit "
+    "is used up. To be looked at again you activate with another credit.",
+    "To look for a club AND a mentor you activate both listings — one credit each. Your credits are "
+    "one bank shared across both services.",
+    "You'll get an email as soon as your listing is saved. It joins matching only once you activate "
+    "it, and we email you a week before it ends.",
+    "While it's active, Coach In Mind matches you against live vacancies and introduces "
     "you to your best-fitting clubs.",
     "When you're matched you'll get an email, and the club contact's name, email and mobile appear "
     "under \"Your introductions\" on your coach page — you can get in touch with them directly.",
-    "If none of your introductions lead to a role, you can top up for more from your own profile "
-    "page at any time.",
+    "If your 60 days end without a role, buy or use another credit and activate again.",
 ]))
 
 story.append(callout(
     "Founding member offer",
     [
-        "The first 60 coaches to save a listing can claim one free introduction — on either Club 2 "
+        "The first 60 coaches to save a listing get one free credit — to use on either Club 2 "
         "Coach or Coach 2 Mentor (you choose; it can't be used on a mentor profile). Press "
-        "<b>Activate</b> on your coach page when you're ready to start looking. The free introduction "
-        "is valid for 60 days from that day; we'll email you a week before it expires, and if it "
-        "hasn't been used by then it expires (you can still buy a package). It's one free "
-        "introduction per coach, and it ends once all 60 places are taken. Clubs keep their own free "
-        "first introduction.",
+        "<b>Activate</b> on your coach page when you're ready to start looking; the clock (60 days "
+        "Club 2 Coach, 180 days Coach 2 Mentor) starts then. It's one free credit per coach, and it "
+        "ends once all 60 places are taken. Clubs keep their own free first introduction.",
     ],
 ))
 story.append(Spacer(1, 4))
@@ -223,8 +224,9 @@ story.append(Paragraph("If you're a coach seeking a mentor", h3_style))
 story.append(bullets([
     "Set up a profile describing what you're looking for from mentoring, and set your own personal "
     "priorities (e.g. how much specialism overlap or availability matters to you).",
-    "Choose a package of 1–3 mentor introductions, or use your free founding introduction if you "
-    "are one of the first 60 coaches (one per coach, across both services).",
+    "Buy credits (1–3), or use your free founding credit if you are one of the first 60 coaches "
+    "(one per coach, across both services). Press <b>Activate</b> to spend one credit: your "
+    "listing is then in matching for 180 days.",
     "Coach In Mind reviews and suggests mentors matched to your profile and priorities.",
     "Once a suggested mentor is approved, they'll be asked to accept or decline — contact details "
     "are only shared once they accept.",
@@ -244,10 +246,11 @@ story.append(bullets([
 
 story.append(Paragraph("Credits, expiry and refunds", h2_style))
 story.append(bullets([
-    "<b>Coach credits don't expire</b> — credits a coach buys, is gifted or earns through referrals "
-    "stay on their listing until they're used, and a coach's application stays live until it's "
-    "filled or deleted. The one exception is the free founding introduction, which expires "
-    "60 days after activation if unused.",
+    "<b>Coach credits sit in a bank that never expires, but a used credit does.</b> One credit = "
+    "one application. When a coach presses Activate, that credit is spent and the listing is live "
+    "for 60 days (Club 2 Coach) or 180 days (Coach 2 Mentor); then it ends and the credit is gone. "
+    "To re-apply, use or buy another credit. Mentors have no clock — they buy credits to advertise "
+    "themselves to any coach who wants a mentor.",
     "<b>Club credits belong to the vacancy and lapse with it.</b> A club's vacancy stays open for "
     "one calendar month from when its first coach is shared, then expires unless it's filled. Any "
     "introductions not yet used on an expired vacancy don't carry over — to re-advertise, the club "

@@ -29,34 +29,35 @@ export async function GET(req: Request) {
 
   const supabase = createServiceClient();
 
-  // Founding introductions: remind a week before expiry, then expire unused
+  // Coach activations: remind a week before the window ends, then expire ended
   // ones (BEFORE matching, so an expired listing isn't matched).
   const linkFor = (prod: string) => `${APP_URL}/${prod === "coach2mentor" ? "coach2mentor" : "club2coach"}/coach`;
+  const nameFor = (prod: string) => (prod === "coach2mentor" ? "Coach 2 Mentor" : "Club 2 Coach");
   const emailFor = async (personId: string) => {
     const { data: p } = await supabase.from("people").select("full_name,email").eq("id", personId).maybeSingle();
     return p?.email ? { email: p.email, first: p.full_name?.trim().split(/\s+/)[0] || "there" } : null;
   };
 
-  const { data: reminders } = await supabase.rpc("founding_reminders_due");
+  const { data: reminders } = await supabase.rpc("coach_expiry_reminders_due");
   for (const row of (reminders as { reminder_person_id: string; reminder_product: string; reminder_expires_at: string }[] | null) ?? []) {
     const who = await emailFor(row.reminder_person_id);
     if (!who) continue;
     const when = new Date(row.reminder_expires_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
     await sendEmail({
       to: who.email,
-      subject: "Your free founding introduction expires in a week",
-      text: `Hi ${who.first},\n\nYour free founding introduction hasn't been used yet and expires on ${when}.\n\nIt's already active and in matching, so there's nothing to do — we're looking for your match. If it expires unused you can still choose a package from your listing page:\n${linkFor(row.reminder_product)}`,
+      subject: `Your ${nameFor(row.reminder_product)} listing ends in a week`,
+      text: `Hi ${who.first},\n\nYour ${nameFor(row.reminder_product)} listing is in matching until ${when}, then it ends and that credit is used up. There's nothing to do while it runs — we're looking for your match. If you'd still like to be looked at after that date, you can activate it again with another credit from your listing page:\n${linkFor(row.reminder_product)}`,
     });
   }
 
-  const { data: expired } = await supabase.rpc("expire_founding_introductions");
+  const { data: expired } = await supabase.rpc("expire_coach_activations");
   for (const row of (expired as { expired_person_id: string; expired_product: string }[] | null) ?? []) {
     const who = await emailFor(row.expired_person_id);
     if (!who) continue;
     await sendEmail({
       to: who.email,
-      subject: "Your free founding introduction has expired",
-      text: `Hi ${who.first},\n\nYour free founding introduction was valid for 60 days and wasn't used, so it has now expired and your listing is no longer in matching.\n\nIf you're still looking, you can choose an introduction package from your listing page and you'll be back in matching straight away:\n${linkFor(row.expired_product)}`,
+      subject: `Your ${nameFor(row.expired_product)} listing has ended`,
+      text: `Hi ${who.first},\n\nYour ${nameFor(row.expired_product)} listing has reached the end of its period, so it's no longer in matching and that credit has been used. Any introductions already made are unaffected.\n\nIf you're still looking, activate it again with another credit (buy one if you need to) from your listing page:\n${linkFor(row.expired_product)}`,
     });
   }
 

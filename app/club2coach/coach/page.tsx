@@ -27,7 +27,8 @@ import WordLimitedTextarea from "@/components/WordLimitedTextarea";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
 import MatchedContacts from "@/components/MatchedContacts";
 import FoundingBanner from "@/components/FoundingBanner";
-import FoundingActivate from "@/components/FoundingActivate";
+import CoachActivation from "@/components/CoachActivation";
+import { isActivated, loadCoachBank } from "@/lib/coachPool";
 import ContactDetailsGlass from "@/components/ContactDetailsGlass";
 
 function Club2CoachCoachForm({ person }: { person: Person }) {
@@ -63,9 +64,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(1);
-  const [introductionsUsed, setIntroductionsUsed] = useState(0);
-  const [poolEntitled, setPoolEntitled] = useState(0);
-  const [poolPaid, setPoolPaid] = useState(false);
+  const [bank, setBank] = useState(0);
   const [topupPackage, setTopupPackage] = useState(1);
   const [requestingTopup, setRequestingTopup] = useState(false);
 
@@ -154,12 +153,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       setAgreedToTerms(l.agreed_to_terms ?? false);
       setSelectedPackage(l.included_introductions ?? 1);
 
-      // One shared pool of credits across Club 2 Coach and Coach 2 Mentor.
-      const { data: poolRows } = await supabase.rpc("coach_pool_totals");
-      const mine = ((poolRows as { entitled: number; used: number; any_paid: boolean }[]) ?? [])[0];
-      setIntroductionsUsed(mine?.used ?? 0);
-      setPoolEntitled(mine?.entitled ?? 0);
-      setPoolPaid(Boolean(mine?.any_paid));
+      setBank(await loadCoachBank(supabase));
     } else {
       resetForm();
     }
@@ -436,76 +430,44 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     <div className="py-8">
       <h1 className="text-xl font-bold">Find a Coaching Role</h1>
 
-      {!((existing?.paid || poolPaid) || poolPaid) && <FoundingBanner className="mt-4" />}
+      {!existing?.paid && <FoundingBanner className="mt-4" />}
 
       <ContactDetailsGlass fullName={person.full_name} email={person.email} mobile={person.mobile} who="a club" />
 
       {existing && (
-        <div
-          className={`mt-4 rounded-lg border p-4 text-sm ${
-            (existing.paid || poolPaid)
-              ? "border-green-200 bg-green-50 text-green-800"
-              : "border-amber-200 bg-amber-50 text-amber-900"
-          }`}
-        >
-          {(existing.paid || poolPaid) ? (
-            <>
-              ✓ Your listing is active and included in matching — you're set up for{" "}
-              {poolEntitled} club introduction
-              {poolEntitled === 1 ? "" : "s"}
-              {(
-                <> ({introductionsUsed} of {poolEntitled} used)</>
-              )}
-              .
-              {existing.founding_member && existing.founding_expires_at && introductionsUsed === 0 && (
-                <p className="mt-2 font-semibold">
-                  ⭐ Your free founding introduction expires on{" "}
-                  {new Date(existing.founding_expires_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}{" "}
-                  if it isn&apos;t used.
-                </p>
-              )}
-            </>
-          ) : (
-            <>
-              <strong>Payment required (${CLUB2COACH_COACH_PACKAGES[selectedPackage]} AUD):</strong> your
-              listing is saved but won't be included in matching until
-              payment is confirmed. Coach In Mind will be in touch about
-              how to pay, or pay now to activate immediately.
-              <div className="mt-3">
-                <FoundingActivate listingTable="club2coach_coach_listings" listingId={existing.id} onActivated={() => load()} />
-                <PayWithCardButton
-                  listingTable="club2coach_coach_listings"
-                  listingId={existing.id}
-                  packageSize={selectedPackage}
-                  mode="new"
-                />
-              </div>
-            </>
-          )}
+        <CoachActivation listingTable="club2coach_coach_listings" listing={existing} onChanged={() => load()} />
+      )}
+
+      {existing && !existing.paid && (
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <strong>Need a credit? (${CLUB2COACH_COACH_PACKAGES[selectedPackage]} AUD for your chosen package):</strong> save
+          your listing, then Coach In Mind will be in touch about how to pay, or pay now by card. Credits go into your bank — you
+          press Activate when you&apos;re ready to start.
+          <div className="mt-3">
+            <PayWithCardButton listingTable="club2coach_coach_listings" listingId={existing.id} packageSize={selectedPackage} mode="new" />
+          </div>
         </div>
       )}
 
-      {existing && (existing.paid || poolPaid) && <MatchedContacts listingTable="club2coach_coach_listings" listingId={existing.id} />}
+      {existing?.paid && <MatchedContacts listingTable="club2coach_coach_listings" listingId={existing.id} />}
 
       {existing && <ReferralCard />}
 
-      {existing && (existing.paid || poolPaid) &&
-        poolEntitled != null &&
-        introductionsUsed >= poolEntitled && (
+      {existing?.paid && !isActivated(existing) && bank < 1 && (
           <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
             <p className="text-sm font-semibold text-blue-900">
-              You've used all {poolEntitled} of your introductions
+              You're out of credits
             </p>
             {existing.topup_requested != null ? (
               <p className="mt-2 text-sm text-blue-800">
-                Top-up request sent ({existing.topup_requested} more introduction
+                Top-up request sent ({existing.topup_requested} more credit
                 {existing.topup_requested === 1 ? "" : "s"}) — Coach In Mind will be in touch about
                 payment. You'll be back in matching as soon as it's confirmed.
               </p>
             ) : !stripeEnabled ? (
               <p className="mt-2 text-sm text-blue-800">
                 Top-ups aren't available during the current trial period — get in touch with Coach
-                In Mind if you'd like another introduction.
+                In Mind if you'd like another credit.
               </p>
             ) : (
               <>
@@ -528,7 +490,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
                         onChange={() => setTopupPackage(Number(count))}
                       />
                       <p className="font-semibold">
-                        {count} introduction{count === "1" ? "" : "s"}
+                        {count} credit{count === "1" ? "" : "s"}
                       </p>
                       <p className="text-sm text-gray-500">${price} AUD</p>
                     </label>
@@ -556,10 +518,10 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           </div>
         )}
 
-      {!((existing?.paid || poolPaid) || poolPaid) && (
+      {!existing?.paid && (
         <div className="mt-4 rounded-xl border bg-white p-4">
           <p className="text-xs font-semibold uppercase text-gray-500">
-            How many club introductions do you want?
+            How many credits do you want? (1 credit = 1 activation)
           </p>
           <div className="mt-2 flex flex-col gap-2 sm:flex-row">
             {Object.entries(CLUB2COACH_COACH_PACKAGES)
@@ -581,7 +543,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
                     onChange={() => setSelectedPackage(Number(count))}
                   />
                   <p className="font-semibold">
-                    {count} introduction{count === "1" ? "" : "s"}
+                    {count} credit{count === "1" ? "" : "s"}
                   </p>
                   <p className="text-sm text-gray-500">${price} AUD</p>
                 </label>
@@ -590,12 +552,12 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           {!stripeEnabled ? (
             <p className="mt-2 text-xs text-gray-500">
               Coach In Mind is running a trial at the moment, so signups are capped at 1
-              introduction each — larger packages return once full pricing is live.
+              credit each — larger packages return once full pricing is live.
             </p>
           ) : (
             <p className="mt-2 text-xs text-gray-500">
-              We'll match you with your top-scoring club vacancies, up to this many, based on your
-              criteria below. If none of them work out, you can top up for more later.
+              Each credit puts your listing in front of clubs for 60 days once you press Activate. Credits
+              in your bank never expire; once a credit is used you need another to re-apply.
             </p>
           )}
         </div>

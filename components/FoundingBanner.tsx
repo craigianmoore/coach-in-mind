@@ -40,17 +40,17 @@ export default function FoundingBanner({
       >
         <p className="text-sm font-extrabold uppercase tracking-[0.2em]">⭐ Founding member offer</p>
         <p className="mt-2 text-3xl font-extrabold leading-tight sm:text-4xl">
-          First 60 coaches get a FREE introduction
+          First 60 coaches get a FREE credit
         </p>
         <p className="mt-2 text-lg font-semibold">
-          Use it for Club 2 Coach or Coach 2 Mentor — you choose. Only {left} spot{left === 1 ? "" : "s"} left. Lasts 60 days from activation.
+          Use it for Club 2 Coach or Coach 2 Mentor — you choose. Only {left} spot{left === 1 ? "" : "s"} left. The clock only starts when you press Activate (60 days Club 2 Coach, 180 days Coach 2 Mentor).
         </p>
         {bar}
         <Link
           href="/signup"
           className="mt-4 inline-block rounded-xl bg-[#1a1530] px-8 py-3 text-lg font-bold text-white shadow-lg hover:bg-black"
         >
-          Claim your free introduction →
+          Claim your free credit →
         </Link>
       </div>
     );
@@ -62,10 +62,10 @@ export default function FoundingBanner({
     >
       <p className="text-xs font-extrabold uppercase tracking-widest">⭐ Founding member offer</p>
       <p className="mt-1 text-xl font-extrabold leading-snug sm:text-2xl">
-        First {s.lim} coaches get a FREE introduction
+        First {s.lim} coaches get a FREE credit
       </p>
       <p className="mt-1 text-sm font-semibold">
-        Only {left} of {s.lim} left — save your listing (Club 2 Coach or Coach 2 Mentor), then Activate it when you're ready. Valid 60 days.
+        Only {left} of {s.lim} left — save your listing (Club 2 Coach or Coach 2 Mentor), then press Activate when you're ready — 60 days on Club 2 Coach, 180 on Coach 2 Mentor.
       </p>
       {bar}
     </div>

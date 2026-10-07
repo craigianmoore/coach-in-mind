@@ -116,22 +116,26 @@ export async function POST(req: NextRequest) {
   // included_introductions — every other table uses introductions.
   const usesIntroductions = listingTable !== "coach2mentor_mentor_listings";
 
+  // Coach purchases are CREDITS added to the coach's bank (never overwritten),
+  // spent later with the Activate button — buying does not start any clock.
+  const isCoachListing = listingTable === "club2coach_coach_listings" || listingTable === "coach2mentor_coach_listings";
   let introductionsToSet = packageSize;
-  if (mode === "topup" && usesIntroductions) {
+  if ((mode === "topup" || isCoachListing) && usesIntroductions) {
     const { data: current } = await supabase
       .from(listingTable)
-      .select("included_introductions")
+      .select("included_introductions, paid")
       .eq("id", listingId)
       .maybeSingle();
-    introductionsToSet = (current?.included_introductions ?? 0) + packageSize;
+    // An unpaid listing's included_introductions is only the package the coach asked for.
+    introductionsToSet = (current?.paid ? current?.included_introductions ?? 0 : 0) + packageSize;
   }
 
   const updatePayload: Record<string, unknown> = {
     paid: true,
     paid_at: new Date().toISOString(),
     price_aud: amount,
-    status: "active",
   };
+  if (!isCoachListing) updatePayload.status = "active"; // coach listings go live only via the Activate button
   if (usesIntroductions) {
     updatePayload.included_introductions = introductionsToSet;
     updatePayload.topup_requested = null; // clears any pending top-up request now that it's fulfilled
