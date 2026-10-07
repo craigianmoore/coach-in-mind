@@ -124,11 +124,14 @@ export default function HelpPage() {
               </p>
             </div>
             <div>
-              <p className="font-medium text-gray-800">Do introduction credits expire?</p>
+              <p className="font-medium text-gray-800">Do my credits expire?</p>
               <p className="mt-1 text-gray-600">
-                No — credits you buy, are gifted or earn through referrals stay on your listing
-                until they're used. For clubs, a vacancy has a one-month contact window that starts
-                when your first coach is shared with you.
+                Coach credits don't expire — credits you buy, are gifted or earn through referrals
+                stay on your listing until they're used, and a coach's application stays live
+                until it's filled, paused or deleted. Club credits belong to the vacancy: it has a
+                one-month contact window that starts when your first coach is shared with you, and
+                if the role isn't filled it expires and any unused introductions don't carry over —
+                to re-advertise, you use a new credit.
               </p>
             </div>
             <div>

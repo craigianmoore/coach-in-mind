@@ -11,7 +11,7 @@ from reportlab.lib.units import mm
 from reportlab.lib.enums import TA_LEFT
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem,
-    Table, TableStyle, HRFlowable,
+    Table, TableStyle, HRFlowable, CondPageBreak,
 )
 from reportlab.lib import colors
 
@@ -91,13 +91,14 @@ from reportlab.platypus import Image
 LOGO_H = 30 * mm
 LOGO_W = LOGO_H * 370 / 575  # keep the logo's own proportions
 header = Table(
-    [[Image("public/coach-in-mind-logo.png", width=LOGO_W, height=LOGO_H),
-      [Paragraph("Coach In Mind", title_style),
-       Paragraph("How To Use — Club 2 Coach &amp; Coach 2 Mentor", subtitle_style)]]],
-    colWidths=[LOGO_W + 6 * mm, 165 * mm - LOGO_W - 6 * mm],
+    [[[Paragraph("Coach In Mind", title_style),
+       Paragraph("How To Use — Club 2 Coach &amp; Coach 2 Mentor", subtitle_style)],
+      Image("public/coach-in-mind-logo.png", width=LOGO_W, height=LOGO_H)]],
+    colWidths=[165 * mm - LOGO_W - 6 * mm, LOGO_W + 6 * mm],
 )
 header.setStyle(TableStyle([
     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ("ALIGN", (1, 0), (1, 0), "RIGHT"),
     ("LEFTPADDING", (0, 0), (-1, -1), 0),
     ("RIGHTPADDING", (0, 0), (-1, -1), 0),
 ]))
@@ -118,6 +119,7 @@ story.append(Paragraph(
     body_style,
 ))
 
+story.append(CondPageBreak(40 * mm))
 story.append(Paragraph("If you're a club", h3_style))
 story.append(bullets([
     "Advertise a vacancy with your requirements — competition level, age group, region, and "
@@ -162,6 +164,7 @@ story.append(callout(
 ))
 story.append(Spacer(1, 4))
 
+story.append(CondPageBreak(40 * mm))
 story.append(Paragraph("If you're a coach", h3_style))
 story.append(bullets([
     "Set up a profile describing the kind of role you're looking for.",
@@ -188,6 +191,7 @@ story.append(callout(
 ))
 story.append(Spacer(1, 4))
 
+story.append(CondPageBreak(40 * mm))
 story.append(Paragraph("Referral rewards (coaches)", h3_style))
 story.append(bullets([
     "Every coach has a personal referral code and link on their coach page.",
@@ -209,6 +213,7 @@ story.append(Paragraph(
     body_style,
 ))
 
+story.append(CondPageBreak(40 * mm))
 story.append(Paragraph("If you're a coach seeking a mentor", h3_style))
 story.append(bullets([
     "Set up a profile describing what you're looking for from mentoring, and set your own personal "
@@ -219,6 +224,7 @@ story.append(bullets([
     "are only shared once they accept.",
 ]))
 
+story.append(CondPageBreak(40 * mm))
 story.append(Paragraph("If you're a mentor", h3_style))
 story.append(bullets([
     "Set up a profile describing your background, specialisms, and availability.",
@@ -232,10 +238,13 @@ story.append(bullets([
 
 story.append(Paragraph("Credits, expiry and refunds", h2_style))
 story.append(bullets([
-    "<b>Introduction credits don't expire.</b> Credits you buy, are gifted or earn through referrals "
-    "stay on your listing until they're used.",
-    "<b>Club contact window.</b> A club's vacancy stays open for one calendar month from when its "
-    "first coach is shared, then expires unless it's filled.",
+    "<b>Coach credits don't expire.</b> Credits a coach buys, is gifted or earns through referrals "
+    "stay on their listing until they're used, and a coach's application stays live until it's "
+    "filled, paused or deleted.",
+    "<b>Club credits belong to the vacancy and lapse with it.</b> A club's vacancy stays open for "
+    "one calendar month from when its first coach is shared, then expires unless it's filled. Any "
+    "introductions not yet used on an expired vacancy don't carry over — to re-advertise, the club "
+    "uses a new credit.",
     "<b>Refunds.</b> If no introduction has been made within 4 months of your payment (6 months for "
     "Coach 2 Mentor), you can ask for a full refund through the Support page. Once at least one "
     "introduction has been made, the package is non-refundable — including any unused introductions "
