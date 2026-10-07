@@ -492,12 +492,12 @@ function Club2CoachAdmin() {
   async function giftIntroductions(table: "club2coach_coach_listings" | "club2coach_club_vacancies", id: string, who: string, preset?: number) {
     let n = preset;
     if (!n) {
-      const raw = window.prompt(`Gift how many free introductions to ${who}? (1-20)`, "1");
+      const raw = window.prompt(`Gift how many free introductions to ${who}? (1-3)`, "1");
       if (raw === null) return;
       n = Number(raw);
     }
-    if (!Number.isInteger(n) || n < 1 || n > 20) {
-      setStatus("Enter a whole number from 1 to 20.");
+    if (!Number.isInteger(n) || n < 1 || n > 3) {
+      setStatus("Enter a whole number from 1 to 3.");
       return;
     }
     if (!window.confirm(`Gift ${n} free introduction${n === 1 ? "" : "s"} to ${who}? Recorded as $0 — not a real payment.`)) return;

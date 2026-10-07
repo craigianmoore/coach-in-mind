@@ -1886,8 +1886,8 @@ begin
   if not is_admin_caller() then
     raise exception 'Admin session required';
   end if;
-  if extra is null or extra < 1 or extra > 20 then
-    raise exception 'Gift between 1 and 20 introductions';
+  if extra is null or extra < 1 or extra > 3 then
+    raise exception 'Gift between 1 and 3 introductions';
   end if;
 
   select id into admin_person_id from people where user_id = auth.uid();
