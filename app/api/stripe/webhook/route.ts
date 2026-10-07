@@ -11,6 +11,7 @@ import { stripe } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase/service";
 import { runClub2CoachMatchSweep, runCoach2MentorMatchSweep } from "@/lib/matching/sweep";
 import { notifyApprovedShares } from "@/lib/server/notifyMatches";
+import { notifyMentoringRequests } from "@/lib/server/notifyMentoring";
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");
@@ -176,6 +177,7 @@ export async function POST(req: NextRequest) {
       await notifyApprovedShares(supabase);
     } else if (product === "coach2mentor") {
       await runCoach2MentorMatchSweep(supabase);
+      await notifyMentoringRequests(supabase);
     }
   } catch (err) {
     console.error("Stripe webhook: match sweep after payment failed", err);

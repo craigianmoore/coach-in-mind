@@ -5,6 +5,7 @@ import PinGate from "@/components/PinGate";
 import AdminOverviewC2M from "@/components/AdminOverviewC2M";
 import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
+import { notifyMentoring } from "@/lib/notify";
 import { scoreCoach2MentorMatch } from "@/lib/scoring";
 import { copyShareBlurbToClipboard } from "@/lib/shareBlurb";
 import { getEmbedUrl } from "@/lib/videoEmbed";
@@ -350,6 +351,7 @@ function Coach2MentorAdmin() {
     }
 
     setAutoMatching(false);
+    if (autoApprove && totalNew > 0) notifyMentoring();
     if (totalNew > 0) {
       setStatus(
         autoApprove
@@ -363,6 +365,7 @@ function Coach2MentorAdmin() {
   async function approveRequest(id: string) {
     supabase.rpc("refresh_admin_session");
     await supabase.from("coach2mentor_requests").update({ status: "pending" }).eq("id", id);
+    notifyMentoring();
     await loadAll();
   }
 

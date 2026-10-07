@@ -24,7 +24,7 @@ import {
 import type { Coach2MentorMentorListing, Coach2MentorRequest, Person } from "@/types/database";
 import WordLimitedTextarea from "@/components/WordLimitedTextarea";
 import FilePreview from "@/components/FilePreview";
-import { notifyAdmin, notifySelf } from "@/lib/notify";
+import { notifyAdmin, notifySelf, notifyMentoring } from "@/lib/notify";
 
 interface RequestWithCoachName extends Coach2MentorRequest {
   coachName?: string;
@@ -313,6 +313,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       .from("coach2mentor_requests")
       .update({ status: response, responded_at: new Date().toISOString() })
       .eq("id", requestId);
+    if (response === "accepted") notifyMentoring();
     await load();
   }
 

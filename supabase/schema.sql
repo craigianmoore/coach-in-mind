@@ -1977,3 +1977,10 @@ grant execute on function get_my_c2c_introductions(text, uuid) to authenticated;
 -- if any vacancy still points at it; its club_contacts row cascades).
 drop policy if exists "admin can delete clubs" on clubs;
 create policy "admin can delete clubs" on clubs for delete using (is_admin_caller());
+
+-- Coach2Mentor "matched" emails: stamped once each so nobody is emailed twice.
+alter table coach2mentor_requests add column if not exists pending_notified_at timestamptz;
+alter table coach2mentor_requests add column if not exists accepted_notified_at timestamptz;
+-- Don't email about requests that already existed before this feature.
+update coach2mentor_requests set pending_notified_at = now() where status <> 'suggested' and pending_notified_at is null;
+update coach2mentor_requests set accepted_notified_at = now() where status = 'accepted' and accepted_notified_at is null;

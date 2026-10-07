@@ -39,3 +39,13 @@ export async function notifyMatches() {
     // Ignore.
   }
 }
+
+// Asks the server to send any due Coach2Mentor "matched"/request emails.
+// Safe to call repeatedly — each is only sent once.
+export async function notifyMentoring() {
+  try {
+    await fetch("/api/notify-mentoring", { method: "POST" });
+  } catch {
+    // Ignore.
+  }
+}
