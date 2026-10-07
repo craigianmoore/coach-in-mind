@@ -1922,3 +1922,9 @@ begin
           'Complimentary — gifted ' || extra || ' introduction(s), not a real payment');
 end;
 $$;
+
+-- Match emails: stamped once both parties have been emailed about an
+-- approved introduction, so nobody is ever emailed twice. Existing
+-- approved shares are marked as already notified (no back-emailing).
+alter table club2coach_shares add column if not exists participants_notified_at timestamptz;
+update club2coach_shares set participants_notified_at = now() where status = 'approved' and participants_notified_at is null;

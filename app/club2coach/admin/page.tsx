@@ -1,5 +1,6 @@
 "use client";
 
+import { notifyMatches } from "@/lib/notify";
 import { useEffect, useState } from "react";
 import PinGate from "@/components/PinGate";
 import EmptyState from "@/components/EmptyState";
@@ -617,6 +618,7 @@ function Club2CoachAdmin() {
     }
 
     setAutoMatching(false);
+    if (totalNew > 0 && autoApprove) notifyMatches();
     if (totalNew > 0) {
       setStatus(
         autoApprove
@@ -637,6 +639,7 @@ function Club2CoachAdmin() {
         .update({ shared_at: new Date().toISOString() })
         .eq("id", vacancyId);
     }
+    notifyMatches();
     await loadAll();
   }
 
@@ -703,6 +706,7 @@ function Club2CoachAdmin() {
     }
 
     setStatus("Details shared — both parties can now see each other's contact info.");
+    notifyMatches();
     await loadAll();
   }
 

@@ -27,7 +27,7 @@ import type {
   Person,
   AdminSettings,
 } from "@/types/database";
-import { notifyAdmin } from "@/lib/notify";
+import { notifyAdmin, notifySelf } from "@/lib/notify";
 import { getEmbedUrl } from "@/lib/videoEmbed";
 
 const WEIGHT_LABELS: Record<keyof Coach2MentorWeights, string> = {
@@ -288,9 +288,10 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
 
     if (isNew) {
       notifyAdmin(
-        "new coach profile (Coach 2 Mentor)",
-        `${person.full_name} (${person.email}, ${person.mobile})\nCareer stage: ${careerStage}`
+        `New Coach 2 Mentor coach profile: ${person.full_name}`,
+        `A coach has created a new Coach 2 Mentor profile.\n\nCoach: ${person.full_name}\nEmail: ${person.email}\nMobile: ${person.mobile}\nCareer stage: ${careerStage}\n\nReview: https://www.coachinmind.com.au/coach2mentor/admin`
       );
+      notifySelf("coach_profile");
     }
   }
 

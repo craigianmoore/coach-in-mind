@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { REGIONS, ACCREDITATION_LEVELS, GENDER_OPTIONS } from "@/lib/constants";
 import type { Person, CoachCreditRequest } from "@/types/database";
 import { CLUB2COACH_COACH_PACKAGES } from "@/lib/constants";
-import { notifyAdmin } from "@/lib/notify";
+import { notifyAdmin, notifySelf } from "@/lib/notify";
 
 function ProfileForm() {
   const router = useRouter();
@@ -217,9 +217,10 @@ function ProfileForm() {
 
     if (wasNewSignup) {
       notifyAdmin(
-        "new signup",
-        `${fullName} — ${email}, ${mobile}\nRegion: ${region || "not set"} · Accreditation: ${currentLicence}`
+        `New signup: ${fullName}`,
+        `Someone has just signed up to Coach In Mind.\n\nName: ${fullName}\nEmail: ${email}\nMobile: ${mobile}\nRegion: ${region || "not set"} · Accreditation: ${currentLicence}`
       );
+      notifySelf("signup");
     }
 
     if (next) {

@@ -10,6 +10,7 @@ import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase/service";
 import { runClub2CoachMatchSweep, runCoach2MentorMatchSweep } from "@/lib/matching/sweep";
+import { notifyApprovedShares } from "@/lib/server/notifyMatches";
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");
@@ -172,6 +173,7 @@ export async function POST(req: NextRequest) {
     if (product === "club2coach") {
       const vacancyIds = listingTable === "club2coach_club_vacancies" ? [listingId] : undefined;
       await runClub2CoachMatchSweep(supabase, { vacancyIds });
+      await notifyApprovedShares(supabase);
     } else if (product === "coach2mentor") {
       await runCoach2MentorMatchSweep(supabase);
     }

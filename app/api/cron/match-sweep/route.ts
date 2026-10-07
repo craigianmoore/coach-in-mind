@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { runClub2CoachMatchSweep, runCoach2MentorMatchSweep } from "@/lib/matching/sweep";
+import { notifyApprovedShares } from "@/lib/server/notifyMatches";
 
 // Safety-net sweep: runs the same matching logic admin triggers by hand
 // (opening the Matches tab, clicking "Re-run auto-match now") on a
@@ -30,6 +31,8 @@ export async function GET(req: Request) {
     runClub2CoachMatchSweep(supabase),
     runCoach2MentorMatchSweep(supabase),
   ]);
+
+  await notifyApprovedShares(supabase);
 
   return NextResponse.json({
     ok: true,

@@ -27,7 +27,7 @@ import {
   MEMBER_FEDERATIONS,
 } from "@/lib/constants";
 import type { Club, Club2CoachClubVacancy, Club2CoachShare, Person } from "@/types/database";
-import { notifyAdmin } from "@/lib/notify";
+import { notifyAdmin, notifySelf } from "@/lib/notify";
 
 const PRIORITY_HINTS = [
   "Accreditation",
@@ -485,11 +485,10 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
     if (isNew) {
       notifyAdmin(
-        repostSource ? "vacancy reposted with edits" : "new vacancy advertised",
-        `${matchedClub.name} — ${form.roleBeingRecruited}${
-          repostSource ? " (reposted, replacing a previous vacancy)" : ""
-        }\nAdvertised by: ${person.full_name} (${person.email}, ${person.mobile})\nCompetition: ${form.competitionLevel} · ${ageGroupLabel(form.ageGroup, form.ageGroupMax)} · ${form.region}`
+        `${repostSource ? "Vacancy reposted" : "New vacancy"}: ${matchedClub.name} — ${form.roleBeingRecruited}`,
+        `${repostSource ? "A club has reposted a vacancy with edits (replacing a previous one)." : "A club has advertised a new coaching vacancy (awaiting payment / activation)."}\n\nClub: ${matchedClub.name}\nRole: ${form.roleBeingRecruited}\nCompetition: ${form.competitionLevel} · ${ageGroupLabel(form.ageGroup, form.ageGroupMax)} · ${form.region}\n\nAdvertised by: ${person.full_name}\nEmail: ${person.email}\nMobile: ${person.mobile}\n\nReview: https://www.coachinmind.com.au/club2coach/admin`
       );
+      notifySelf("vacancy", `${matchedClub.name} — ${form.roleBeingRecruited}`);
 
       // Club-scoped, not person-scoped: this counts every open vacancy
       // at this club regardless of who advertised it, via a function

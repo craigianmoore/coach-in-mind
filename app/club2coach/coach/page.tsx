@@ -24,7 +24,7 @@ import {
   STATE_LABELS,
 } from "@/lib/constants";
 import type { Club2CoachCoachListing, Person } from "@/types/database";
-import { notifyAdmin } from "@/lib/notify";
+import { notifyAdmin, notifySelf } from "@/lib/notify";
 
 function Club2CoachCoachForm({ person }: { person: Person }) {
   const supabase = createClient();
@@ -376,9 +376,10 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
 
     if (!existing) {
       notifyAdmin(
-        "new coach listing (Club 2 Coach)",
-        `${person.full_name} (${person.email}, ${person.mobile})\nRole sought: ${roleSought}`
+        `New coach listing: ${person.full_name} — ${roleSought}`,
+        `A coach has submitted a new Club 2 Coach listing (awaiting payment / activation).\n\nCoach: ${person.full_name}\nEmail: ${person.email}\nMobile: ${person.mobile}\nRole sought: ${roleSought}\n\nReview: https://www.coachinmind.com.au/club2coach/admin`
       );
+      notifySelf("coach_listing", roleSought);
     }
   }
 

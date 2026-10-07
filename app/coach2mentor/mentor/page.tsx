@@ -22,7 +22,7 @@ import {
   REGIONS_BY_STATE,
 } from "@/lib/constants";
 import type { Coach2MentorMentorListing, Coach2MentorRequest, Person } from "@/types/database";
-import { notifyAdmin } from "@/lib/notify";
+import { notifyAdmin, notifySelf } from "@/lib/notify";
 
 interface RequestWithCoachName extends Coach2MentorRequest {
   coachName?: string;
@@ -286,9 +286,10 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
 
     if (!existing) {
       notifyAdmin(
-        "new mentor profile (Coach 2 Mentor)",
-        `${person.full_name} (${person.email}, ${person.mobile})\nCareer stage: ${careerStage} · Licence: ${licence}`
+        `New Coach 2 Mentor mentor profile: ${person.full_name}`,
+        `A mentor has created a new Coach 2 Mentor profile.\n\nMentor: ${person.full_name}\nEmail: ${person.email}\nMobile: ${person.mobile}\nCareer stage: ${careerStage} · Licence: ${licence}\n\nReview: https://www.coachinmind.com.au/coach2mentor/admin`
       );
+      notifySelf("mentor_profile");
     }
   }
 
