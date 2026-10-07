@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import PinGate from "@/components/PinGate";
+import AdminOverviewC2M from "@/components/AdminOverviewC2M";
 import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
 import { scoreCoach2MentorMatch } from "@/lib/scoring";
@@ -17,7 +18,7 @@ import type {
   AdminSettings,
 } from "@/types/database";
 
-type Tab = "unpaid" | "matches" | "requests" | "weighting" | "listings" | "admins";
+type Tab = "unpaid" | "overview" | "matches" | "requests" | "weighting" | "listings" | "admins";
 type RequestStatus = "pending" | "accepted" | "declined";
 
 // Mirrors the same row club2coach/admin/page.tsx reads and writes —
@@ -423,12 +424,12 @@ function Coach2MentorAdmin() {
         </button>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2 border-b border-white/20">
-        {(["unpaid", "matches", "requests", "weighting", "listings", "admins"] as Tab[]).map((t) => (
+      <div className="mt-4 flex flex-nowrap overflow-x-auto whitespace-nowrap border-b border-white/20">
+        {(["unpaid", "overview", "matches", "requests", "weighting", "listings", "admins"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className="px-4 py-2 text-sm font-medium capitalize"
+            className="flex-shrink-0 px-2.5 py-2 text-sm font-medium capitalize"
             style={
               tab === t
                 ? { borderBottom: "2px solid var(--accent-dark)", color: "var(--accent-dark)" }
@@ -443,6 +444,10 @@ function Coach2MentorAdmin() {
       </div>
 
       {status && <p className="mt-4 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">{status}</p>}
+
+      {tab === "overview" && (
+        <AdminOverviewC2M coachListings={coachListings} mentorListings={mentorListings} requests={requests} people={people} />
+      )}
 
       {tab === "unpaid" && (
         <div className="mt-6 flex flex-col gap-6">
