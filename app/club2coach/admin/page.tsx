@@ -3,6 +3,7 @@
 import { notifyMatches } from "@/lib/notify";
 import { useEffect, useState } from "react";
 import PinGate from "@/components/PinGate";
+import AdminOverview from "@/components/AdminOverview";
 import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
 import { scoreClub2CoachMatch } from "@/lib/scoring";
@@ -22,7 +23,7 @@ import type {
   Coach2MentorRequest,
 } from "@/types/database";
 
-type Tab = "unpaid" | "matches" | "weighting" | "listings" | "clubs" | "promos" | "admins" | "support" | "people";
+type Tab = "unpaid" | "overview" | "matches" | "weighting" | "listings" | "clubs" | "promos" | "admins" | "support" | "people";
 
 interface ClubContactRow {
   id: string;
@@ -1162,7 +1163,7 @@ function Club2CoachAdmin() {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 border-b">
-        {(["unpaid", "matches", "weighting", "listings", "clubs", "promos", "admins", "support", "people"] as Tab[]).map((t) => (
+        {(["unpaid", "overview", "matches", "weighting", "listings", "clubs", "promos", "admins", "support", "people"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1198,6 +1199,10 @@ function Club2CoachAdmin() {
             </button>
           )}
         </p>
+      )}
+
+      {tab === "overview" && (
+        <AdminOverview coachListings={coachListings} vacancies={vacancies} shares={shares} people={people} />
       )}
 
       {tab === "unpaid" && (
