@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const { name, email, message } = await req.json();
+  const body = await req.json().catch(() => ({}));
+  const name = typeof body.name === "string" ? body.name.slice(0, 120) : "";
+  const email = typeof body.email === "string" ? body.email.slice(0, 200) : "";
+  const message = typeof body.message === "string" ? body.message.slice(0, 5000) : "";
 
-  if (!message || typeof message !== "string") {
+  if (!message) {
     return NextResponse.json({ ok: false, error: "Missing message" }, { status: 400 });
   }
 
