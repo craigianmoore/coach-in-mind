@@ -246,7 +246,7 @@ story.append(Paragraph("Credits, expiry and refunds", h2_style))
 story.append(bullets([
     "<b>Coach credits don't expire</b> — credits a coach buys, is gifted or earns through referrals "
     "stay on their listing until they're used, and a coach's application stays live until it's "
-    "filled, paused or deleted. The one exception is the free founding introduction, which expires "
+    "filled or deleted. The one exception is the free founding introduction, which expires "
     "60 days after activation if unused.",
     "<b>Club credits belong to the vacancy and lapse with it.</b> A club's vacancy stays open for "
     "one calendar month from when its first coach is shared, then expires unless it's filled. Any "

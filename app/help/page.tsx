@@ -131,7 +131,7 @@ export default function HelpPage() {
               <p className="mt-1 text-gray-600">
                 Coach credits don't expire — credits you buy, are gifted or earn through referrals
                 stay on your listing until they're used, and a coach's application stays live
-                until it's filled, paused or deleted (the free founding introduction is the one
+                until it's filled or deleted (the free founding introduction is the one
                 exception: it expires 60 days after you activate it). Club credits belong to the vacancy: it has a
                 one-month contact window that starts when your first coach is shared with you, and
                 if the role isn't filled it expires and any unused introductions don't carry over —
