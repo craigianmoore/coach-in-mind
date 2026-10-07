@@ -91,6 +91,8 @@ function Club2CoachAdmin() {
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
+  const [editingEmailId, setEditingEmailId] = useState<string | null>(null);
+  const [draftEmail, setDraftEmail] = useState("");
 
   const [adminPins, setAdminPins] = useState<AdminPinRow[]>([]);
   const [newPin, setNewPin] = useState("");
@@ -280,6 +282,27 @@ function Club2CoachAdmin() {
       return;
     }
     setClubRows((rows) => rows.map((r) => (r.id === c.id ? { ...r, ...patch } : r)));
+  }
+
+  async function saveClubEmail(c: ClubContactRow) {
+    const email = draftEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setStatus("That doesn't look like a valid email address.");
+      return;
+    }
+    const { error } = await supabase
+      .from("club_contacts")
+      .upsert({ club_id: c.id, email, source: "manual", confidence: "high" }, { onConflict: "club_id" });
+    if (error) {
+      setStatus(`Couldn't save email for ${c.name}: ${error.message}`);
+      return;
+    }
+    setClubRows((rows) =>
+      rows.map((r) => (r.id === c.id ? { ...r, email, source: "manual", confidence: "high" } : r))
+    );
+    setEditingEmailId(null);
+    setDraftEmail("");
+    setStatus(`Saved email for ${c.name}.`);
   }
 
   async function copyClubEmail(c: ClubContactRow) {
@@ -1085,7 +1108,23 @@ function Club2CoachAdmin() {
         ))}
       </div>
 
-      {status && <p className="mt-4 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">{status}</p>}
+      {status && (
+        <p className="mt-4 flex flex-wrap items-center gap-3 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">
+          <span>{status}</span>
+          {status.includes("awaiting your approval") && tab !== "matches" && (
+            <button
+              type="button"
+              onClick={() => {
+                setTab("matches");
+                setStatus(null);
+              }}
+              className="rounded-lg bg-blue-700 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-800"
+            >
+              Go to Matches →
+            </button>
+          )}
+        </p>
+      )}
 
       {tab === "unpaid" && (
         <div className="mt-6 flex flex-col gap-6">
@@ -1813,6 +1852,47 @@ function Club2CoachAdmin() {
                       </p>
                     ) : (
                       <p className="text-xs italic text-gray-400">No email on file</p>
+                    )}
+                    {editingEmailId === c.id ? (
+                      <div className="mt-1 flex items-center gap-1">
+                        <input
+                          type="email"
+                          autoFocus
+                          value={draftEmail}
+                          onChange={(e) => setDraftEmail(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveClubEmail(c);
+                            if (e.key === "Escape") setEditingEmailId(null);
+                          }}
+                          placeholder="club@example.com"
+                          className="w-56 rounded border border-gray-300 px-2 py-1 text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => saveClubEmail(c)}
+                          className="rounded-lg bg-blue-700 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-800"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingEmailId(null)}
+                          className="rounded-lg border border-gray-300 px-2 py-1 text-xs text-gray-500 hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingEmailId(c.id);
+                          setDraftEmail(c.email ?? "");
+                        }}
+                        className="mt-0.5 text-[11px] font-semibold text-blue-700 hover:underline"
+                      >
+                        {c.email ? "Edit email" : "+ Add email"}
+                      </button>
                     )}
                   </div>
                   {c.email && (
