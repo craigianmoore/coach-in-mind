@@ -28,6 +28,7 @@ import {
 } from "@/lib/constants";
 import type { Club, Club2CoachClubVacancy, Club2CoachShare, Person } from "@/types/database";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
+import MatchedContacts from "@/components/MatchedContacts";
 
 const PRIORITY_HINTS = [
   "Accreditation",
@@ -823,6 +824,8 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             </li>
             {existing.filled_at && <li>Marked filled: {formatDate(existing.filled_at)}</li>}
           </ul>
+
+          <MatchedContacts listingTable="club2coach_club_vacancies" listingId={existing.id} heading="Coaches introduced to you" />
 
           {/* Shown every time this vacancy is viewed once at least one
               coach has been introduced — not just a one-off toast at the

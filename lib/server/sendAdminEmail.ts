@@ -3,6 +3,8 @@
 // server (the refund-reminder cron job) so it doesn't need to make a
 // self-referential HTTP call to /api/notify; that route now delegates
 // to this same function for the client-triggered notifications.
+import { renderEmailHtml } from "./emailHtml";
+
 export async function sendAdminEmail(subject: string, text: string): Promise<{ ok: boolean; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -23,6 +25,7 @@ export async function sendAdminEmail(subject: string, text: string): Promise<{ o
         reply_to: "coachinmindcim@gmail.com",
         subject: `Coach In Mind — ${subject}`,
         text,
+        html: renderEmailHtml(text),
       }),
     });
 

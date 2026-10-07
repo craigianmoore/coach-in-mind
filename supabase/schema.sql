@@ -1928,3 +1928,47 @@ $$;
 -- approved shares are marked as already notified (no back-emailing).
 alter table club2coach_shares add column if not exists participants_notified_at timestamptz;
 update club2coach_shares set participants_notified_at = now() where status = 'approved' and participants_notified_at is null;
+
+-- Returns the other party's contact details for each APPROVED introduction
+-- on a listing the caller owns. Never returns anything for suggested
+-- (unapproved) matches, or for listings that aren't the caller's.
+create or replace function get_my_c2c_introductions(listing_table text, target_listing_id uuid)
+returns table (share_id uuid, shared_at timestamptz, summary text, contact_name text, contact_email text, contact_mobile text)
+language plpgsql
+security definer
+set search_path = public, extensions
+set row_security = off
+as $$
+declare
+  me uuid := my_person_id();
+begin
+  if me is null then
+    return;
+  end if;
+
+  if listing_table = 'club2coach_coach_listings' then
+    return query
+      select s.id, s.shared_at,
+             (cv.club_name || ' — ' || cv.role_being_recruited || ' (' || cv.competition_level || ')')::text,
+             p.full_name::text, p.email::text, p.mobile::text
+      from club2coach_shares s
+      join club2coach_coach_listings cl on cl.id = s.coach_listing_id
+      join club2coach_club_vacancies cv on cv.id = s.club_vacancy_id
+      join people p on p.id = cv.person_id
+      where s.status = 'approved' and cl.id = target_listing_id and cl.person_id = me
+      order by s.shared_at desc;
+  elsif listing_table = 'club2coach_club_vacancies' then
+    return query
+      select s.id, s.shared_at,
+             ('Coach seeking ' || cl.role_sought)::text,
+             p.full_name::text, p.email::text, p.mobile::text
+      from club2coach_shares s
+      join club2coach_club_vacancies cv on cv.id = s.club_vacancy_id
+      join club2coach_coach_listings cl on cl.id = s.coach_listing_id
+      join people p on p.id = cl.person_id
+      where s.status = 'approved' and cv.id = target_listing_id and cv.person_id = me
+      order by s.shared_at desc;
+  end if;
+end;
+$$;
+grant execute on function get_my_c2c_introductions(text, uuid) to authenticated;

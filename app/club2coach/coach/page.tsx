@@ -25,6 +25,7 @@ import {
 } from "@/lib/constants";
 import type { Club2CoachCoachListing, Person } from "@/types/database";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
+import MatchedContacts from "@/components/MatchedContacts";
 
 function Club2CoachCoachForm({ person }: { person: Person }) {
   const supabase = createClient();
@@ -465,6 +466,8 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           )}
         </div>
       )}
+
+      {existing?.paid && <MatchedContacts listingTable="club2coach_coach_listings" listingId={existing.id} />}
 
       {existing && <ReferralCard />}
 
