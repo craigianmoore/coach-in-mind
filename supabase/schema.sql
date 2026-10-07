@@ -2119,3 +2119,147 @@ begin
   return new;
 end;
 $$;
+
+
+-- ── Founding offer v2: coaches only, explicit Activate, 60-day expiry ─────
+-- The old "free first introduction" button no longer applies to coaches
+-- (clubs keep theirs). The ONLY free route for a coach is the Founding
+-- offer, claimed by pressing Activate, valid for 60 days.
+alter table club2coach_coach_listings add column if not exists founding_expires_at timestamptz;
+
+create or replace function claim_free_first_credit(target_table text, target_listing_id uuid, dry_run boolean default false)
+returns jsonb language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+declare
+  me uuid := my_person_id();
+  p people%rowtype;
+  v club2coach_club_vacancies%rowtype;
+  keys text[]; prod text; rl text;
+begin
+  if me is null then raise exception 'Not signed in'; end if;
+  select * into p from people where id = me;
+
+  if target_table = 'club2coach_club_vacancies' then
+    select * into v from club2coach_club_vacancies where id = target_listing_id for update;
+    if not found or v.person_id <> me then raise exception 'Not your listing'; end if;
+    if v.paid or v.deleted_at is not null or v.status in ('filled', 'expired', 'superseded', 'refunded') then
+      return jsonb_build_object('granted', false, 'reason', 'not_eligible');
+    end if;
+    keys := array['club:' || coalesce(v.club_id::text, 'n:' || norm_club_name(v.club_name))];
+    prod := 'club2coach'; rl := 'club';
+  elsif target_table in ('club2coach_coach_listings', 'coach2mentor_coach_listings') then
+    -- Coaches: free introduction is the Founding offer only.
+    return jsonb_build_object('granted', false, 'reason', 'founding_only');
+  else
+    raise exception 'Free first introduction does not apply to this listing type';
+  end if;
+
+  if exists (select 1 from free_first_claims where key = any(keys)) then
+    return jsonb_build_object('granted', false, 'reason', 'already_used');
+  end if;
+  if dry_run then return jsonb_build_object('granted', false, 'eligible', true); end if;
+
+  begin
+    insert into free_first_claims (key, person_id, listing_table, listing_id)
+    select k, me, target_table, target_listing_id from unnest(keys) as k;
+  exception when unique_violation then
+    return jsonb_build_object('granted', false, 'reason', 'already_used');
+  end;
+
+  execute format(
+    'update %I set paid = true, paid_at = now(), price_aud = 0, status = ''active'', included_introductions = 1 where id = $1',
+    target_table) using target_listing_id;
+
+  insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, notes)
+  values (me, prod, rl, target_table, target_listing_id, 0, 'Free first introduction (automatic)');
+
+  return jsonb_build_object('granted', true);
+end;
+$$;
+
+-- Activate the founding introduction (or, with dry_run, just check).
+drop function if exists claim_founding_introduction(uuid);
+create or replace function claim_founding_introduction(target_listing_id uuid, dry_run boolean default false)
+returns jsonb language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+declare
+  me uuid := my_person_id();
+  p people%rowtype;
+  l club2coach_coach_listings%rowtype;
+  s record;
+  keys text[];
+begin
+  if me is null then return jsonb_build_object('granted', false, 'reason', 'not_signed_in'); end if;
+  perform pg_advisory_xact_lock(60060);
+  select * into p from people where id = me;
+  select * into l from club2coach_coach_listings where id = target_listing_id and person_id = me and deleted_at is null;
+  if not found or l.paid or l.founding_member or l.status in ('placed', 'refunded') then
+    return jsonb_build_object('granted', false, 'reason', 'not_eligible');
+  end if;
+  select * into s from founding_status();
+  if not s.enabled or s.used >= s.lim then
+    return jsonb_build_object('granted', false, 'reason', 'offer_closed');
+  end if;
+  keys := array['coach-email:' || norm_email(p.email)];
+  if norm_mobile(p.mobile) <> '' then keys := keys || ('coach-mobile:' || norm_mobile(p.mobile)); end if;
+  if exists (select 1 from free_first_claims where key = any(keys))
+     or exists (select 1 from club2coach_coach_listings where person_id = me and founding_member) then
+    return jsonb_build_object('granted', false, 'reason', 'already_used');
+  end if;
+  if dry_run then return jsonb_build_object('granted', false, 'eligible', true); end if;
+
+  insert into free_first_claims (key, person_id, listing_table, listing_id)
+  select k, me, 'club2coach_coach_listings', target_listing_id from unnest(keys) as k
+  on conflict do nothing;
+
+  update club2coach_coach_listings
+  set included_introductions = 1, paid = true, paid_at = now(), price_aud = 0,
+      status = 'active', founding_member = true, founding_expires_at = now() + interval '60 days'
+  where id = target_listing_id;
+
+  insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id, notes)
+  values (me, 'club2coach', 'coach', 'club2coach_coach_listings', target_listing_id, 0, me,
+          'Founding member — free introduction (valid 60 days), not a real payment');
+  return jsonb_build_object('granted', true);
+end;
+$$;
+grant execute on function claim_founding_introduction(uuid, boolean) to authenticated;
+
+-- Coaches choose when they are looking: pause / resume a paid listing.
+create or replace function set_coach_listing_active(target_listing_id uuid, make_active boolean)
+returns boolean language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+declare me uuid := my_person_id();
+begin
+  if me is null then return false; end if;
+  update club2coach_coach_listings
+  set status = case when make_active then 'active' else 'paused' end
+  where id = target_listing_id and person_id = me and paid and deleted_at is null
+    and status in ('active', 'paused');
+  return found;
+end;
+$$;
+grant execute on function set_coach_listing_active(uuid, boolean) to authenticated;
+
+-- Run daily by the cron (service role only): an unused founding introduction
+-- lapses 60 days after activation; the listing returns to unpaid so the
+-- coach can choose a package. Returns who was expired so they can be emailed.
+create or replace function expire_founding_introductions()
+returns table(expired_person_id uuid) language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+begin
+  return query
+  with due as (
+    select l.id, l.person_id from club2coach_coach_listings l
+    where l.founding_member and l.paid and l.founding_expires_at is not null and l.founding_expires_at < now()
+      and coalesce(l.price_aud, 0) = 0 and coalesce(l.included_introductions, 0) <= 1
+      and not exists (select 1 from club2coach_shares s where s.coach_listing_id = l.id and s.status = 'approved')
+  ), clr as (
+    delete from club2coach_shares s using due where s.coach_listing_id = due.id and s.status = 'suggested'
+  ), upd as (
+    update club2coach_coach_listings l
+    set paid = false, paid_at = null, price_aud = null, included_introductions = 0, status = 'draft'
+    from due where l.id = due.id
+    returning l.person_id
+  )
+  select upd.person_id as expired_person_id from upd;
+end;
+$$;
+revoke all on function expire_founding_introductions() from public, anon, authenticated;
+grant execute on function expire_founding_introductions() to service_role;

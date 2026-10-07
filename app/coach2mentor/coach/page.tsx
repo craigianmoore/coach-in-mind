@@ -7,7 +7,6 @@ import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
 import PayWithCardButton from "@/components/PayWithCardButton";
-import FreeFirstCredit from "@/components/FreeFirstCredit";
 import ReferralCard from "@/components/ReferralCard";
 import { useStripePaymentsEnabled } from "@/lib/useStripePaymentsEnabled";
 import {
@@ -340,7 +339,6 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
               your profile, then Coach In Mind will be in touch about how
               to pay, or pay now to activate immediately.
               <div className="mt-3">
-                <FreeFirstCredit listingTable="coach2mentor_coach_listings" listingId={existing.id} onClaimed={() => load()} />
                 <PayWithCardButton
                   listingTable="coach2mentor_coach_listings"
                   listingId={existing.id}

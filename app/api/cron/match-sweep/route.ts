@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { runClub2CoachMatchSweep, runCoach2MentorMatchSweep } from "@/lib/matching/sweep";
 import { notifyApprovedShares } from "@/lib/server/notifyMatches";
 import { notifyMentoringRequests } from "@/lib/server/notifyMentoring";
+import { APP_URL, sendEmail } from "@/lib/server/sendEmail";
 
 // Safety-net sweep: runs the same matching logic admin triggers by hand
 // (opening the Matches tab, clicking "Re-run auto-match now") on a
@@ -27,6 +28,21 @@ export async function GET(req: Request) {
   }
 
   const supabase = createServiceClient();
+
+  // Unused founding introductions lapse 60 days after activation. Do this
+  // BEFORE matching so an expired listing isn't matched, then tell the coach.
+  const { data: expired } = await supabase.rpc("expire_founding_introductions");
+  for (const row of (expired as { expired_person_id: string }[] | null) ?? []) {
+    const { data: p } = await supabase.from("people").select("full_name,email").eq("id", row.expired_person_id).maybeSingle();
+    if (p?.email) {
+      const first = p.full_name?.trim().split(/\s+/)[0] || "there";
+      await sendEmail({
+        to: p.email,
+        subject: "Your free founding introduction has expired",
+        text: `Hi ${first},\n\nYour free founding introduction was valid for 60 days and wasn't used, so it has now expired and your listing is no longer in matching.\n\nIf you're still looking for a role, you can choose an introduction package from your listing page and you'll be back in matching straight away:\n${APP_URL}/club2coach/coach`,
+      });
+    }
+  }
 
   const [club2coach, coach2mentor] = await Promise.all([
     runClub2CoachMatchSweep(supabase),

@@ -7,7 +7,6 @@ import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
 import PayWithCardButton from "@/components/PayWithCardButton";
-import FreeFirstCredit from "@/components/FreeFirstCredit";
 import ReferralCard from "@/components/ReferralCard";
 import { useStripePaymentsEnabled } from "@/lib/useStripePaymentsEnabled";
 import {
@@ -28,6 +27,7 @@ import WordLimitedTextarea from "@/components/WordLimitedTextarea";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
 import MatchedContacts from "@/components/MatchedContacts";
 import FoundingBanner from "@/components/FoundingBanner";
+import FoundingActivate from "@/components/FoundingActivate";
 import ContactDetailsGlass from "@/components/ContactDetailsGlass";
 
 function Club2CoachCoachForm({ person }: { person: Person }) {
@@ -380,10 +380,6 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       return;
     }
 
-    // Founding member offer: quietly claims the free introduction if the
-    // offer is on and spots remain (does nothing otherwise).
-    if (newListingId) await supabase.rpc("claim_founding_introduction", { target_listing_id: newListingId });
-
     await load();
     setSaving(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -456,13 +452,42 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
         >
           {existing.paid ? (
             <>
-              ✓ Your listing is active and included in matching — you're set up for{" "}
-              {existing.included_introductions ?? "?"} club introduction
-              {existing.included_introductions === 1 ? "" : "s"}
-              {existing.included_introductions != null && (
-                <> ({introductionsUsed} of {existing.included_introductions} used)</>
+              {existing.status === "paused" ? (
+                <>
+                  ⏸ Your listing is <strong>paused</strong> — you won&apos;t be matched with clubs until you resume it.
+                </>
+              ) : (
+                <>
+                  ✓ Your listing is active and included in matching — you're set up for{" "}
+                  {existing.included_introductions ?? "?"} club introduction
+                  {existing.included_introductions === 1 ? "" : "s"}
+                  {existing.included_introductions != null && (
+                    <> ({introductionsUsed} of {existing.included_introductions} used)</>
+                  )}
+                  .
+                </>
               )}
-              .
+              {existing.founding_member && existing.founding_expires_at && introductionsUsed === 0 && (
+                <p className="mt-2 font-semibold">
+                  ⭐ Your free founding introduction expires on{" "}
+                  {new Date(existing.founding_expires_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}{" "}
+                  if it isn&apos;t used.
+                </p>
+              )}
+              {(existing.status === "active" || existing.status === "paused") && (
+                <button
+                  onClick={async () => {
+                    await supabase.rpc("set_coach_listing_active", {
+                      target_listing_id: existing.id,
+                      make_active: existing.status === "paused",
+                    });
+                    await load();
+                  }}
+                  className="mt-3 rounded-lg border border-current px-4 py-1.5 text-sm font-semibold"
+                >
+                  {existing.status === "paused" ? "Resume — start looking for a role" : "Pause my listing"}
+                </button>
+              )}
             </>
           ) : (
             <>
@@ -471,7 +496,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
               payment is confirmed. Coach In Mind will be in touch about
               how to pay, or pay now to activate immediately.
               <div className="mt-3">
-                <FreeFirstCredit listingTable="club2coach_coach_listings" listingId={existing.id} onClaimed={() => load()} />
+                <FoundingActivate listingId={existing.id} onActivated={() => load()} />
                 <PayWithCardButton
                   listingTable="club2coach_coach_listings"
                   listingId={existing.id}

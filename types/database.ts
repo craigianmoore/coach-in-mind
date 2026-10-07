@@ -51,6 +51,7 @@ export interface Club2CoachCoachListing {
   agreed_to_terms: boolean; // Terms of Service / Privacy Policy consent — required before saving
   paid: boolean;
   founding_member?: boolean;
+  founding_expires_at?: string | null;
   paid_at: string | null;
   price_aud: number | null;
   included_introductions: number | null; // package size (1, 2, or 3) — how many club introductions this coach has paid for

@@ -13,7 +13,7 @@ const TEMPLATES: Record<string, { subject: string; body: (d: string) => string }
   coach_listing: {
     subject: "Your coaching listing is saved — one step left to activate it",
     body: (d) =>
-      `We've received your submission for a coaching role${d ? ` (${d})` : ""}, and it's saved.\n\nIt isn't active yet: your listing is only included in matching once payment is confirmed. You can pay by card (or use any free introduction credit) from your listing page:\n${APP_URL}/club2coach/coach\n\nAs soon as it's active we'll start matching you with clubs, and email you when you've been matched.`,
+      `We've received your submission for a coaching role${d ? ` (${d})` : ""}, and it's saved.\n\nIt isn't active yet: your listing is only included in matching once payment is confirmed. You can pay by card, or — while founding spots last — activate your free founding introduction (valid for 60 days from when you press Activate) from your listing page:\n${APP_URL}/club2coach/coach\n\nAs soon as it's active we'll start matching you with clubs, and email you when you've been matched.`,
   },
   vacancy: {
     subject: "Your coaching vacancy is saved — one step left to activate it",

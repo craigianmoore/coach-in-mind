@@ -118,9 +118,10 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">What's the founding member offer?</p>
               <p className="mt-1 text-gray-600">
-                The first 60 coaches to complete a Club 2 Coach listing get their first
-                introduction free. It's applied automatically when you save your listing, and it
-                ends once all 60 places are taken.
+                The first 60 coaches to save a Club 2 Coach listing can claim one free introduction.
+                Press Activate on your coach page when you're ready to start looking — it's valid
+                for 60 days from that day and expires if it isn't used. Once all 60 places are
+                taken the offer ends. Clubs have their own free first introduction.
               </p>
             </div>
             <div>
@@ -128,7 +129,8 @@ export default function HelpPage() {
               <p className="mt-1 text-gray-600">
                 Coach credits don't expire — credits you buy, are gifted or earn through referrals
                 stay on your listing until they're used, and a coach's application stays live
-                until it's filled, paused or deleted. Club credits belong to the vacancy: it has a
+                until it's filled, paused or deleted (the free founding introduction is the one
+                exception: it expires 60 days after you activate it). Club credits belong to the vacancy: it has a
                 one-month contact window that starts when your first coach is shared with you, and
                 if the role isn't filled it expires and any unused introductions don't carry over —
                 to re-advertise, you use a new credit.

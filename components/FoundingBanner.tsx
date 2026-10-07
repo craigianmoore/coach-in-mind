@@ -40,10 +40,10 @@ export default function FoundingBanner({
       >
         <p className="text-sm font-extrabold uppercase tracking-[0.2em]">⭐ Founding member offer</p>
         <p className="mt-2 text-3xl font-extrabold leading-tight sm:text-4xl">
-          First 60 coaches get their first introduction FREE
+          First 60 coaches get a FREE introduction
         </p>
         <p className="mt-2 text-lg font-semibold">
-          Only {left} spot{left === 1 ? "" : "s"} left — no payment, no catch.
+          Only {left} spot{left === 1 ? "" : "s"} left — activate it when you're ready; it lasts 60 days.
         </p>
         {bar}
         <Link
@@ -62,10 +62,10 @@ export default function FoundingBanner({
     >
       <p className="text-xs font-extrabold uppercase tracking-widest">⭐ Founding member offer</p>
       <p className="mt-1 text-xl font-extrabold leading-snug sm:text-2xl">
-        First {s.lim} coaches get their first introduction FREE
+        First {s.lim} coaches get a FREE introduction
       </p>
       <p className="mt-1 text-sm font-semibold">
-        Only {left} of {s.lim} left — complete your Club 2 Coach listing to claim yours.
+        Only {left} of {s.lim} left — save your Club 2 Coach listing, then Activate it when you're ready (valid 60 days).
       </p>
       {bar}
     </div>

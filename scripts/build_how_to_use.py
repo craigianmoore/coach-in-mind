@@ -168,9 +168,10 @@ story.append(CondPageBreak(40 * mm))
 story.append(Paragraph("If you're a coach", h3_style))
 story.append(bullets([
     "Set up a profile describing the kind of role you're looking for.",
-    "Choose a package of 1–3 club introductions. Your first introduction is free — tap \"Claim "
-    "free introduction\" on your profile; anything after that is charged as normal. (It's one free "
-    "introduction per coach, across Club 2 Coach and Coach 2 Mentor.)",
+    "Choose a package of 1–3 club introductions, or — if you're one of the first 60 coaches — use "
+    "your free founding introduction (see below).",
+    "<b>You decide when you're looking.</b> A saved listing isn't live until you activate it, and "
+    "once it's active you can pause and resume it from your coach page at any time.",
     "You'll get an email as soon as your listing is saved. It isn't active yet — it only joins "
     "matching once payment is confirmed (or a free or gifted introduction is applied).",
     "Once it's active, Coach In Mind matches you against active vacancies and introduces "
@@ -184,9 +185,11 @@ story.append(bullets([
 story.append(callout(
     "Founding member offer",
     [
-        "The first 60 coaches to complete a Club 2 Coach listing get their first introduction free — "
-        "it's applied automatically when you save your listing, with no payment step. It's one free "
-        "introduction per coach, and it ends once all 60 places are taken.",
+        "The first 60 coaches to save a Club 2 Coach listing can claim one free introduction. Press "
+        "<b>Activate</b> on your coach page when you're ready to start looking — the free introduction "
+        "is valid for 60 days from that day, and if it hasn't been used by then it expires (you can "
+        "still buy a package). It's one free introduction per coach, and it ends once all 60 places "
+        "are taken. Clubs keep their own free first introduction.",
     ],
 ))
 story.append(Spacer(1, 4))
@@ -238,9 +241,10 @@ story.append(bullets([
 
 story.append(Paragraph("Credits, expiry and refunds", h2_style))
 story.append(bullets([
-    "<b>Coach credits don't expire.</b> Credits a coach buys, is gifted or earns through referrals "
+    "<b>Coach credits don't expire</b> — credits a coach buys, is gifted or earns through referrals "
     "stay on their listing until they're used, and a coach's application stays live until it's "
-    "filled, paused or deleted.",
+    "filled, paused or deleted. The one exception is the free founding introduction, which expires "
+    "60 days after activation if unused.",
     "<b>Club credits belong to the vacancy and lapse with it.</b> A club's vacancy stays open for "
     "one calendar month from when its first coach is shared, then expires unless it's filled. Any "
     "introductions not yet used on an expired vacancy don't carry over — to re-advertise, the club "
