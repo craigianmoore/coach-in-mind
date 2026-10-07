@@ -10,7 +10,7 @@ export default function HelpPage() {
         ← Back to Coach In Mind
       </Link>
 
-      <h1 className="mt-4 text-2xl font-bold">H2C — Help 2 Coach</h1>
+      <h1 className="mt-4 text-2xl font-bold">Help 2 Coach</h1>
       <p className="mt-2 text-sm text-gray-600">
         Support, guidance, and resources for coaches, clubs, and mentors using Coach In Mind.
       </p>
@@ -109,10 +109,43 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">What happens if a match doesn't work out?</p>
               <p className="mt-1 text-gray-600">
-                For clubs and coaches on Club 2 Coach, if a role isn't filled within the one-month
-                contact window, the vacancy simply expires — you can advertise it again. If you run
+                For clubs on Club 2 Coach, if a role isn't filled within the one-month
+                contact window (which starts when your first coach is shared with you), the vacancy simply expires — you can advertise it again. If you run
                 out of introductions before finding the right fit, you can top up for more
                 directly from your own profile or listing page at any time.
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-800">What's the founding member offer?</p>
+              <p className="mt-1 text-gray-600">
+                The first 60 coaches to complete a Club 2 Coach listing get their first
+                introduction free. It's applied automatically when you save your listing, and it
+                ends once all 60 places are taken.
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-800">Do introduction credits expire?</p>
+              <p className="mt-1 text-gray-600">
+                No — credits you buy, are gifted or earn through referrals stay on your listing
+                until they're used. For clubs, a vacancy has a one-month contact window that starts
+                when your first coach is shared with you.
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-800">Can I get a refund?</p>
+              <p className="mt-1 text-gray-600">
+                If no introduction has been made within 4 months of your payment (6 months for
+                Coach 2 Mentor), you can request a full refund from the Support page. Once at least
+                one introduction has been made, the package is non-refundable, including any unused
+                introductions in it.
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-800">How do referral rewards work?</p>
+              <p className="mt-1 text-gray-600">
+                Share your referral code or link. When someone you refer makes their first payment
+                you earn 1 free introduction (2 if it's a club), up to 6 in total. You need a paid
+                or founding listing to receive them, and a club can only earn one referral reward.
               </p>
             </div>
             <div>

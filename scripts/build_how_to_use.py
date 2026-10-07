@@ -38,11 +38,11 @@ body_style = ParagraphStyle(
 )
 h2_style = ParagraphStyle(
     "H2", parent=styles["Normal"], textColor=NAVY, fontName="Helvetica-Bold",
-    fontSize=13, leading=16, spaceBefore=12, spaceAfter=4,
+    fontSize=13, leading=16, spaceBefore=12, spaceAfter=4, keepWithNext=1,
 )
 h3_style = ParagraphStyle(
     "H3", parent=styles["Normal"], textColor=NAVY, fontName="Helvetica-Bold",
-    fontSize=10.5, leading=13, spaceBefore=8, spaceAfter=3,
+    fontSize=10.5, leading=13, spaceBefore=8, spaceAfter=3, keepWithNext=1,
 )
 bullet_style = ParagraphStyle(
     "Bullet", parent=body_style, spaceAfter=4, leading=13,
@@ -87,8 +87,22 @@ def callout(heading, body_paragraphs):
 
 story = []
 
-story.append(Paragraph("Coach In Mind", title_style))
-story.append(Paragraph("How To Use — Club 2 Coach &amp; Coach 2 Mentor", subtitle_style))
+from reportlab.platypus import Image
+LOGO_H = 30 * mm
+LOGO_W = LOGO_H * 370 / 575  # keep the logo's own proportions
+header = Table(
+    [[Image("public/coach-in-mind-logo.png", width=LOGO_W, height=LOGO_H),
+      [Paragraph("Coach In Mind", title_style),
+       Paragraph("How To Use — Club 2 Coach &amp; Coach 2 Mentor", subtitle_style)]]],
+    colWidths=[LOGO_W + 6 * mm, 165 * mm - LOGO_W - 6 * mm],
+)
+header.setStyle(TableStyle([
+    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ("LEFTPADDING", (0, 0), (-1, -1), 0),
+    ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+]))
+story.append(header)
+story.append(Spacer(1, 6))
 
 story.append(Paragraph(
     "Coach In Mind runs two separate matching services: Club 2 Coach, which connects clubs with "
@@ -122,8 +136,9 @@ story.append(bullets([
     "After each introduction, tell us whether it led to a hire from your own dashboard. We won't put "
     "forward another coach for that vacancy until you do — this makes sure you're never paying for "
     "coaches you don't need anymore.",
-    "A one-month contact window starts from your first introduction. If the role's still open after "
-    "that, simply advertise again.",
+    "A one-month contact window starts when your first coach is shared with you. If the role's still "
+    "open after that, simply advertise again.",
+    "Enter your club's postcode (where the club plays) so we can see where demand is.",
     "Didn't find your match, or want to tweak the ad? Use Repost on your vacancy to re-advertise "
     "with a few changes instead of starting from scratch. The original moves into your history so "
     "two live posts never compete for the same coaches, and the one-month contact window keeps "
@@ -163,13 +178,25 @@ story.append(bullets([
     "page at any time.",
 ]))
 
+story.append(callout(
+    "Founding member offer",
+    [
+        "The first 60 coaches to complete a Club 2 Coach listing get their first introduction free — "
+        "it's applied automatically when you save your listing, with no payment step. It's one free "
+        "introduction per coach, and it ends once all 60 places are taken.",
+    ],
+))
+story.append(Spacer(1, 4))
+
 story.append(Paragraph("Referral rewards (coaches)", h3_style))
 story.append(bullets([
     "Every coach has a personal referral code and link on their coach page.",
     "When a coach you refer makes their first payment, you earn 1 free introduction. When a club "
     "you refer does, you earn 2.",
-    "Rewards are added automatically — up to 3 rewards per coach. The person you refer earns you "
-    "a reward when they first pay; their free first introduction doesn't count as a payment.",
+    "Rewards are added automatically to your paid listing, up to a maximum of 6 referral credits. "
+    "You need a paid (or founding) listing to receive them — if you don't have one when the person "
+    "you referred pays, no credit is given. A club can only earn one referral reward, ever. Free "
+    "and gifted introductions don't count as a payment.",
     "New sign-ups enter your code when they create their profile, or just use your link.",
 ]))
 
@@ -203,14 +230,29 @@ story.append(bullets([
     "from there.",
 ]))
 
+story.append(Paragraph("Credits, expiry and refunds", h2_style))
+story.append(bullets([
+    "<b>Introduction credits don't expire.</b> Credits you buy, are gifted or earn through referrals "
+    "stay on your listing until they're used.",
+    "<b>Club contact window.</b> A club's vacancy stays open for one calendar month from when its "
+    "first coach is shared, then expires unless it's filled.",
+    "<b>Refunds.</b> If no introduction has been made within 4 months of your payment (6 months for "
+    "Coach 2 Mentor), you can ask for a full refund through the Support page. Once at least one "
+    "introduction has been made, the package is non-refundable — including any unused introductions "
+    "in it.",
+]))
+
 story.append(Paragraph("Your details, emails and the page controls", h2_style))
 story.append(bullets([
     "<b>Your contact details.</b> Your name, email and mobile come from My Profile and are shown "
     "(read-only, behind a frosted panel) at the top of your listing forms. To change them, update "
     "My Profile — that keeps what a club or coach sees once you're matched accurate.",
+    "<b>Postcode.</b> My Profile asks for your 4-digit postcode (clubs also give their own club "
+    "postcode on each vacancy). It's only used to see where people are.",
     "<b>Emails you'll receive from hello@coachinmind.com.au.</b> A confirmation when you save a "
     "listing or vacancy (it says what's still needed to activate it), and a \"you've been matched\" "
-    "email when an introduction is approved. Contact details are never put in the email itself — "
+    "email when an introduction is approved — on Coach 2 Mentor, mentors are emailed when a coach "
+    "would like their help, and both are emailed once the mentor accepts. Contact details are never put in the email itself — "
     "sign in to see them.",
     "<b>Word limits.</b> Short overviews are capped at 60 words, mentor bios at 150, goals at 100, "
     "and private notes to Coach In Mind at 100 — each box shows a live word count.",
