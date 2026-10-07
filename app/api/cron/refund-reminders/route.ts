@@ -170,7 +170,8 @@ export async function GET(req: Request) {
     if (alreadyIntroduced(c)) continue;
 
     const paidAt = new Date(c.paid_at);
-    const deadline = addMonths(paidAt, 4);
+    // Coach 2 Mentor has a 6-month window; Club 2 Coach has 4 months.
+    const deadline = addMonths(paidAt, c.table === "coach2mentor_coach_listings" ? 6 : 4);
     const warnAt = new Date(deadline.getTime() - WARNING_DAYS_BEFORE * 24 * 60 * 60 * 1000);
 
     if (now >= deadline && !c.refund_window_notified_at) {
@@ -185,14 +186,14 @@ export async function GET(req: Request) {
   if (comingUp.length > 0 || arrived.length > 0) {
     const lines: string[] = [];
     if (comingUp.length > 0) {
-      lines.push("REFUND WINDOW CLOSING IN ~2 WEEKS (no introduction made yet):");
+      lines.push("REFUND WINDOW OPENING IN ~2 WEEKS (no introduction made yet):");
       for (const c of comingUp) {
         lines.push(`- ${c.label} — paid ${c.paid_at.slice(0, 10)}, $${c.price_aud ?? "?"} AUD, listing id ${c.id}`);
       }
       lines.push("");
     }
     if (arrived.length > 0) {
-      lines.push("4-MONTH REFUND WINDOW REACHED (customer can now request a refund):");
+      lines.push("REFUND WINDOW REACHED (4 months Club 2 Coach / 6 months Coach 2 Mentor; customer can now request a refund):");
       for (const c of arrived) {
         lines.push(`- ${c.label} — paid ${c.paid_at.slice(0, 10)}, $${c.price_aud ?? "?"} AUD, listing id ${c.id}`);
       }

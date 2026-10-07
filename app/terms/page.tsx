@@ -101,7 +101,7 @@ export default function TermsPage() {
         Fees paid for introduction packages cover our effort in
         attempting to find and share suitable matches — see Section 2
         above regarding outcomes. If no introduction has been made
-        under your package within 4 months of your payment being
+        under your package within 4 months (6 months for Coach 2 Mentor) of your payment being
         received, you can request a full refund of that package via
         the{" "}
         <a href="/support" className="text-brand-navy underline">
