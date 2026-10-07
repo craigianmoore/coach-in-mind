@@ -6,6 +6,26 @@ import type { Club2CoachClubVacancy, Club2CoachCoachListing, Club2CoachShare } f
 type P = { id: string; full_name: string; email: string; mobile: string };
 type View = "applications" | "matches" | "filled";
 
+// Status colouring: filled = green, active = orange, anything else = grey.
+function tone(kind: "filled" | "active" | "other") {
+  return kind === "filled"
+    ? { badge: "bg-green-100 text-green-800", card: "border-green-300 bg-green-50", text: "text-green-700" }
+    : kind === "active"
+    ? { badge: "bg-orange-100 text-orange-800", card: "border-orange-300 bg-orange-50", text: "text-orange-700" }
+    : { badge: "bg-gray-100 text-gray-600", card: "border-gray-200 bg-white", text: "text-gray-500" };
+}
+
+function downloadCsv(filename: string, rows: (string | number | null | undefined)[][]) {
+  const esc = (v: string | number | null | undefined) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const csv = "\uFEFF" + rows.map((r) => r.map(esc).join(",")).join("\r\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString("en-GB") : "—");
 
 // Read-only admin overview of everything on the platform: applications
@@ -37,6 +57,48 @@ export default function AdminOverview({
   const vacById = new Map(vacancies.map((v) => [v.id, v]));
   const ql = q.trim().toLowerCase();
   const match = (...parts: (string | null | undefined)[]) => !ql || parts.join(" ").toLowerCase().includes(ql);
+
+  function exportCsv() {
+    const today = new Date().toISOString().slice(0, 10);
+    if (view === "applications") {
+      downloadCsv(`coach-applications-${today}.csv`, [
+        ["Coach", "Email", "Mobile", "Role sought", "Status", "Paid", "Introductions", "Regions", "Created"],
+        ...liveCoaches.map((l) => {
+          const p = people[l.person_id];
+          return [p?.full_name, p?.email, p?.mobile, l.role_sought, l.status, l.paid ? "yes" : "no", l.included_introductions, l.preferred_regions?.join("; "), fmt(l.created_at)];
+        }),
+      ]);
+      downloadCsv(`vacancies-${today}.csv`, [
+        ["Club", "Role", "Competition", "Age group", "Region", "Advertised by", "Email", "Mobile", "Status", "Paid", "Gifted", "Filled", "Created"],
+        ...liveVacancies.map((v) => {
+          const p = people[v.person_id];
+          return [v.club_name, v.role_being_recruited, v.competition_level, v.age_group_max ? `${v.age_group}-${v.age_group_max}` : v.age_group, v.region, p?.full_name, p?.email, p?.mobile, v.status, v.paid ? "yes" : "no", v.is_charity ? "yes" : "no", fmt(v.filled_at), fmt(v.created_at)];
+        }),
+      ]);
+    } else if (view === "matches") {
+      downloadCsv(`matches-${today}.csv`, [
+        ["Club", "Role", "Coach", "Coach email", "Coach mobile", "Club contact", "Club email", "Club mobile", "Matched", "Score", "Outcome"],
+        ...approved.map((s) => {
+          const cl = coachById.get(s.coach_listing_id);
+          const v = vacById.get(s.club_vacancy_id);
+          const coach = cl ? people[cl.person_id] : undefined;
+          const club = v ? people[v.person_id] : undefined;
+          return [v?.club_name, v?.role_being_recruited, coach?.full_name, coach?.email, coach?.mobile, club?.full_name, club?.email, club?.mobile, fmt(s.shared_at), s.score != null ? Math.round(Number(s.score)) : "", s.outcome];
+        }),
+      ]);
+    } else {
+      downloadCsv(`filled-roles-${today}.csv`, [
+        ["Club", "Role", "Competition", "Region", "Filled", "Coach"],
+        ...filledVacancies.map((v) => {
+          const hired = filledShares.find((s) => s.club_vacancy_id === v.id);
+          const cl = hired ? coachById.get(hired.coach_listing_id) : undefined;
+          return [v.club_name, v.role_being_recruited, v.competition_level, v.region, fmt(v.filled_at), cl ? people[cl.person_id]?.full_name : ""];
+        }),
+      ]);
+    }
+  }
+
+  const kindOf = (status: string, filled: boolean) => (filled || status === "filled" ? "filled" : status === "active" ? "active" : "other");
 
   const stat = (label: string, n: number) => (
     <div className="rounded-lg border bg-white px-3 py-2">
@@ -93,6 +155,14 @@ export default function AdminOverview({
           placeholder="Search name, club, role…"
           className="ml-auto rounded-lg border px-3 py-1.5 text-sm"
         />
+        <button
+          type="button"
+          onClick={exportCsv}
+          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+          title={view === "applications" ? "Downloads two files: coach applications and vacancies" : "Download this view as CSV"}
+        >
+          ⬇ Download CSV
+        </button>
       </div>
 
       {view === "applications" && (
@@ -104,12 +174,13 @@ export default function AdminOverview({
                 .filter((l) => match(people[l.person_id]?.full_name, l.role_sought, l.status))
                 .map((l) => {
                   const p = people[l.person_id];
+                  const t = tone(kindOf(l.status, false));
                   return (
-                    <div key={l.id} className="rounded-lg border bg-white p-3">
+                    <div key={l.id} className={`rounded-lg border p-3 ${t.card}`}>
                       <button className="w-full text-left" onClick={() => setOpenId(openId === l.id ? null : l.id)}>
                         <p className="text-sm font-medium">{p?.full_name ?? "Unknown"}</p>
                         <p className="text-xs text-gray-500">
-                          {l.role_sought} · {l.status} · {l.paid ? "paid" : "unpaid"} · {fmt(l.created_at)}
+                          {l.role_sought} · <span className={`rounded-full px-2 py-0.5 font-semibold ${t.badge}`}>{l.status}</span> · {l.paid ? "paid" : "unpaid"} · {fmt(l.created_at)}
                         </p>
                       </button>
                       {openId === l.id && (
@@ -148,14 +219,15 @@ export default function AdminOverview({
                 .filter((v) => match(v.club_name, v.role_being_recruited, people[v.person_id]?.full_name, v.status))
                 .map((v) => {
                   const p = people[v.person_id];
+                  const t = tone(kindOf(v.status, !!v.filled_at));
                   return (
-                    <div key={v.id} className="rounded-lg border bg-white p-3">
+                    <div key={v.id} className={`rounded-lg border p-3 ${t.card}`}>
                       <button className="w-full text-left" onClick={() => setOpenId(openId === v.id ? null : v.id)}>
                         <p className="text-sm font-medium">
                           {v.club_name} — {v.role_being_recruited}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {v.status} · {v.is_charity ? "gifted" : v.paid ? "paid" : "unpaid"} · {fmt(v.created_at)}
+                          <span className={`rounded-full px-2 py-0.5 font-semibold ${t.badge}`}>{v.filled_at ? "filled" : v.status}</span> · {v.is_charity ? "gifted" : v.paid ? "paid" : "unpaid"} · {fmt(v.created_at)}
                         </p>
                       </button>
                       {openId === v.id && (
@@ -205,15 +277,16 @@ export default function AdminOverview({
                   const coach = cl ? people[cl.person_id] : undefined;
                   const club = v ? people[v.person_id] : undefined;
                   if (!match(coach?.full_name, v?.club_name, v?.role_being_recruited)) return null;
+                  const t = tone(s.outcome === "filled" ? "filled" : s.outcome === "pending" ? "active" : "other");
                   return (
-                    <div key={s.id} className="rounded-lg border bg-white p-3 text-sm">
+                    <div key={s.id} className={`rounded-lg border p-3 text-sm ${t.card}`}>
                       <p className="font-medium">
                         {v?.club_name ?? "Unknown club"} <span className="text-gray-400">↔</span>{" "}
                         {coach?.full_name ?? "Unknown coach"}
                       </p>
                       <p className="text-xs text-gray-500">
                         {v?.role_being_recruited} · matched {fmt(s.shared_at)} · score {s.score != null ? Math.round(Number(s.score)) : "—"} ·{" "}
-                        {s.outcome === "pending" ? "awaiting outcome" : s.outcome === "filled" ? "filled" : "not filled"}
+                        <span className={`font-semibold ${t.text}`}>{s.outcome === "pending" ? "awaiting outcome" : s.outcome === "filled" ? "filled" : "not filled"}</span>
                       </p>
                       <p className="mt-1 text-xs text-gray-600">
                         Club contact: {club?.full_name} ({club?.email}, {club?.mobile}) · Coach: {coach?.email}, {coach?.mobile}
@@ -240,11 +313,11 @@ export default function AdminOverview({
                   const cl = hired ? coachById.get(hired.coach_listing_id) : undefined;
                   const coach = cl ? people[cl.person_id] : undefined;
                   return (
-                    <div key={v.id} className="rounded-lg border bg-white p-3 text-sm">
-                      <p className="font-medium">
+                    <div key={v.id} className="rounded-lg border border-green-300 bg-green-50 p-3 text-sm">
+                      <p className="font-medium text-green-800">
                         {v.club_name} — {v.role_being_recruited}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-green-700">
                         Filled {fmt(v.filled_at)} · {v.competition_level} · {v.region}
                         {coach ? ` · by ${coach.full_name}` : ""}
                       </p>

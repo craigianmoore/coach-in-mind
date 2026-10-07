@@ -1972,3 +1972,8 @@ begin
 end;
 $$;
 grant execute on function get_my_c2c_introductions(text, uuid) to authenticated;
+
+-- Let admins delete a club from the directory (blocked by foreign keys
+-- if any vacancy still points at it; its club_contacts row cascades).
+drop policy if exists "admin can delete clubs" on clubs;
+create policy "admin can delete clubs" on clubs for delete using (is_admin_caller());

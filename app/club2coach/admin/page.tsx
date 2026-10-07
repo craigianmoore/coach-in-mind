@@ -328,6 +328,26 @@ function Club2CoachAdmin() {
     setStatus(`Added ${name}.`);
   }
 
+  async function deleteClub(c: ClubContactRow) {
+    if (!window.confirm(`Delete ${c.name} (${c.state})? This also removes its saved email. Clubs that already have vacancies can't be deleted.`)) return;
+    supabase.rpc("refresh_admin_session");
+    const { error, count } = await supabase.from("clubs").delete({ count: "exact" }).eq("id", c.id);
+    if (error) {
+      setStatus(
+        error.message.includes("foreign key")
+          ? `${c.name} can't be deleted — it has vacancies linked to it.`
+          : `Couldn't delete ${c.name}: ${error.message}`
+      );
+      return;
+    }
+    if (!count) {
+      setStatus("Nothing was deleted — run the delete-clubs SQL step first.");
+      return;
+    }
+    setClubRows((rows) => rows.filter((r) => r.id !== c.id));
+    setStatus(`Deleted ${c.name}.`);
+  }
+
   async function saveClubEmail(c: ClubContactRow) {
     const email = draftEmail.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -2036,6 +2056,15 @@ function Club2CoachAdmin() {
                         className="mt-0.5 text-[11px] font-semibold text-blue-700 hover:underline"
                       >
                         {c.email ? "Edit email" : "+ Add email"}
+                      </button>
+                    )}
+                    {editingEmailId !== c.id && (
+                      <button
+                        type="button"
+                        onClick={() => deleteClub(c)}
+                        className="ml-3 mt-0.5 text-[11px] font-semibold text-red-600 hover:underline"
+                      >
+                        Delete club
                       </button>
                     )}
                   </div>
