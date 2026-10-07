@@ -100,16 +100,15 @@ export default function TermsPage() {
       <p className="mt-2">
         For coaches, a package is a set of credits held in a bank that is shared across Club 2
         Coach and Coach 2 Mentor. Credits in the bank do not expire. Activating a listing uses one
-        credit and puts that listing in matching for 60 days (Club 2 Coach) or 180 days (Coach 2
-        Mentor); when that period ends the credit is used up and a further credit is needed to
+        credit and puts that listing in matching for 60 days (on either service); when that period ends the credit is used up and a further credit is needed to
         re-apply.
       </p>
       <p className="mt-2">
         Fees paid for introduction packages cover our effort in
         attempting to find and share suitable matches — see Section 2
         above regarding outcomes. If no introduction has been made
-        under your package within 4 months (6 months for Coach 2 Mentor) of your payment being
-        received, you can request a full refund of that package via
+        under your package within 4 months (120 days) — counted for coaches from the day you press Activate, and for
+        clubs from payment — you can request a full refund of that package via
         the{" "}
         <a href="/support" className="text-brand-navy underline">
           Support

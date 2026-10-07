@@ -1,7 +1,7 @@
 "use client";
 
 // The coach's Activate panel. One credit = one listing in matching for a fixed
-// window (60 days Club 2 Coach, 180 days Coach 2 Mentor). Credits sit in a
+// window (60 days on either service). Credits sit in a
 // shared bank and never expire until they are spent here. If the bank is empty
 // and the founding offer is still open, the free founding credit can be used.
 // All rules (ownership, balance, founding limits) are enforced in the database.

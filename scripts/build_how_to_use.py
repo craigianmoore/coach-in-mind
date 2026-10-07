@@ -172,7 +172,7 @@ story.append(bullets([
     "founding credit (see below). Credits go into your bank and never expire while they sit there.",
     "<b>You decide when you're looking.</b> One credit = one application. Press <b>Activate</b> on "
     "your coach page to spend a credit and start the clock: your listing is in matching for "
-    "<b>60 days</b> on Club 2 Coach (<b>180 days</b> on Coach 2 Mentor), then it ends and that credit "
+    "<b>60 days</b> (Club 2 Coach or Coach 2 Mentor), then it ends and that credit "
     "is used up. To be looked at again you activate with another credit.",
     "To look for a club AND a mentor you activate both listings — one credit each. Your credits are "
     "one bank shared across both services.",
@@ -191,7 +191,7 @@ story.append(callout(
         "The first 60 coaches to save a listing get one free credit — to use on either Club 2 "
         "Coach or Coach 2 Mentor (you choose; it can't be used on a mentor profile). Press "
         "<b>Activate</b> on your coach page when you're ready to start looking; the clock (60 days "
-        "Club 2 Coach, 180 days Coach 2 Mentor) starts then. It's one free credit per coach, and it "
+        "either service) starts then. It's one free credit per coach, and it "
         "ends once all 60 places are taken. Clubs keep their own free first introduction.",
     ],
 ))
@@ -226,7 +226,7 @@ story.append(bullets([
     "priorities (e.g. how much specialism overlap or availability matters to you).",
     "Buy credits (1–3), or use your free founding credit if you are one of the first 60 coaches "
     "(one per coach, across both services). Press <b>Activate</b> to spend one credit: your "
-    "listing is then in matching for 180 days.",
+    "listing is then in matching for 60 days.",
     "Coach In Mind reviews and suggests mentors matched to your profile and priorities.",
     "Once a suggested mentor is approved, they'll be asked to accept or decline — contact details "
     "are only shared once they accept.",
@@ -248,15 +248,15 @@ story.append(Paragraph("Credits, expiry and refunds", h2_style))
 story.append(bullets([
     "<b>Coach credits sit in a bank that never expires, but a used credit does.</b> One credit = "
     "one application. When a coach presses Activate, that credit is spent and the listing is live "
-    "for 60 days (Club 2 Coach) or 180 days (Coach 2 Mentor); then it ends and the credit is gone. "
+    "for 60 days (either service); then it ends and the credit is gone. "
     "To re-apply, use or buy another credit. Mentors have no clock — they buy credits to advertise "
     "themselves to any coach who wants a mentor.",
     "<b>Club credits belong to the vacancy and lapse with it.</b> A club's vacancy stays open for "
     "one calendar month from when its first coach is shared, then expires unless it's filled. Any "
     "introductions not yet used on an expired vacancy don't carry over — to re-advertise, the club "
     "uses a new credit.",
-    "<b>Refunds.</b> If no introduction has been made within 4 months of your payment (6 months for "
-    "Coach 2 Mentor), you can ask for a full refund through the Support page. Once at least one "
+    "<b>Refunds.</b> If no introduction has been made within 120 days (4 months) — from payment for clubs, from the day you press Activate for coaches — you can ask "
+    " for a full refund through the Support page. Once at least one "
     "introduction has been made, the package is non-refundable — including any unused introductions "
     "in it.",
 ]))

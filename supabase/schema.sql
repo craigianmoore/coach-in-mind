@@ -2595,3 +2595,73 @@ end;
 $$;
 revoke all on function expire_coach_activations() from public, anon, authenticated;
 grant execute on function expire_coach_activations() to service_role;
+
+-- ===== v5: Coach 2 Mentor window is 60 days too; refund clock restarts on each Activate =====
+create or replace function activate_coach_listing(target_table text, target_listing_id uuid, use_founding boolean default false, dry_run boolean default false)
+returns jsonb language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+declare
+  me uuid := my_person_id();
+  p people%rowtype; s record; keys text[];
+  l_person uuid; l_deleted timestamptz; l_status text; l_until timestamptz; l_paid boolean;
+  bank int; days int; src text; prod text; founding_ok boolean := false; new_until timestamptz;
+begin
+  if me is null then return jsonb_build_object('activated', false, 'reason', 'not_signed_in'); end if;
+  if target_table not in ('club2coach_coach_listings', 'coach2mentor_coach_listings') then
+    return jsonb_build_object('activated', false, 'reason', 'not_eligible');
+  end if;
+  perform pg_advisory_xact_lock(60060);
+  select * into p from people where id = me;
+  execute format('select person_id, deleted_at, status, active_until, paid from %I where id = $1', target_table)
+    into l_person, l_deleted, l_status, l_until, l_paid using target_listing_id;
+  if l_person is null or l_person <> me or l_deleted is not null or l_status in ('placed', 'refunded') then
+    return jsonb_build_object('activated', false, 'reason', 'not_eligible');
+  end if;
+  if l_status = 'active' and l_until is not null and l_until > now() then
+    return jsonb_build_object('activated', false, 'reason', 'already_active');
+  end if;
+
+  select coalesce(sum(coalesce(included_introductions,0) - activations_used),0)::int into bank from (
+    select included_introductions, activations_used from club2coach_coach_listings where person_id = me and paid and status <> 'refunded'
+    union all
+    select included_introductions, activations_used from coach2mentor_coach_listings where person_id = me and paid and status <> 'refunded'
+  ) x;
+  days := 60;
+  prod := case when target_table = 'club2coach_coach_listings' then 'club2coach' else 'coach2mentor' end;
+
+  select * into s from founding_status();
+  keys := array['coach-email:' || norm_email(p.email)];
+  if norm_mobile(p.mobile) <> '' then keys := keys || ('coach-mobile:' || norm_mobile(p.mobile)); end if;
+  founding_ok := s.enabled and s.used < s.lim
+    and not exists (select 1 from free_first_claims where key = any(keys))
+    and not exists (select 1 from club2coach_coach_listings where person_id = me and founding_member)
+    and not exists (select 1 from coach2mentor_coach_listings where person_id = me and founding_member);
+
+  if dry_run then
+    return jsonb_build_object('eligible', bank >= 1 or founding_ok, 'bank', bank, 'founding_available', founding_ok, 'days', days);
+  end if;
+
+  if bank >= 1 and not use_founding then src := 'credit';
+  elsif founding_ok and (use_founding or bank < 1) then src := 'founding';
+  else return jsonb_build_object('activated', false, 'reason', 'no_credits', 'founding_available', founding_ok);
+  end if;
+  new_until := now() + make_interval(days => days);
+
+  if src = 'founding' then
+    insert into free_first_claims (key, person_id, listing_table, listing_id)
+    select k, me, target_table, target_listing_id from unnest(keys) as k on conflict do nothing;
+    -- founding credit lands on this listing (replacing an unpaid listing's "requested package" number), then is spent below
+    execute format('update %I set included_introductions = case when paid then coalesce(included_introductions,0) + 1 else 1 end, paid = true, paid_at = coalesce(paid_at, now()), price_aud = coalesce(price_aud, 0), founding_member = true where id = $1', target_table) using target_listing_id;
+    insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id, notes)
+    values (me, prod, 'coach', target_table, target_listing_id, 0, me, 'Founding member — free credit (not a real payment)');
+  elsif not l_paid then
+    -- credits live on the coach's other listing; this one just becomes "live"
+    execute format('update %I set paid = true, paid_at = now(), price_aud = 0, included_introductions = 0 where id = $1', target_table) using target_listing_id;
+  end if;
+
+  execute format('update %I set activations_used = activations_used + 1, activated_at = now(), active_until = $2, status = ''active'', founding_reminder_sent_at = null, refund_reminder_sent_at = null, refund_window_notified_at = null where id = $1', target_table)
+    using target_listing_id, new_until;
+  return jsonb_build_object('activated', true, 'source', src, 'active_until', new_until);
+end;
+$$;
+grant execute on function activate_coach_listing(text, uuid, boolean, boolean) to authenticated;
+update coach2mentor_coach_listings set active_until = activated_at + interval '60 days' where activated_at is not null and status = 'active';

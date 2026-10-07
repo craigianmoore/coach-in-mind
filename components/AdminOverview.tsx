@@ -79,7 +79,8 @@ export default function AdminOverview({
     paid && paidAt && !filled && !introduced ? Math.floor((Date.now() - new Date(paidAt).getTime()) / 86400000) : null;
   const waitLabel = (d: number | null) =>
     d == null ? null : d >= 120 ? `⏳ Waiting ${d} days — refund window open` : `⏳ Waiting ${d} day${d === 1 ? "" : "s"} for first introduction`;
-  const coachWait = (l: Club2CoachCoachListing) => waitingDays(l.paid && (l.price_aud ?? 1) > 0, l.paid_at, false, introducedCoach.has(l.id));
+  // Coaches: the refund clock runs from the day they pressed Activate (founding/free credits have nothing to refund).
+  const coachWait = (l: Club2CoachCoachListing) => waitingDays(!!l.activated_at && !l.founding_member, l.activated_at ?? null, false, introducedCoach.has(l.id));
   const vacWait = (v: Club2CoachClubVacancy) =>
     waitingDays(v.paid && !v.is_charity && (v.price_aud ?? 1) > 0, v.paid_at, !!v.filled_at, introducedVac.has(v.id));
 

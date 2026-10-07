@@ -59,14 +59,14 @@ export default function AdminOverviewC2M({
   const accepted = visibleRequests.filter((r) => r.status === "accepted");
 
   // Days a paid mentee listing has waited for its first accepted mentoring
-  // match (from payment). At 180 days (~6 months) the refund window opens.
+  // match (from the day they pressed Activate). At 120 days the refund window opens.
   const acceptedCoachIds = new Set(accepted.map((r) => r.coach_listing_id));
   const waitDays = (l: Coach2MentorCoachListing): number | null =>
-    l.paid && l.paid_at && (l.price_aud ?? 1) > 0 && !acceptedCoachIds.has(l.id)
-      ? Math.floor((Date.now() - new Date(l.paid_at).getTime()) / 86400000)
+    l.activated_at && !l.founding_member && !acceptedCoachIds.has(l.id)
+      ? Math.floor((Date.now() - new Date(l.activated_at).getTime()) / 86400000)
       : null;
   const waitLabel = (d: number) =>
-    d >= 180 ? `⏳ Waiting ${d} days — refund window open` : `⏳ Waiting ${d} day${d === 1 ? "" : "s"} for first accepted mentor`;
+    d >= 120 ? `⏳ Waiting ${d} days — refund window open` : `⏳ Waiting ${d} day${d === 1 ? "" : "s"} for first accepted mentor`;
   const coachById = new Map(coachListings.map((l) => [l.id, l]));
   const mentorById = new Map(mentorListings.map((l) => [l.id, l]));
   const ql = q.trim().toLowerCase();
@@ -238,7 +238,7 @@ export default function AdminOverviewC2M({
                           {l.paid ? "paid" : "unpaid"} · {fmt(l.created_at)}
                         </p>
                         {waitDays(l) != null && (
-                          <p className={`text-xs font-semibold ${waitDays(l)! >= 180 ? "text-red-600" : "text-orange-600"}`}>{waitLabel(waitDays(l)!)}</p>
+                          <p className={`text-xs font-semibold ${waitDays(l)! >= 120 ? "text-red-600" : "text-orange-600"}`}>{waitLabel(waitDays(l)!)}</p>
                         )}
                       </button>
                       {openIds.has(l.id) && (

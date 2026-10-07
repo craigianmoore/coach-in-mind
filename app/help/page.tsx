@@ -121,7 +121,7 @@ export default function HelpPage() {
                 The first 60 coaches to save a listing get one free credit, to use on either
                 Club 2 Coach or Coach 2 Mentor (you choose — one per coach, and not for mentor
                 profiles). Press Activate on your coach page when you're ready to start looking; the
-                clock starts then (60 days on Club 2 Coach, 180 on Coach 2 Mentor) and we email you
+                clock starts then (60 days) and we email you
                 a week before it ends. Once all 60 places are taken the offer ends. Clubs
                 have their own free first introduction.
               </p>
@@ -130,8 +130,7 @@ export default function HelpPage() {
               <p className="font-medium text-gray-800">Do my credits expire?</p>
               <p className="mt-1 text-gray-600">
                 Credits in your bank never expire, but a used credit does. One credit = one
-                application: press Activate and your listing is in matching for 60 days on Club 2
-                Coach (180 days on Coach 2 Mentor), then it ends and that credit is gone — to
+                application: press Activate and your listing is in matching for 60 days, then it ends and that credit is gone — to
                 re-apply you use or buy another. To look for both a club and a mentor you activate
                 both, one credit each; your credits are one bank shared across the two. Club credits belong to the vacancy: it has a
                 one-month contact window that starts when your first coach is shared with you, and
@@ -142,8 +141,7 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">Can I get a refund?</p>
               <p className="mt-1 text-gray-600">
-                If no introduction has been made within 4 months of your payment (6 months for
-                Coach 2 Mentor), you can request a full refund from the Support page. Once at least
+                If no introduction has been made within 120 days (4 months) — counted from payment for clubs and from the day you press Activate for coaches — you can request a full refund from the Support page. Once at least
                 one introduction has been made, the package is non-refundable, including any unused
                 introductions in it.
               </p>

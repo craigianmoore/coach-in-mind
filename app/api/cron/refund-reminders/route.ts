@@ -57,19 +57,19 @@ export async function GET(req: Request) {
   // --- Club2Coach: coach listings (pay to be introduced to clubs) ---
   const { data: coachListings } = await supabase
     .from("club2coach_coach_listings")
-    .select("id, person_id, paid_at, price_aud, refund_reminder_sent_at, refund_window_notified_at, role_sought")
+    .select("id, person_id, activated_at, price_aud, refund_reminder_sent_at, refund_window_notified_at, role_sought")
     .eq("paid", true)
-    .or("price_aud.is.null,price_aud.gt.0") // free introductions have nothing to refund
+    .eq("founding_member", false) // free founding credits have nothing to refund
     .is("deleted_at", null)
     .is("refund_window_notified_at", null)
     .is("refunded_at", null)
-    .not("paid_at", "is", null);
+    .not("activated_at", "is", null); // the coach's refund clock starts when they press Activate
   for (const l of coachListings ?? []) {
     candidates.push({
       table: "club2coach_coach_listings",
       id: l.id,
       person_id: l.person_id,
-      paid_at: l.paid_at,
+      paid_at: l.activated_at,
       price_aud: l.price_aud,
       refund_reminder_sent_at: l.refund_reminder_sent_at,
       refund_window_notified_at: l.refund_window_notified_at,
@@ -106,19 +106,19 @@ export async function GET(req: Request) {
   // --- Coach2Mentor: coach listings (pay to be introduced to mentors) ---
   const { data: c2mCoachListings } = await supabase
     .from("coach2mentor_coach_listings")
-    .select("id, person_id, paid_at, price_aud, refund_reminder_sent_at, refund_window_notified_at")
+    .select("id, person_id, activated_at, price_aud, refund_reminder_sent_at, refund_window_notified_at")
     .eq("paid", true)
-    .or("price_aud.is.null,price_aud.gt.0") // free introductions have nothing to refund
+    .eq("founding_member", false) // free founding credits have nothing to refund
     .is("deleted_at", null)
     .is("refund_window_notified_at", null)
     .is("refunded_at", null)
-    .not("paid_at", "is", null);
+    .not("activated_at", "is", null); // the coach's refund clock starts when they press Activate
   for (const c of c2mCoachListings ?? []) {
     candidates.push({
       table: "coach2mentor_coach_listings",
       id: c.id,
       person_id: c.person_id,
-      paid_at: c.paid_at,
+      paid_at: c.activated_at,
       price_aud: c.price_aud,
       refund_reminder_sent_at: c.refund_reminder_sent_at,
       refund_window_notified_at: c.refund_window_notified_at,
@@ -170,8 +170,8 @@ export async function GET(req: Request) {
     if (alreadyIntroduced(c)) continue;
 
     const paidAt = new Date(c.paid_at);
-    // Coach 2 Mentor has a 6-month window; Club 2 Coach has 4 months.
-    const deadline = addMonths(paidAt, c.table === "coach2mentor_coach_listings" ? 6 : 4);
+    // 120 days for everyone: from payment (clubs) or from Activate (coaches).
+    const deadline = new Date(paidAt.getTime() + 120 * 24 * 60 * 60 * 1000);
     const warnAt = new Date(deadline.getTime() - WARNING_DAYS_BEFORE * 24 * 60 * 60 * 1000);
 
     if (now >= deadline && !c.refund_window_notified_at) {
@@ -193,7 +193,7 @@ export async function GET(req: Request) {
       lines.push("");
     }
     if (arrived.length > 0) {
-      lines.push("REFUND WINDOW REACHED (4 months Club 2 Coach / 6 months Coach 2 Mentor; customer can now request a refund):");
+      lines.push("REFUND WINDOW REACHED (120 days — from payment for clubs, from Activate for coaches; customer can now request a refund):");
       for (const c of arrived) {
         lines.push(`- ${c.label} — paid ${c.paid_at.slice(0, 10)}, $${c.price_aud ?? "?"} AUD, listing id ${c.id}`);
       }
