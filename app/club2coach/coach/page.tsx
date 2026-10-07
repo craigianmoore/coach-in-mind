@@ -27,6 +27,7 @@ import type { Club2CoachCoachListing, Person } from "@/types/database";
 import WordLimitedTextarea from "@/components/WordLimitedTextarea";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
 import MatchedContacts from "@/components/MatchedContacts";
+import FoundingBanner from "@/components/FoundingBanner";
 import ContactDetailsGlass from "@/components/ContactDetailsGlass";
 
 function Club2CoachCoachForm({ person }: { person: Person }) {
@@ -363,15 +364,25 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       included_introductions: selectedPackage, // the coach's chosen package — admin confirms this (or adjusts it) when marking paid
     };
 
-    const { error: saveError } = existing
-      ? await supabase.from("club2coach_coach_listings").update(payload).eq("id", existing.id)
-      : await supabase.from("club2coach_coach_listings").insert(payload);
+    let newListingId: string | null = null;
+    let saveError: { message: string } | null = null;
+    if (existing) {
+      saveError = (await supabase.from("club2coach_coach_listings").update(payload).eq("id", existing.id)).error;
+    } else {
+      const res = await supabase.from("club2coach_coach_listings").insert(payload).select("id").single();
+      saveError = res.error;
+      newListingId = res.data?.id ?? null;
+    }
 
     if (saveError) {
       setError(saveError.message);
       setSaving(false);
       return;
     }
+
+    // Founding member offer: quietly claims the free introduction if the
+    // offer is on and spots remain (does nothing otherwise).
+    if (newListingId) await supabase.rpc("claim_founding_introduction", { target_listing_id: newListingId });
 
     await load();
     setSaving(false);
@@ -430,6 +441,8 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   return (
     <div className="py-8">
       <h1 className="text-xl font-bold">Find a Coaching Role</h1>
+
+      {!existing?.paid && <FoundingBanner className="mt-4" />}
 
       <ContactDetailsGlass fullName={person.full_name} email={person.email} mobile={person.mobile} who="a club" />
 

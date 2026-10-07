@@ -1984,3 +1984,61 @@ alter table coach2mentor_requests add column if not exists accepted_notified_at 
 -- Don't email about requests that already existed before this feature.
 update coach2mentor_requests set pending_notified_at = now() where status <> 'suggested' and pending_notified_at is null;
 update coach2mentor_requests set accepted_notified_at = now() where status = 'accepted' and accepted_notified_at is null;
+
+-- ── Postcodes (to see "hot" areas) and the Founding Member offer ──────
+alter table people add column if not exists postcode text;
+alter table club2coach_club_vacancies add column if not exists postcode text;
+
+alter table platform_settings add column if not exists founding_enabled boolean not null default true;
+alter table platform_settings add column if not exists founding_coach_limit integer not null default 60;
+alter table club2coach_coach_listings add column if not exists founding_member boolean not null default false;
+
+-- Public counter for the sign-up banner (numbers only).
+create or replace function founding_status()
+returns table(enabled boolean, lim integer, used integer)
+language sql
+stable
+security definer
+set search_path = public
+set row_security = off
+as $$
+  select coalesce((select founding_enabled from platform_settings limit 1), true),
+         coalesce((select founding_coach_limit from platform_settings limit 1), 60),
+         (select count(*)::int from club2coach_coach_listings where founding_member);
+$$;
+grant execute on function founding_status() to anon, authenticated;
+
+-- A coach claims their one free founding introduction on their own,
+-- unpaid listing. Returns true if it was granted. Safe to call repeatedly.
+create or replace function claim_founding_introduction(target_listing_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, extensions
+set row_security = off
+as $$
+declare
+  me uuid := my_person_id();
+  l club2coach_coach_listings%rowtype;
+  s record;
+begin
+  if me is null then return false; end if;
+  perform pg_advisory_xact_lock(60060);
+  select * into l from club2coach_coach_listings where id = target_listing_id and person_id = me and deleted_at is null;
+  if not found or l.paid or l.founding_member then return false; end if;
+  if exists (select 1 from club2coach_coach_listings where person_id = me and founding_member) then return false; end if;
+  select * into s from founding_status();
+  if not s.enabled or s.used >= s.lim then return false; end if;
+
+  update club2coach_coach_listings
+  set included_introductions = 1, paid = true, paid_at = now(), price_aud = 0,
+      status = 'active', founding_member = true
+  where id = target_listing_id;
+
+  insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id, notes)
+  values (me, 'club2coach', 'coach', 'club2coach_coach_listings', target_listing_id, 0, me,
+          'Founding member — free introduction, not a real payment');
+  return true;
+end;
+$$;
+grant execute on function claim_founding_introduction(uuid) to authenticated;

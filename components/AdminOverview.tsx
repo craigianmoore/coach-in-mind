@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { Club2CoachClubVacancy, Club2CoachCoachListing, Club2CoachShare } from "@/types/database";
 
-type P = { id: string; full_name: string; email: string; mobile: string };
-type View = "applications" | "matches" | "filled";
+type P = { id: string; full_name: string; email: string; mobile: string; postcode?: string | null };
+type View = "applications" | "matches" | "filled" | "areas";
 
 // Status colouring: filled = green, active = orange, anything else = grey.
 function tone(kind: "filled" | "active" | "other") {
@@ -45,6 +46,15 @@ export default function AdminOverview({
 }) {
   const [view, setView] = useState<View>("applications");
   const [q, setQ] = useState("");
+  const [founding, setFounding] = useState<{ enabled: boolean; lim: number; used: number } | null>(null);
+  useEffect(() => {
+    createClient()
+      .rpc("founding_status")
+      .then(({ data }) => {
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row) setFounding(row);
+      });
+  }, []);
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const toggle = (id: string) =>
     setOpenIds((prev) => {
@@ -82,6 +92,11 @@ export default function AdminOverview({
           return [v.club_name, v.role_being_recruited, v.competition_level, v.age_group_max ? `${v.age_group}-${v.age_group_max}` : v.age_group, v.region, p?.full_name, p?.email, p?.mobile, v.status, v.paid ? "yes" : "no", v.is_charity ? "yes" : "no", fmt(v.filled_at), fmt(v.created_at)];
         }),
       ]);
+    } else if (view === "areas") {
+      downloadCsv(`hot-areas-${today}.csv`, [
+        ["Postcode", "Coaches", "Active coaches", "Vacancies", "Active vacancies", "Matches"],
+        ...areaRows.map((r) => [r.postcode, r.coaches, r.activeCoaches, r.vacancies, r.activeVacancies, r.matches]),
+      ]);
     } else if (view === "matches") {
       downloadCsv(`matches-${today}.csv`, [
         ["Club", "Role", "Coach", "Coach email", "Coach mobile", "Club contact", "Club email", "Club mobile", "Matched", "Score", "Outcome"],
@@ -104,6 +119,33 @@ export default function AdminOverview({
       ]);
     }
   }
+
+  // Hot areas: demand by postcode. Coaches use their profile postcode,
+  // vacancies use the club's postcode.
+  const areaMap = new Map<string, { coaches: number; vacancies: number; activeCoaches: number; activeVacancies: number; matches: number }>();
+  const area = (pc: string | null | undefined) => {
+    const k = (pc ?? "").trim() || "Not given";
+    if (!areaMap.has(k)) areaMap.set(k, { coaches: 0, vacancies: 0, activeCoaches: 0, activeVacancies: 0, matches: 0 });
+    return areaMap.get(k)!;
+  };
+  for (const l of liveCoaches) {
+    const a = area(people[l.person_id]?.postcode);
+    a.coaches += 1;
+    if (l.paid && l.status === "active") a.activeCoaches += 1;
+  }
+  for (const v of liveVacancies) {
+    const a = area(v.postcode);
+    a.vacancies += 1;
+    if (v.paid && v.status === "active") a.activeVacancies += 1;
+  }
+  for (const s of approved) {
+    const v = vacById.get(s.club_vacancy_id);
+    if (v) area(v.postcode).matches += 1;
+  }
+  const areaRows = Array.from(areaMap.entries())
+    .map(([postcode, c]) => ({ postcode, ...c, total: c.coaches + c.vacancies }))
+    .sort((x, y) => y.total - x.total)
+    .filter((r) => !ql || r.postcode.includes(ql));
 
   const kindOf = (status: string, filled: boolean) => (filled || status === "filled" ? "filled" : status === "active" ? "active" : "other");
 
@@ -136,6 +178,7 @@ export default function AdminOverview({
         {stat("Active vacancies", liveVacancies.filter((v) => v.paid && v.status === "active").length)}
         {stat("Matches made", approved.length)}
         {stat("Roles filled", filledVacancies.length)}
+        {founding && founding.enabled && stat(`Founding intros (of ${founding.lim})`, founding.used)}
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -144,6 +187,7 @@ export default function AdminOverview({
             ["applications", "Applications"],
             ["matches", "Matches (club ↔ coach)"],
             ["filled", "Filled roles"],
+            ["areas", "Hot areas"],
           ] as [View, string][]
         ).map(([v, label]) => (
           <button
@@ -331,6 +375,54 @@ export default function AdminOverview({
                     </div>
                   );
                 })}
+            </div>
+          )}
+        </div>
+      )}
+      {view === "areas" && (
+        <div className="mt-4">
+          <h2 className="font-semibold">Hot areas by postcode</h2>
+          <p className="text-xs text-gray-500">
+            Coaches use their profile postcode; vacancies use the club&apos;s postcode. &ldquo;Not given&rdquo; are
+            older records without one. Search by postcode.
+          </p>
+          {areaRows.length === 0 ? (
+            <p className="mt-2 text-sm text-gray-500">Nothing to show yet.</p>
+          ) : (
+            <div className="mt-2 overflow-x-auto rounded-lg border bg-white">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                  <tr>
+                    <th className="px-3 py-2">Postcode</th>
+                    <th className="px-3 py-2">Coaches</th>
+                    <th className="px-3 py-2">Vacancies</th>
+                    <th className="px-3 py-2">Matches</th>
+                    <th className="px-3 py-2">Demand</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {areaRows.map((r) => (
+                    <tr key={r.postcode} className="border-t">
+                      <td className="px-3 py-2 font-medium">{r.postcode}</td>
+                      <td className="px-3 py-2">
+                        {r.coaches} <span className="text-xs text-gray-400">({r.activeCoaches} active)</span>
+                      </td>
+                      <td className="px-3 py-2">
+                        {r.vacancies} <span className="text-xs text-gray-400">({r.activeVacancies} active)</span>
+                      </td>
+                      <td className="px-3 py-2">{r.matches}</td>
+                      <td className="px-3 py-2">
+                        <div className="h-2 w-28 rounded bg-gray-100">
+                          <div
+                            className="h-2 rounded bg-orange-400"
+                            style={{ width: `${Math.round((r.total / areaRows[0].total) * 100)}%` }}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

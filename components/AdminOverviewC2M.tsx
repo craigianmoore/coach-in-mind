@@ -3,8 +3,8 @@
 import { useState } from "react";
 import type { Coach2MentorCoachListing, Coach2MentorMentorListing, Coach2MentorRequest } from "@/types/database";
 
-type P = { id: string; full_name: string; email: string; mobile: string };
-type View = "applications" | "matches" | "mentoring";
+type P = { id: string; full_name: string; email: string; mobile: string; postcode?: string | null };
+type View = "applications" | "matches" | "mentoring" | "areas";
 
 const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString("en-GB") : "—");
 
@@ -89,8 +89,28 @@ export default function AdminOverviewC2M({
     return { r, coach: cl ? people[cl.person_id] : undefined, mentor: ml ? people[ml.person_id] : undefined };
   };
 
+  // Hot areas: where coaches seeking a mentor and mentors are, by postcode.
+  const areaMap = new Map<string, { coaches: number; mentors: number }>();
+  const area = (pc: string | null | undefined) => {
+    const k = (pc ?? "").trim() || "Not given";
+    if (!areaMap.has(k)) areaMap.set(k, { coaches: 0, mentors: 0 });
+    return areaMap.get(k)!;
+  };
+  for (const l of liveCoaches) area(people[l.person_id]?.postcode).coaches += 1;
+  for (const m of liveMentors) area(people[m.person_id]?.postcode).mentors += 1;
+  const areaRows = Array.from(areaMap.entries())
+    .map(([postcode, c]) => ({ postcode, ...c, total: c.coaches + c.mentors }))
+    .sort((x, y) => y.total - x.total);
+
   function exportCsv() {
     const today = new Date().toISOString().slice(0, 10);
+    if (view === "areas") {
+      downloadCsv(`hot-areas-mentoring-${today}.csv`, [
+        ["Postcode", "Coaches seeking a mentor", "Mentors"],
+        ...areaRows.map((r) => [r.postcode, r.coaches, r.mentors]),
+      ]);
+      return;
+    }
     if (view === "applications") {
       downloadCsv(`mentee-applications-${today}.csv`, [
         ["Coach", "Email", "Mobile", "Career stage", "Availability", "Status", "Paid", "Introductions", "Regions", "Created"],
@@ -156,6 +176,7 @@ export default function AdminOverviewC2M({
             ["applications", "Applications"],
             ["matches", "Matches (coach ↔ mentor)"],
             ["mentoring", "Active mentoring"],
+            ["areas", "Hot areas"],
           ] as [View, string][]
         ).map(([v, label]) => (
           <button
@@ -295,6 +316,42 @@ export default function AdminOverviewC2M({
             <p className="mt-2 text-sm text-gray-500">No mentoring relationships accepted yet.</p>
           ) : (
             <div className="mt-2 flex flex-col gap-2">{accepted.map(matchCard)}</div>
+          )}
+        </div>
+      )}
+      {view === "areas" && (
+        <div className="mt-4">
+          <h2 className="font-semibold">Hot areas by postcode</h2>
+          <p className="text-xs text-gray-500">From each person&apos;s profile postcode. &ldquo;Not given&rdquo; are older records without one.</p>
+          {areaRows.length === 0 ? (
+            <p className="mt-2 text-sm text-gray-500">Nothing to show yet.</p>
+          ) : (
+            <div className="mt-2 overflow-x-auto rounded-lg border bg-white">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                  <tr>
+                    <th className="px-3 py-2">Postcode</th>
+                    <th className="px-3 py-2">Seeking a mentor</th>
+                    <th className="px-3 py-2">Mentors</th>
+                    <th className="px-3 py-2">Demand</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {areaRows.map((r) => (
+                    <tr key={r.postcode} className="border-t">
+                      <td className="px-3 py-2 font-medium">{r.postcode}</td>
+                      <td className="px-3 py-2">{r.coaches}</td>
+                      <td className="px-3 py-2">{r.mentors}</td>
+                      <td className="px-3 py-2">
+                        <div className="h-2 w-28 rounded bg-gray-100">
+                          <div className="h-2 rounded bg-orange-400" style={{ width: `${Math.round((r.total / areaRows[0].total) * 100)}%` }} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}

@@ -6,6 +6,7 @@ export interface Person {
   email: string;
   gender: string | null;
   region: string | null;
+  postcode: string | null;
   current_licence: string | null;
   admin_session_until: string | null;
   created_at: string;
@@ -49,6 +50,7 @@ export interface Club2CoachCoachListing {
   authorise_share: boolean;
   agreed_to_terms: boolean; // Terms of Service / Privacy Policy consent — required before saving
   paid: boolean;
+  founding_member?: boolean;
   paid_at: string | null;
   price_aud: number | null;
   included_introductions: number | null; // package size (1, 2, or 3) — how many club introductions this coach has paid for
@@ -66,6 +68,7 @@ export interface Club2CoachClubVacancy {
   person_id: string;
   club_id: string | null; // FK to clubs — null only on pre-migration rows
   club_name: string; // denormalised from clubs.name at time of creation, for display
+  postcode: string | null;
   state: "VIC" | "TAS" | null; // denormalised from clubs.state at time of creation — used to gate geography scoring
   role_being_recruited: string;
   competition_level: string;

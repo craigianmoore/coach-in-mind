@@ -29,6 +29,7 @@ import {
 import type { Club, Club2CoachClubVacancy, Club2CoachShare, Person } from "@/types/database";
 import WordLimitedTextarea from "@/components/WordLimitedTextarea";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
+import { isValidPostcode, POSTCODE_FINDER_URL } from "@/lib/postcode";
 import MatchedContacts from "@/components/MatchedContacts";
 import ContactDetailsGlass from "@/components/ContactDetailsGlass";
 
@@ -55,6 +56,7 @@ type FormState = {
   teamGender: string;
   preferredCoachGender: string;
   region: string;
+  postcode: string;
   requiredAccreditation: string;
   requiredAbilityLevel: string;
   salaryMin: string;
@@ -77,6 +79,7 @@ function emptyForm(): FormState {
     teamGender: "",
     preferredCoachGender: "",
     region: REGIONS[0],
+    postcode: "",
     requiredAccreditation: ACCREDITATION_LEVELS[0],
     requiredAbilityLevel: "",
     salaryMin: "",
@@ -100,6 +103,7 @@ function formFromVacancy(v: Club2CoachClubVacancy): FormState {
     teamGender: v.team_gender ?? "",
     preferredCoachGender: v.preferred_coach_gender ?? "",
     region: v.region,
+    postcode: v.postcode ?? "",
     requiredAccreditation: v.required_accreditation,
     requiredAbilityLevel: v.required_ability_level ?? "",
     salaryMin: v.salary_min?.toString() ?? "",
@@ -414,6 +418,11 @@ function Club2CoachClubForm({ person }: { person: Person }) {
       return;
     }
 
+    if (!isValidPostcode(form.postcode)) {
+      setError("Please enter the club's 4-digit postcode.");
+      return;
+    }
+
     if (!form.agreedToTerms) {
       setError("Please agree to the Terms of Service and Privacy Policy to continue.");
       return;
@@ -448,6 +457,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
       team_gender: form.teamGender || null,
       preferred_coach_gender: form.preferredCoachGender || null,
       region: form.region,
+      postcode: form.postcode.trim(),
       required_accreditation: form.requiredAccreditation,
       required_ability_level: form.requiredAbilityLevel || null,
       salary_min: form.salaryMin ? Number(form.salaryMin) : null,
@@ -1035,6 +1045,23 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 ))}
               </select>
             )}
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">Club postcode *</label>
+            <input
+              value={form.postcode}
+              onChange={(e) => setForm((f) => ({ ...f, postcode: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="e.g. 3000"
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Where the club plays.{" "}
+              <a href={POSTCODE_FINDER_URL} target="_blank" rel="noopener noreferrer" className="underline">
+                Find a postcode
+              </a>
+            </p>
           </div>
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Region</label>

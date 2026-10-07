@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
+import FoundingBanner from "@/components/FoundingBanner";
 
 function SignupForm() {
   const router = useRouter();
@@ -88,6 +89,7 @@ function SignupForm() {
   return (
     <div className="mx-auto max-w-md py-16">
       <h1 className="text-2xl font-bold">Create your Coach In Mind account</h1>
+      <FoundingBanner className="mt-4" />
       <p className="mt-1 text-sm text-gray-600">
         One login covers both Club 2 Coach and Coach 2 Mentor. You'll set up
         your shared profile next.

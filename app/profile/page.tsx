@@ -9,6 +9,7 @@ import { REGIONS, ACCREDITATION_LEVELS, GENDER_OPTIONS } from "@/lib/constants";
 import type { Person, CoachCreditRequest } from "@/types/database";
 import { CLUB2COACH_COACH_PACKAGES } from "@/lib/constants";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
+import { isValidPostcode, POSTCODE_FINDER_URL } from "@/lib/postcode";
 
 function ProfileForm() {
   const router = useRouter();
@@ -27,6 +28,7 @@ function ProfileForm() {
   const [email, setEmail] = useState("");
   const [gender, setGender] = useState("");
   const [region, setRegion] = useState("");
+  const [postcode, setPostcode] = useState("");
   const [currentLicence, setCurrentLicence] = useState("None / In Progress");
   const [mobileWarning, setMobileWarning] = useState(false);
   const [referralCode, setReferralCode] = useState("");
@@ -75,6 +77,7 @@ function ProfileForm() {
       setEmail(p.email);
       setGender(p.gender ?? "");
       setRegion(p.region ?? "");
+      setPostcode(p.postcode ?? "");
       setCurrentLicence(p.current_licence ?? "None / In Progress");
 
       const [{ data: c2c }, { data: c2m }, { data: creditReq }] = await Promise.all([
@@ -158,6 +161,10 @@ function ProfileForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!isValidPostcode(postcode)) {
+      setError("Please enter your 4-digit postcode.");
+      return;
+    }
     setSaving(true);
 
     const {
@@ -177,6 +184,7 @@ function ProfileForm() {
       email,
       gender: gender || null,
       region: region || null,
+      postcode: postcode.trim(),
       current_licence: currentLicence,
     };
 
@@ -311,6 +319,24 @@ function ProfileForm() {
                 </option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase text-gray-500">Postcode *</label>
+            <input
+              value={postcode}
+              onChange={(e) => setPostcode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="e.g. 3000"
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Where you live or coach. Don&apos;t know it?{" "}
+              <a href={POSTCODE_FINDER_URL} target="_blank" rel="noopener noreferrer" className="underline">
+                Find a postcode
+              </a>
+              .
+            </p>
           </div>
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Region</label>
