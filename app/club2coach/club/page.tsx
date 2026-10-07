@@ -29,6 +29,7 @@ import {
 import type { Club, Club2CoachClubVacancy, Club2CoachShare, Person } from "@/types/database";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
 import MatchedContacts from "@/components/MatchedContacts";
+import ContactDetailsGlass from "@/components/ContactDetailsGlass";
 
 const PRIORITY_HINTS = [
   "Accreditation",
@@ -648,6 +649,8 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           ← Back to your vacancies
         </button>
       </div>
+
+      <ContactDetailsGlass fullName={person.full_name} email={person.email} mobile={person.mobile} who="the coach" />
 
       {openCountMessage && (
         <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
