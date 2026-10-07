@@ -1,3 +1,4 @@
+import FoundingBanner from "@/components/FoundingBanner";
 import Link from "next/link";
 import CoachInMindLogo from "@/components/CoachInMindLogo";
 
@@ -18,6 +19,7 @@ export default function HomePage() {
             Coach In Mind matches accredited coaches with clubs
             <br />— no scrambling, no missed opportunities.
           </p>
+          <FoundingBanner variant="hero" className="mt-2" />
         </div>
       </div>
 
