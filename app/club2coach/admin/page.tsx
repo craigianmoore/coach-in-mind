@@ -91,6 +91,8 @@ function Club2CoachAdmin() {
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
+  const [showAddClub, setShowAddClub] = useState(false);
+  const [newClub, setNewClub] = useState({ name: "", state: "VIC", email: "" });
   const [editingEmailId, setEditingEmailId] = useState<string | null>(null);
   const [draftEmail, setDraftEmail] = useState("");
 
@@ -282,6 +284,46 @@ function Club2CoachAdmin() {
       return;
     }
     setClubRows((rows) => rows.map((r) => (r.id === c.id ? { ...r, ...patch } : r)));
+  }
+
+  async function addClub() {
+    const name = newClub.name.trim();
+    const email = newClub.email.trim().toLowerCase();
+    if (!name) {
+      setStatus("Enter a club name.");
+      return;
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setStatus("That doesn't look like a valid email address.");
+      return;
+    }
+    const { data, error } = await supabase
+      .from("clubs")
+      .insert({ name, state: newClub.state })
+      .select("id,name,state")
+      .single();
+    if (error || !data) {
+      setStatus(
+        error?.message.includes("duplicate")
+          ? `${name} is already in the list — search for it.`
+          : `Couldn't add club: ${error?.message ?? "unknown error"}`
+      );
+      return;
+    }
+    if (email) {
+      const { error: e2 } = await supabase
+        .from("club_contacts")
+        .insert({ club_id: data.id, email, source: "manual", confidence: "high" });
+      if (e2) setStatus(`Club added, but the email failed: ${e2.message}`);
+    }
+    setClubRows((rows) =>
+      [...rows, { ...data, email: email || null, source: email ? "manual" : null, confidence: email ? "high" : null, contacted_at: null, do_not_contact: false }].sort((a, b) =>
+        a.name.localeCompare(b.name)
+      )
+    );
+    setNewClub({ name: "", state: newClub.state, email: "" });
+    setShowAddClub(false);
+    setStatus(`Added ${name}.`);
   }
 
   async function saveClubEmail(c: ClubContactRow) {
@@ -1828,6 +1870,44 @@ function Club2CoachAdmin() {
               <p className="text-xs text-gray-500">
                 {visible.length} shown · {clubRows.filter((c) => c.email).length} of {clubRows.length} clubs have an email
               </p>
+            </div>
+            <div className="mt-2">
+              {showAddClub ? (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-white p-2">
+                  <input
+                    value={newClub.name}
+                    onChange={(e) => setNewClub({ ...newClub, name: e.target.value })}
+                    placeholder="Club name"
+                    className="rounded border border-gray-300 px-2 py-1 text-sm"
+                  />
+                  <select
+                    value={newClub.state}
+                    onChange={(e) => setNewClub({ ...newClub, state: e.target.value })}
+                    className="rounded border border-gray-300 px-2 py-1 text-sm"
+                  >
+                    {["VIC", "NSW", "NNSW", "QLD", "SA", "WA", "TAS", "ACT", "NT"].map((st) => (
+                      <option key={st}>{st}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="email"
+                    value={newClub.email}
+                    onChange={(e) => setNewClub({ ...newClub, email: e.target.value })}
+                    placeholder="Email (optional)"
+                    className="rounded border border-gray-300 px-2 py-1 text-sm"
+                  />
+                  <button type="button" onClick={addClub} className="rounded-lg bg-blue-700 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-800">
+                    Add club
+                  </button>
+                  <button type="button" onClick={() => setShowAddClub(false)} className="rounded-lg border border-gray-300 px-3 py-1 text-xs text-gray-500 hover:bg-gray-50">
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setShowAddClub(true)} className="text-xs font-semibold text-blue-700 hover:underline">
+                  + Add a club that isn&apos;t listed
+                </button>
+              )}
             </div>
             <p className="mt-2 text-[11px] text-gray-400">With email / clubs: {stateSummary.join(" · ")}</p>
             <div className="mt-3 flex flex-col gap-1">
