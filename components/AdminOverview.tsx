@@ -70,6 +70,19 @@ export default function AdminOverview({
   const filledShares = approved.filter((s) => s.outcome === "filled");
   const filledVacancies = liveVacancies.filter((v) => v.filled_at || v.status === "filled");
 
+  // Days a paid listing/vacancy has been waiting for its first introduction
+  // (counted from payment). Once it reaches 4 months the customer can ask
+  // for a refund, so those are flagged.
+  const introducedCoach = new Set(approved.map((s) => s.coach_listing_id));
+  const introducedVac = new Set(approved.map((s) => s.club_vacancy_id));
+  const waitingDays = (paid: boolean, paidAt: string | null, filled: boolean, introduced: boolean): number | null =>
+    paid && paidAt && !filled && !introduced ? Math.floor((Date.now() - new Date(paidAt).getTime()) / 86400000) : null;
+  const waitLabel = (d: number | null) =>
+    d == null ? null : d >= 120 ? `⏳ Waiting ${d} days — refund window open` : `⏳ Waiting ${d} day${d === 1 ? "" : "s"} for first introduction`;
+  const coachWait = (l: Club2CoachCoachListing) => waitingDays(l.paid && (l.price_aud ?? 1) > 0, l.paid_at, false, introducedCoach.has(l.id));
+  const vacWait = (v: Club2CoachClubVacancy) =>
+    waitingDays(v.paid && !v.is_charity && (v.price_aud ?? 1) > 0, v.paid_at, !!v.filled_at, introducedVac.has(v.id));
+
   const coachById = new Map(coachListings.map((l) => [l.id, l]));
   const vacById = new Map(vacancies.map((v) => [v.id, v]));
   const ql = q.trim().toLowerCase();
@@ -79,17 +92,17 @@ export default function AdminOverview({
     const today = new Date().toISOString().slice(0, 10);
     if (view === "applications") {
       downloadCsv(`coach-applications-${today}.csv`, [
-        ["Coach", "Email", "Mobile", "Role sought", "Status", "Paid", "Introductions", "Regions", "Created"],
+        ["Coach", "Email", "Mobile", "Role sought", "Status", "Paid", "Introductions", "Regions", "Created", "Days waiting for 1st intro"],
         ...liveCoaches.map((l) => {
           const p = people[l.person_id];
-          return [p?.full_name, p?.email, p?.mobile, l.role_sought, l.status, l.paid ? "yes" : "no", l.included_introductions, l.preferred_regions?.join("; "), fmt(l.created_at)];
+          return [p?.full_name, p?.email, p?.mobile, l.role_sought, l.status, l.paid ? "yes" : "no", l.included_introductions, l.preferred_regions?.join("; "), fmt(l.created_at), coachWait(l) ?? ""];
         }),
       ]);
       downloadCsv(`vacancies-${today}.csv`, [
-        ["Club", "Role", "Competition", "Age group", "Region", "Advertised by", "Email", "Mobile", "Status", "Paid", "Gifted", "Filled", "Created"],
+        ["Club", "Role", "Competition", "Age group", "Region", "Advertised by", "Email", "Mobile", "Status", "Paid", "Gifted", "Filled", "Created", "Days waiting for 1st intro"],
         ...liveVacancies.map((v) => {
           const p = people[v.person_id];
-          return [v.club_name, v.role_being_recruited, v.competition_level, v.age_group_max ? `${v.age_group}-${v.age_group_max}` : v.age_group, v.region, p?.full_name, p?.email, p?.mobile, v.status, v.paid ? "yes" : "no", v.is_charity ? "yes" : "no", fmt(v.filled_at), fmt(v.created_at)];
+          return [v.club_name, v.role_being_recruited, v.competition_level, v.age_group_max ? `${v.age_group}-${v.age_group_max}` : v.age_group, v.region, p?.full_name, p?.email, p?.mobile, v.status, v.paid ? "yes" : "no", v.is_charity ? "yes" : "no", fmt(v.filled_at), fmt(v.created_at), vacWait(v) ?? ""];
         }),
       ]);
     } else if (view === "areas") {
@@ -178,6 +191,7 @@ export default function AdminOverview({
         {stat("Active vacancies", liveVacancies.filter((v) => v.paid && v.status === "active").length)}
         {stat("Matches made", approved.length)}
         {stat("Roles filled", filledVacancies.length)}
+        {stat("Waiting for 1st intro", liveCoaches.filter((l) => coachWait(l) != null).length + liveVacancies.filter((v) => vacWait(v) != null).length)}
         {founding && founding.enabled && stat(`Founding intros (of ${founding.lim})`, founding.used)}
       </div>
 
@@ -233,6 +247,9 @@ export default function AdminOverview({
                         <p className="text-xs text-gray-500">
                           {l.role_sought} · <span className={`rounded-full px-2 py-0.5 font-semibold ${t.badge}`}>{l.status}</span> · {l.paid ? "paid" : "unpaid"} · {fmt(l.created_at)}
                         </p>
+                        {coachWait(l) != null && (
+                          <p className={`text-xs font-semibold ${coachWait(l)! >= 120 ? "text-red-600" : "text-orange-600"}`}>{waitLabel(coachWait(l))}</p>
+                        )}
                       </button>
                       {openIds.has(l.id) && (
                         <Detail
@@ -280,6 +297,9 @@ export default function AdminOverview({
                         <p className="text-xs text-gray-500">
                           <span className={`rounded-full px-2 py-0.5 font-semibold ${t.badge}`}>{v.filled_at ? "filled" : v.status}</span> · {v.is_charity ? "gifted" : v.paid ? "paid" : "unpaid"} · {fmt(v.created_at)}
                         </p>
+                        {vacWait(v) != null && (
+                          <p className={`text-xs font-semibold ${vacWait(v)! >= 120 ? "text-red-600" : "text-orange-600"}`}>{waitLabel(vacWait(v))}</p>
+                        )}
                       </button>
                       {openIds.has(v.id) && (
                         <Detail
