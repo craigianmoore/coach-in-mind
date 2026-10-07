@@ -305,7 +305,7 @@ function Club2CoachAdmin() {
     if (error || !data) {
       setStatus(
         error?.message.includes("duplicate")
-          ? `${name} is already in the list — search for it.`
+          ? `${name} (${newClub.state}) is already in the list — search for it.`
           : `Couldn't add club: ${error?.message ?? "unknown error"}`
       );
       return;
@@ -1813,7 +1813,10 @@ function Club2CoachAdmin() {
             (clubEmailFilter === "all" ||
               (clubEmailFilter === "with" ? !!c.email : clubEmailFilter === "without" ? !c.email : !!c.email && !c.contacted_at && !c.do_not_contact)) &&
             (clubConfFilter === "all" || c.confidence === clubConfFilter) &&
-            (!q || c.name.toLowerCase().includes(q) || (c.email ?? "").toLowerCase().includes(q))
+            (!q ||
+              c.name.toLowerCase().split(/\s+/).some((w) => w.startsWith(q)) ||
+              c.name.toLowerCase().startsWith(q) ||
+              (q.length >= 3 && (c.name.toLowerCase().includes(q) || (c.email ?? "").toLowerCase().includes(q))))
         );
         const states = Array.from(new Set(clubRows.map((c) => c.state))).sort();
         const stateSummary = states.map((st) => {

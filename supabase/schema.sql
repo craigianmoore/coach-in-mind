@@ -506,9 +506,10 @@ create policy "admin can permanently delete coach listing"
 -- ---------------------------------------------------------
 create table clubs (
   id uuid primary key default uuid_generate_v4(),
-  name text not null unique,
+  name text not null,
   created_at timestamptz not null default now(),
-  state text not null default 'VIC'
+  state text not null default 'VIC',
+  unique (name, state)
 );
 
 alter table clubs enable row level security;
@@ -1862,3 +1863,8 @@ drop trigger if exists c2c_coach_referral_apply on club2coach_coach_listings;
 create trigger c2c_coach_referral_apply after update of paid on club2coach_coach_listings for each row execute function referral_apply_on_listing_paid();
 drop trigger if exists c2m_coach_referral_apply on coach2mentor_coach_listings;
 create trigger c2m_coach_referral_apply after update of paid on coach2mentor_coach_listings for each row execute function referral_apply_on_listing_paid();
+
+-- Same club name allowed in different states (unique per name+state).
+alter table clubs drop constraint if exists clubs_name_key;
+alter table clubs drop constraint if exists clubs_name_state_key;
+alter table clubs add constraint clubs_name_state_key unique (name, state);
