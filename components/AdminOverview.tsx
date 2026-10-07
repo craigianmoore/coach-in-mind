@@ -45,7 +45,14 @@ export default function AdminOverview({
 }) {
   const [view, setView] = useState<View>("applications");
   const [q, setQ] = useState("");
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const liveCoaches = coachListings.filter((l) => !l.deleted_at);
   const liveVacancies = vacancies.filter((v) => !v.deleted_at && v.status !== "superseded");
@@ -177,13 +184,13 @@ export default function AdminOverview({
                   const t = tone(kindOf(l.status, false));
                   return (
                     <div key={l.id} className={`rounded-lg border p-3 ${t.card}`}>
-                      <button className="w-full text-left" onClick={() => setOpenId(openId === l.id ? null : l.id)}>
+                      <button className="w-full rounded text-left outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300" onClick={() => toggle(l.id)}>
                         <p className="text-sm font-medium">{p?.full_name ?? "Unknown"}</p>
                         <p className="text-xs text-gray-500">
                           {l.role_sought} · <span className={`rounded-full px-2 py-0.5 font-semibold ${t.badge}`}>{l.status}</span> · {l.paid ? "paid" : "unpaid"} · {fmt(l.created_at)}
                         </p>
                       </button>
-                      {openId === l.id && (
+                      {openIds.has(l.id) && (
                         <Detail
                           rows={[
                             ["Email", p?.email],
@@ -222,7 +229,7 @@ export default function AdminOverview({
                   const t = tone(kindOf(v.status, !!v.filled_at));
                   return (
                     <div key={v.id} className={`rounded-lg border p-3 ${t.card}`}>
-                      <button className="w-full text-left" onClick={() => setOpenId(openId === v.id ? null : v.id)}>
+                      <button className="w-full rounded text-left outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300" onClick={() => toggle(v.id)}>
                         <p className="text-sm font-medium">
                           {v.club_name} — {v.role_being_recruited}
                         </p>
@@ -230,7 +237,7 @@ export default function AdminOverview({
                           <span className={`rounded-full px-2 py-0.5 font-semibold ${t.badge}`}>{v.filled_at ? "filled" : v.status}</span> · {v.is_charity ? "gifted" : v.paid ? "paid" : "unpaid"} · {fmt(v.created_at)}
                         </p>
                       </button>
-                      {openId === v.id && (
+                      {openIds.has(v.id) && (
                         <Detail
                           rows={[
                             ["Advertised by", p?.full_name],
