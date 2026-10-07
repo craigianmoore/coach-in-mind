@@ -81,6 +81,8 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
 
   const [matches, setMatches] = useState<(Coach2MentorRequest & { mentorName?: string; mentorBio?: string; mentorIntroVideoUrl?: string })[]>([]);
   const [introductionsUsed, setIntroductionsUsed] = useState(0);
+  const [poolEntitled, setPoolEntitled] = useState(0);
+  const [poolPaid, setPoolPaid] = useState(false);
   const [topupPackage, setTopupPackage] = useState(1);
   const [requestingTopup, setRequestingTopup] = useState(false);
 
@@ -208,14 +210,12 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
       );
       setMatches(enriched);
 
-      if (l.paid) {
-        const { count } = await supabase
-          .from("coach2mentor_requests")
-          .select("*", { count: "exact", head: true })
-          .eq("coach_listing_id", l.id)
-          .neq("status", "declined");
-        setIntroductionsUsed(count ?? 0);
-      }
+      // One shared pool of credits across Club 2 Coach and Coach 2 Mentor.
+      const { data: poolRows } = await supabase.rpc("coach_pool_totals");
+      const mine = ((poolRows as { entitled: number; used: number; any_paid: boolean }[]) ?? [])[0];
+      setIntroductionsUsed(mine?.used ?? 0);
+      setPoolEntitled(mine?.entitled ?? 0);
+      setPoolPaid(Boolean(mine?.any_paid));
     } else {
       resetForm();
       setPersonalWeights(global ?? null);
@@ -318,22 +318,22 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
         there's no browsing required.
       </p>
 
-      {!existing?.paid && <FoundingBanner className="mt-4" />}
+      {!((existing?.paid || poolPaid) || poolPaid) && <FoundingBanner className="mt-4" />}
 
       {existing && (
         <div
           className={`mt-4 rounded-lg border p-4 text-sm ${
-            existing.paid
+            (existing.paid || poolPaid)
               ? "border-green-200 bg-green-50 text-green-800"
               : "border-amber-200 bg-amber-50 text-amber-900"
           }`}
         >
-          {existing.paid ? (
+          {(existing.paid || poolPaid) ? (
             <>
-              ✓ Your profile is active — you're set up for {existing.included_introductions ?? "?"} mentor
-              introduction{existing.included_introductions === 1 ? "" : "s"}
-              {existing.included_introductions != null && (
-                <> ({introductionsUsed} of {existing.included_introductions} used)</>
+              ✓ Your profile is active — you're set up for {poolEntitled} mentor
+              introduction{poolEntitled === 1 ? "" : "s"}
+              {(
+                <> ({introductionsUsed} of {poolEntitled} used)</>
               )}
               . Coach In Mind will introduce you to your top matches.
               {existing.founding_member && existing.founding_expires_at && introductionsUsed === 0 && (
@@ -365,10 +365,10 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
 
       {existing && <ReferralCard />}
 
-      {existing?.paid && existing.included_introductions != null && introductionsUsed >= existing.included_introductions && (
+      {existing && (existing.paid || poolPaid) && introductionsUsed >= poolEntitled && (
         <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
           <p className="text-sm font-semibold text-blue-900">
-            You've used all {existing.included_introductions} of your introductions
+            You've used all {poolEntitled} of your introductions
           </p>
           {existing.topup_requested != null ? (
             <p className="mt-2 text-sm text-blue-800">
@@ -430,7 +430,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
         </div>
       )}
 
-      {!existing?.paid && (
+      {!((existing?.paid || poolPaid) || poolPaid) && (
         <div className="mt-4 rounded-xl border bg-white p-4">
           <p className="text-xs font-semibold uppercase text-gray-500">
             How many mentor introductions do you want?

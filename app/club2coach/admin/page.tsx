@@ -1,5 +1,6 @@
 "use client";
 
+import { loadCoachPool, listingMatchable, type Pool } from "@/lib/coachPool";
 import { notifyMatches } from "@/lib/notify";
 import { useEffect, useState } from "react";
 import PinGate from "@/components/PinGate";
@@ -137,6 +138,7 @@ function Club2CoachAdmin() {
   }
 
   const [supportQueries, setSupportQueries] = useState<SupportQuery[]>([]);
+  const [coachPool, setCoachPool] = useState<Pool>(new Map());
   const [creditRequests, setCreditRequests] = useState<CoachCreditRequest[]>([]);
   const [creditAmount, setCreditAmount] = useState<Record<string, string>>({});
 
@@ -207,6 +209,7 @@ function Club2CoachAdmin() {
       supabase.from("coach2mentor_requests").select("*"),
     ]);
 
+    setCoachPool(await loadCoachPool(supabase));
     setCoachListings((cl as Club2CoachCoachListing[]) ?? []);
     setVacancies((cv as Club2CoachClubVacancy[]) ?? []);
     const peopleMap: Record<string, Person> = {};
@@ -917,13 +920,8 @@ function Club2CoachAdmin() {
   function coachIntroductionsUsed(coachListingId: string) {
     return shares.filter((s) => s.coach_listing_id === coachListingId).length;
   }
-  const activeCoaches = coachListings.filter((l) => {
-    if (!l.paid || l.status === "placed" || l.status === "refunded" || l.deleted_at) return false;
-    if (l.included_introductions != null && coachIntroductionsUsed(l.id) >= l.included_introductions) {
-      return false;
-    }
-    return true;
-  });
+  // Credits are one shared pool per coach across Club 2 Coach and Coach 2 Mentor.
+  const activeCoaches = coachListings.filter((l) => listingMatchable(l, coachPool));
   const activeVacancies = vacancies.filter(
     (v) =>
       v.paid &&

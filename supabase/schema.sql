@@ -2414,3 +2414,29 @@ end;
 $$;
 revoke all on function expire_founding_introductions() from public, anon, authenticated;
 grant execute on function expire_founding_introductions() to service_role;
+
+-- ===== Shared coach credit pool (one pool across Club 2 Coach + Coach 2 Mentor) =====
+create or replace function coach_pool_totals()
+returns table(person_id uuid, entitled int, used int, any_paid boolean)
+language sql stable security definer set search_path = public as $$
+  with l as (
+    select id, person_id, paid, status, deleted_at, included_introductions, 'c2c'::text as src from club2coach_coach_listings
+    union all
+    select id, person_id, paid, status, deleted_at, included_introductions, 'c2m'::text from coach2mentor_coach_listings
+  ),
+  ent as (
+    select l.person_id,
+           coalesce(sum(coalesce(included_introductions,0)) filter (where paid and status <> 'refunded' and deleted_at is null),0)::int as entitled,
+           coalesce(bool_or(paid and status <> 'refunded' and deleted_at is null),false) as any_paid
+    from l group by l.person_id
+  ),
+  u as (
+    select l.person_id, count(*)::int as used from club2coach_shares s join l on l.src='c2c' and l.id = s.coach_listing_id group by l.person_id
+    union all
+    select l.person_id, count(*)::int from coach2mentor_requests r join l on l.src='c2m' and l.id = r.coach_listing_id where r.status <> 'declined' group by l.person_id
+  )
+  select ent.person_id, ent.entitled, coalesce((select sum(used) from u where u.person_id = ent.person_id),0)::int, ent.any_paid
+  from ent
+  where is_admin_caller() or auth.role() = 'service_role' or ent.person_id = my_person_id();
+$$;
+grant execute on function coach_pool_totals() to authenticated, anon, service_role;

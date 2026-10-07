@@ -386,84 +386,11 @@ function ProfileForm() {
 
       {existing && !next && hasClub2CoachListing && hasCoach2MentorListing && (
         <div className="mt-8 rounded-xl border bg-white p-6">
-          <h2 className="font-semibold">Buy introductions — one payment, both products</h2>
+          <h2 className="font-semibold">One pool of introductions, both products</h2>
           <p className="mt-1 text-sm text-gray-600">
-            Since you're set up on both Club 2 Coach and Coach 2 Mentor, you can buy one package
-            and split it between them, instead of paying for each separately.
+            Your introductions are shared across Club 2 Coach and Coach 2 Mentor. Buy a package on
+            either side and use it wherever the best match turns up — there&apos;s nothing to split.
           </p>
-
-          {pendingCreditRequest ? (
-            <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-              Request sent: {pendingCreditRequest.total_package} total (
-              {pendingCreditRequest.club2coach_count} Club 2 Coach,{" "}
-              {pendingCreditRequest.coach2mentor_count} Coach 2 Mentor) — waiting for Coach In Mind
-              to confirm payment.
-            </div>
-          ) : (
-            <>
-              <div className="mt-4">
-                <p className="text-xs font-semibold uppercase text-gray-500">Total package</p>
-                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                  {Object.entries(CLUB2COACH_COACH_PACKAGES).map(([count, price]) => (
-                    <label
-                      key={count}
-                      className={`flex-1 cursor-pointer rounded-lg border-2 p-3 text-center ${
-                        splitTotal === Number(count) ? "border-brand-navy bg-brand-navy/5" : "border-gray-200"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="split-total"
-                        className="sr-only"
-                        checked={splitTotal === Number(count)}
-                        onChange={() => updateSplitTotal(Number(count))}
-                      />
-                      <p className="font-semibold">{count} total</p>
-                      <p className="text-sm text-gray-500">${price} AUD</p>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold uppercase text-gray-500">Club 2 Coach</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={splitTotal}
-                    value={splitClub}
-                    onChange={(e) => setSplitClub(Number(e.target.value))}
-                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold uppercase text-gray-500">Coach 2 Mentor</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={splitTotal}
-                    value={splitMentor}
-                    onChange={(e) => setSplitMentor(Number(e.target.value))}
-                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                  />
-                </div>
-              </div>
-              <p className="mt-1 text-xs text-gray-500">
-                These two numbers need to add up to {splitTotal}.
-              </p>
-
-              {splitError && <p className="mt-2 text-sm text-red-600">{splitError}</p>}
-
-              <button
-                onClick={requestCreditSplit}
-                disabled={requestingSplit}
-                className="mt-4 rounded-lg bg-brand-navy px-5 py-2 text-sm font-semibold text-white hover:bg-brand-navyLight disabled:opacity-50"
-              >
-                {requestingSplit ? "Sending…" : "Request this split"}
-              </button>
-            </>
-          )}
         </div>
       )}
 

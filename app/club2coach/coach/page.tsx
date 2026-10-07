@@ -64,6 +64,8 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(1);
   const [introductionsUsed, setIntroductionsUsed] = useState(0);
+  const [poolEntitled, setPoolEntitled] = useState(0);
+  const [poolPaid, setPoolPaid] = useState(false);
   const [topupPackage, setTopupPackage] = useState(1);
   const [requestingTopup, setRequestingTopup] = useState(false);
 
@@ -152,16 +154,12 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       setAgreedToTerms(l.agreed_to_terms ?? false);
       setSelectedPackage(l.included_introductions ?? 1);
 
-      if (l.paid) {
-        // RLS already restricts this to only rows that are actually
-        // approved (i.e. genuinely used, not just suggested) — so a
-        // plain count is exactly "how many introductions used".
-        const { count } = await supabase
-          .from("club2coach_shares")
-          .select("*", { count: "exact", head: true })
-          .eq("coach_listing_id", l.id);
-        setIntroductionsUsed(count ?? 0);
-      }
+      // One shared pool of credits across Club 2 Coach and Coach 2 Mentor.
+      const { data: poolRows } = await supabase.rpc("coach_pool_totals");
+      const mine = ((poolRows as { entitled: number; used: number; any_paid: boolean }[]) ?? [])[0];
+      setIntroductionsUsed(mine?.used ?? 0);
+      setPoolEntitled(mine?.entitled ?? 0);
+      setPoolPaid(Boolean(mine?.any_paid));
     } else {
       resetForm();
     }
@@ -438,25 +436,25 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     <div className="py-8">
       <h1 className="text-xl font-bold">Find a Coaching Role</h1>
 
-      {!existing?.paid && <FoundingBanner className="mt-4" />}
+      {!((existing?.paid || poolPaid) || poolPaid) && <FoundingBanner className="mt-4" />}
 
       <ContactDetailsGlass fullName={person.full_name} email={person.email} mobile={person.mobile} who="a club" />
 
       {existing && (
         <div
           className={`mt-4 rounded-lg border p-4 text-sm ${
-            existing.paid
+            (existing.paid || poolPaid)
               ? "border-green-200 bg-green-50 text-green-800"
               : "border-amber-200 bg-amber-50 text-amber-900"
           }`}
         >
-          {existing.paid ? (
+          {(existing.paid || poolPaid) ? (
             <>
               ✓ Your listing is active and included in matching — you're set up for{" "}
-              {existing.included_introductions ?? "?"} club introduction
-              {existing.included_introductions === 1 ? "" : "s"}
-              {existing.included_introductions != null && (
-                <> ({introductionsUsed} of {existing.included_introductions} used)</>
+              {poolEntitled} club introduction
+              {poolEntitled === 1 ? "" : "s"}
+              {(
+                <> ({introductionsUsed} of {poolEntitled} used)</>
               )}
               .
               {existing.founding_member && existing.founding_expires_at && introductionsUsed === 0 && (
@@ -487,16 +485,16 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
         </div>
       )}
 
-      {existing?.paid && <MatchedContacts listingTable="club2coach_coach_listings" listingId={existing.id} />}
+      {existing && (existing.paid || poolPaid) && <MatchedContacts listingTable="club2coach_coach_listings" listingId={existing.id} />}
 
       {existing && <ReferralCard />}
 
-      {existing?.paid &&
-        existing.included_introductions != null &&
-        introductionsUsed >= existing.included_introductions && (
+      {existing && (existing.paid || poolPaid) &&
+        poolEntitled != null &&
+        introductionsUsed >= poolEntitled && (
           <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
             <p className="text-sm font-semibold text-blue-900">
-              You've used all {existing.included_introductions} of your introductions
+              You've used all {poolEntitled} of your introductions
             </p>
             {existing.topup_requested != null ? (
               <p className="mt-2 text-sm text-blue-800">
@@ -558,7 +556,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           </div>
         )}
 
-      {!existing?.paid && (
+      {!((existing?.paid || poolPaid) || poolPaid) && (
         <div className="mt-4 rounded-xl border bg-white p-4">
           <p className="text-xs font-semibold uppercase text-gray-500">
             How many club introductions do you want?

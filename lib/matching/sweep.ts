@@ -10,6 +10,7 @@
 // app/club2coach/admin/page.tsx and app/coach2mentor/admin/page.tsx if
 // the matching rules ever change there.
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { loadCoachPool, listingMatchable, poolRemaining } from "@/lib/coachPool";
 import { scoreClub2CoachMatch, scoreCoach2MentorMatch } from "@/lib/scoring";
 import type {
   Club2CoachCoachListing,
@@ -46,16 +47,16 @@ export async function runClub2CoachMatchSweep(
   if (!weights) return { totalNew: 0 };
   const autoApprove = settings?.auto_approve_matches ?? false;
 
-  function coachIntroductionsUsed(coachListingId: string) {
-    return shares.filter((s) => s.coach_listing_id === coachListingId).length;
-  }
+  const pool = await loadCoachPool(supabase);
+  const poolLeft = new Map<string, number>(); // credits left per coach, decremented as we insert
 
   // A refunded listing keeps paid=true for the record, so it must be
   // excluded from "active" explicitly — it isn't caught by the
   // placed/filled/expired checks alone.
+  // Credits are one shared pool per coach across Club 2 Coach and Coach 2 Mentor.
   const activeCoaches = coachListings.filter((l) => {
-    if (!l.paid || l.status === "placed" || l.status === "refunded" || l.deleted_at) return false;
-    if (l.included_introductions != null && coachIntroductionsUsed(l.id) >= l.included_introductions) return false;
+    if (!listingMatchable(l, pool)) return false;
+    poolLeft.set(l.person_id, poolRemaining(pool, l.person_id));
     return true;
   });
   const activeVacancies = vacancies.filter(
@@ -93,7 +94,7 @@ export async function runClub2CoachMatchSweep(
     if (remaining <= 0) continue;
 
     const candidates = activeCoaches
-      .filter((c) => !sharedPairs.has(`${c.id}:${vacancy.id}`))
+      .filter((c) => !sharedPairs.has(`${c.id}:${vacancy.id}`) && (poolLeft.get(c.person_id) ?? 0) > 0)
       .map((coach) => {
         const coachPerson = people[coach.person_id];
         const vacancyWeights = vacancy.personal_weights ?? weights;
@@ -105,6 +106,7 @@ export async function runClub2CoachMatchSweep(
       .slice(0, remaining);
 
     for (const { coach, breakdown } of candidates) {
+      if ((poolLeft.get(coach.person_id) ?? 0) <= 0) continue;
       const { error } = await supabase.from("club2coach_shares").insert({
         coach_listing_id: coach.id,
         club_vacancy_id: vacancy.id,
@@ -114,6 +116,7 @@ export async function runClub2CoachMatchSweep(
       });
       if (!error) {
         totalNew += 1;
+        poolLeft.set(coach.person_id, (poolLeft.get(coach.person_id) ?? 1) - 1);
         if (autoApprove && !vacancy.shared_at) {
           await supabase
             .from("club2coach_club_vacancies")
@@ -145,16 +148,13 @@ export async function runCoach2MentorMatchSweep(supabase: SupabaseClient): Promi
   if (!weights) return { totalNew: 0 };
   const autoApprove = settings?.auto_approve_matches ?? false;
 
-  function coachUsedSlots(coachId: string) {
-    return requests.filter((r) => r.coach_listing_id === coachId && r.status !== "declined").length;
-  }
+  const pool = await loadCoachPool(supabase);
   function mentorAcceptedCount(mentorId: string) {
     return requests.filter((r) => r.mentor_listing_id === mentorId && r.status === "accepted").length;
   }
 
-  const activeCoaches = coachListings.filter(
-    (l) => l.paid && l.status !== "placed" && l.status !== "refunded" && !l.deleted_at
-  );
+  // Credits are one shared pool per coach across Club 2 Coach and Coach 2 Mentor.
+  const activeCoaches = coachListings.filter((l) => listingMatchable(l, pool));
   // Mentor's own status must actively be "active" (not just non-excluded),
   // so "refunded" is already excluded here without needing a separate check.
   const activeMentors = mentorListings.filter((m) => {
@@ -166,10 +166,8 @@ export async function runCoach2MentorMatchSweep(supabase: SupabaseClient): Promi
   let totalNew = 0;
   for (const coach of activeCoaches) {
     const rows = requests.filter((r) => r.coach_listing_id === coach.id);
-    const usedSlots = coachUsedSlots(coach.id);
-    const entitled = coach.included_introductions;
-    const remaining = entitled != null ? Math.max(0, entitled - usedSlots) : null;
-    if (remaining == null || remaining <= 0) continue;
+    const remaining = poolRemaining(pool, coach.person_id);
+    if (remaining <= 0) continue;
 
     const coachWeights = coach.personal_weights ?? weights;
     const coachPerson = people[coach.person_id];
