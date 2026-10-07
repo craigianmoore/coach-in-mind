@@ -2069,9 +2069,9 @@ begin
     insert into referral_rewards (referrer_person_id, referee_person_id, credits, status, reason, referee_club_id) values (ref.referrer_person_id, new.person_id, cr, 'rejected', 'This club has already earned a referral reward', cid);
     return new;
   end if;
-  select count(*) into n from referral_rewards where referrer_person_id = ref.referrer_person_id and status in ('pending', 'granted');
-  if n >= 3 then
-    insert into referral_rewards (referrer_person_id, referee_person_id, credits, status, reason, referee_club_id) values (ref.referrer_person_id, new.person_id, cr, 'capped', 'Referrer already has 3 rewards', cid);
+  select coalesce(sum(credits), 0) into n from referral_rewards where referrer_person_id = ref.referrer_person_id and status in ('pending', 'granted');
+  if n + cr > 6 then
+    insert into referral_rewards (referrer_person_id, referee_person_id, credits, status, reason, referee_club_id) values (ref.referrer_person_id, new.person_id, cr, 'capped', 'Referrer already at the 6-credit referral maximum', cid);
     return new;
   end if;
   insert into referral_rewards (referrer_person_id, referee_person_id, credits, status, referee_club_id) values (ref.referrer_person_id, new.person_id, cr, 'pending', cid);
@@ -2109,9 +2109,9 @@ begin
     insert into referral_rewards (referrer_person_id, referee_person_id, credits, status, reason, referee_club_id) values (ref.referrer_person_id, new.person_id, cr, 'rejected', 'Referrer has no paid listing to credit', cid);
     return new;
   end if;
-  select count(*) into n from referral_rewards where referrer_person_id = ref.referrer_person_id and status in ('pending', 'granted');
-  if n >= 3 then
-    insert into referral_rewards (referrer_person_id, referee_person_id, credits, status, reason, referee_club_id) values (ref.referrer_person_id, new.person_id, cr, 'capped', 'Referrer already has 3 rewards', cid);
+  select coalesce(sum(credits), 0) into n from referral_rewards where referrer_person_id = ref.referrer_person_id and status in ('pending', 'granted');
+  if n + cr > 6 then
+    insert into referral_rewards (referrer_person_id, referee_person_id, credits, status, reason, referee_club_id) values (ref.referrer_person_id, new.person_id, cr, 'capped', 'Referrer already at the 6-credit referral maximum', cid);
     return new;
   end if;
   insert into referral_rewards (referrer_person_id, referee_person_id, credits, status, referee_club_id) values (ref.referrer_person_id, new.person_id, cr, 'pending', cid);

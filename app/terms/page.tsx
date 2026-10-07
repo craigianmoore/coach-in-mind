@@ -108,7 +108,7 @@ export default function TermsPage() {
           Support
         </a>{" "}
         page. Once at least one introduction has been made under a
-        package, that package is non-refundable, regardless of whether
+        package, that package is non-refundable — including any introductions in it that have not yet been used — regardless of whether
         the introduction leads to a placement, agreement, or ongoing
         relationship. We may otherwise offer a refund at our
         discretion, including where we're unable to deliver the

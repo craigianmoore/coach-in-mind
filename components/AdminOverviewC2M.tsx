@@ -57,6 +57,16 @@ export default function AdminOverviewC2M({
   const liveMentors = mentorListings.filter((l) => !l.deleted_at);
   const visibleRequests = requests.filter((r) => r.status !== "suggested");
   const accepted = visibleRequests.filter((r) => r.status === "accepted");
+
+  // Days a paid mentee listing has waited for its first accepted mentoring
+  // match (from payment). At 120 days (~4 months) the refund window opens.
+  const acceptedCoachIds = new Set(accepted.map((r) => r.coach_listing_id));
+  const waitDays = (l: Coach2MentorCoachListing): number | null =>
+    l.paid && l.paid_at && (l.price_aud ?? 1) > 0 && !acceptedCoachIds.has(l.id)
+      ? Math.floor((Date.now() - new Date(l.paid_at).getTime()) / 86400000)
+      : null;
+  const waitLabel = (d: number) =>
+    d >= 120 ? `⏳ Waiting ${d} days — refund window open` : `⏳ Waiting ${d} day${d === 1 ? "" : "s"} for first accepted mentor`;
   const coachById = new Map(coachListings.map((l) => [l.id, l]));
   const mentorById = new Map(mentorListings.map((l) => [l.id, l]));
   const ql = q.trim().toLowerCase();
@@ -113,10 +123,10 @@ export default function AdminOverviewC2M({
     }
     if (view === "applications") {
       downloadCsv(`mentee-applications-${today}.csv`, [
-        ["Coach", "Email", "Mobile", "Career stage", "Availability", "Status", "Paid", "Introductions", "Regions", "Created"],
+        ["Coach", "Email", "Mobile", "Career stage", "Availability", "Status", "Paid", "Introductions", "Regions", "Created", "Days waiting for 1st mentor"],
         ...liveCoaches.map((l) => {
           const p = people[l.person_id];
-          return [p?.full_name, p?.email, p?.mobile, l.current_career_stage, l.availability, l.status, l.paid ? "yes" : "no", l.included_introductions, l.preferred_regions?.join("; "), fmt(l.created_at)];
+          return [p?.full_name, p?.email, p?.mobile, l.current_career_stage, l.availability, l.status, l.paid ? "yes" : "no", l.included_introductions, l.preferred_regions?.join("; "), fmt(l.created_at), waitDays(l) ?? ""];
         }),
       ]);
       downloadCsv(`mentors-${today}.csv`, [
@@ -163,6 +173,7 @@ export default function AdminOverviewC2M({
     <div className="mt-6 text-gray-900">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
         {stat("Mentee listings", liveCoaches.length)}
+        {stat("Waiting for 1st mentor", liveCoaches.filter((l) => waitDays(l) != null).length)}
         {stat("Active mentees", liveCoaches.filter((l) => l.paid && l.status === "active").length)}
         {stat("Mentors", liveMentors.length)}
         {stat("Active mentors", liveMentors.filter((l) => l.paid && l.status === "active").length)}
@@ -226,6 +237,9 @@ export default function AdminOverviewC2M({
                           {l.current_career_stage ?? "—"} · <span className={`rounded-full px-2 py-0.5 font-semibold ${t.badge}`}>{l.status}</span> ·{" "}
                           {l.paid ? "paid" : "unpaid"} · {fmt(l.created_at)}
                         </p>
+                        {waitDays(l) != null && (
+                          <p className={`text-xs font-semibold ${waitDays(l)! >= 120 ? "text-red-600" : "text-orange-600"}`}>{waitLabel(waitDays(l)!)}</p>
+                        )}
                       </button>
                       {openIds.has(l.id) && (
                         <Detail
