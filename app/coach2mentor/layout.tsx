@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ViewModeShell from "@/components/ViewModeShell";
 import CoachInMindLogo from "@/components/CoachInMindLogo";
 
 export default function Coach2MentorLayout({ children }: { children: React.ReactNode }) {
@@ -47,7 +48,9 @@ export default function Coach2MentorLayout({ children }: { children: React.React
         </div>
       </div>
 
-      <main className="mx-auto max-w-5xl px-4 pb-16">{children}</main>
+      <main className="mx-auto max-w-5xl px-4 pb-16">
+        <ViewModeShell>{children}</ViewModeShell>
+      </main>
     </div>
   );
 }
