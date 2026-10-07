@@ -429,6 +429,24 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     <div className="py-8">
       <h1 className="text-xl font-bold">Find a Coaching Role</h1>
 
+      {/* Read-only: these come from the person's account and are only
+          editable on the Profile page, so a listing can't drift out of
+          step with the contact details we actually share. */}
+      <div className="mt-3 rounded-lg border bg-white px-4 py-3 text-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Your contact details</p>
+        <p className="mt-1 font-medium text-gray-900">{person.full_name}</p>
+        <p className="text-gray-700">
+          {person.email} · {person.mobile}
+        </p>
+        <p className="mt-1 text-xs text-gray-500">
+          These are what a club sees once you're matched. To change them, update your{" "}
+          <a href="/profile" className="font-semibold text-blue-700 underline">
+            account profile
+          </a>
+          .
+        </p>
+      </div>
+
       {existing && (
         <div
           className={`mt-4 rounded-lg border p-4 text-sm ${
