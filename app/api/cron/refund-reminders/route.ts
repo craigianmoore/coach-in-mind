@@ -54,28 +54,8 @@ export async function GET(req: Request) {
 
   const candidates: Candidate[] = [];
 
-  // --- Club2Coach: coach listings (pay to be introduced to clubs) ---
-  const { data: coachListings } = await supabase
-    .from("club2coach_coach_listings")
-    .select("id, person_id, activated_at, price_aud, refund_reminder_sent_at, refund_window_notified_at, role_sought")
-    .eq("paid", true)
-    .eq("founding_member", false) // free founding credits have nothing to refund
-    .is("deleted_at", null)
-    .is("refund_window_notified_at", null)
-    .is("refunded_at", null)
-    .not("activated_at", "is", null); // the coach's refund clock starts when they press Activate
-  for (const l of coachListings ?? []) {
-    candidates.push({
-      table: "club2coach_coach_listings",
-      id: l.id,
-      person_id: l.person_id,
-      paid_at: l.activated_at,
-      price_aud: l.price_aud,
-      refund_reminder_sent_at: l.refund_reminder_sent_at,
-      refund_window_notified_at: l.refund_window_notified_at,
-      label: `Club2Coach coach listing (${l.role_sought})`,
-    });
-  }
+  // Coach listings are deliberately NOT chased: a coach credit is $20 or less, so
+  // refunds there are handled on request via Support rather than by daily reminders.
 
   // --- Club2Coach: club vacancies (pay to be introduced to coaches) ---
   const { data: vacancies } = await supabase
@@ -100,29 +80,6 @@ export async function GET(req: Request) {
       refund_reminder_sent_at: v.refund_reminder_sent_at,
       refund_window_notified_at: v.refund_window_notified_at,
       label: `Club2Coach vacancy (${v.club_name} — ${v.role_being_recruited})`,
-    });
-  }
-
-  // --- Coach2Mentor: coach listings (pay to be introduced to mentors) ---
-  const { data: c2mCoachListings } = await supabase
-    .from("coach2mentor_coach_listings")
-    .select("id, person_id, activated_at, price_aud, refund_reminder_sent_at, refund_window_notified_at")
-    .eq("paid", true)
-    .eq("founding_member", false) // free founding credits have nothing to refund
-    .is("deleted_at", null)
-    .is("refund_window_notified_at", null)
-    .is("refunded_at", null)
-    .not("activated_at", "is", null); // the coach's refund clock starts when they press Activate
-  for (const c of c2mCoachListings ?? []) {
-    candidates.push({
-      table: "coach2mentor_coach_listings",
-      id: c.id,
-      person_id: c.person_id,
-      paid_at: c.activated_at,
-      price_aud: c.price_aud,
-      refund_reminder_sent_at: c.refund_reminder_sent_at,
-      refund_window_notified_at: c.refund_window_notified_at,
-      label: "Coach2Mentor coach listing",
     });
   }
 
@@ -193,7 +150,7 @@ export async function GET(req: Request) {
       lines.push("");
     }
     if (arrived.length > 0) {
-      lines.push("REFUND WINDOW REACHED (120 days — from payment for clubs, from Activate for coaches; customer can now request a refund):");
+      lines.push("REFUND WINDOW REACHED (120 days from payment; club can now request a refund):");
       for (const c of arrived) {
         lines.push(`- ${c.label} — paid ${c.paid_at.slice(0, 10)}, $${c.price_aud ?? "?"} AUD, listing id ${c.id}`);
       }
