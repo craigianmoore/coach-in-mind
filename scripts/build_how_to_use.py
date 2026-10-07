@@ -110,10 +110,13 @@ story.append(bullets([
     "accreditation needed.",
     "Choose a package of 1–5 coach introductions. Your club's first introduction is free — just "
     "tap \"Claim free introduction\" on your vacancy; anything after that is charged as normal.",
-    "Once payment is confirmed, Coach In Mind reviews your vacancy and suggests the top-scoring "
+    "You'll get an email as soon as your vacancy is saved. It isn't live yet — it only joins matching "
+    "once payment is confirmed (or a free or gifted introduction is applied).",
+    "Once it's active, Coach In Mind reviews your vacancy and suggests the top-scoring "
     "coaches available.",
     "Each suggested match is reviewed before it goes live — contact details are only shared once a "
-    "match is approved.",
+    "match is approved. When that happens you'll get an email, and the coach's name, email and mobile "
+    "appear under \"Coaches introduced to you\" on that vacancy in your dashboard.",
     "Every introduction is a paid match, made the moment it's shared — it isn't a guarantee of a "
     "hire, and it isn't refunded or carried over if it doesn't work out.",
     "After each introduction, tell us whether it led to a hire from your own dashboard. We won't put "
@@ -150,8 +153,12 @@ story.append(bullets([
     "Choose a package of 1–3 club introductions. Your first introduction is free — tap \"Claim "
     "free introduction\" on your profile; anything after that is charged as normal. (It's one free "
     "introduction per coach, across Club 2 Coach and Coach 2 Mentor.)",
-    "Once payment is confirmed, Coach In Mind matches you against active vacancies and introduces "
+    "You'll get an email as soon as your listing is saved. It isn't active yet — it only joins "
+    "matching once payment is confirmed (or a free or gifted introduction is applied).",
+    "Once it's active, Coach In Mind matches you against active vacancies and introduces "
     "you to your best-fitting clubs.",
+    "When you're matched you'll get an email, and the club contact's name, email and mobile appear "
+    "under \"Your introductions\" on your coach page — you can get in touch with them directly.",
     "If none of your introductions lead to a role, you can top up for more from your own profile "
     "page at any time.",
 ]))
@@ -194,6 +201,24 @@ story.append(bullets([
     "accept or decline it.",
     "Once you accept, contact details are shared and you arrange things directly with the coach "
     "from there.",
+]))
+
+story.append(Paragraph("Your details, emails and the page controls", h2_style))
+story.append(bullets([
+    "<b>Your contact details.</b> Your name, email and mobile come from My Profile and are shown "
+    "(read-only, behind a frosted panel) at the top of your listing forms. To change them, update "
+    "My Profile — that keeps what a club or coach sees once you're matched accurate.",
+    "<b>Emails you'll receive from hello@coachinmind.com.au.</b> A confirmation when you save a "
+    "listing or vacancy (it says what's still needed to activate it), and a \"you've been matched\" "
+    "email when an introduction is approved. Contact details are never put in the email itself — "
+    "sign in to see them.",
+    "<b>Word limits.</b> Short overviews are capped at 60 words, mentor bios at 150, goals at 100, "
+    "and private notes to Coach In Mind at 100 — each box shows a live word count.",
+    "<b>Accreditation evidence (mentors).</b> When you choose your certificate (PDF, JPEG or PNG) "
+    "a preview appears so you can check it's the right file before you save.",
+    "<b>View and text size.</b> Every Club 2 Coach and Coach 2 Mentor page has a Phone / Tablet / "
+    "Laptop switch and S / M / L / XL text sizes at the top right. They're remembered on your "
+    "device.",
 ]))
 
 story.append(Paragraph("What to expect from matching", h2_style))

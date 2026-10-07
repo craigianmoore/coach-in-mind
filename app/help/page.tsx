@@ -147,6 +147,14 @@ export default function HelpPage() {
               </p>
             </div>
             <div>
+              <p className="font-medium text-gray-800">My listing is saved — why isn't it matching yet?</p>
+              <p className="mt-1 text-gray-600">
+                A listing or vacancy only joins matching once payment is confirmed (or a free or
+                gifted introduction is applied). The confirmation email you receive when you save
+                says what's still needed.
+              </p>
+            </div>
+            <div>
               <p className="font-medium text-gray-800">Finding a role or mentor (coaches)</p>
               <p className="mt-1 text-gray-600">
                 Set up your profile with what you're looking for, choose a package, and once
@@ -166,8 +174,10 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">What to expect after you're matched</p>
               <p className="mt-1 text-gray-600">
-                Once a match is approved, you'll be able to see each other's contact details.
-                From there, it's up to you both — Coach In Mind's role ends at the introduction.
+                Once a match is approved, you'll get an email and be able to see each other's contact
+                details — coaches under "Your introductions" on their coach page, clubs under
+                "Coaches introduced to you" on the vacancy. From there, it's up to you both —
+                Coach In Mind's role ends at the introduction.
               </p>
             </div>
           </div>

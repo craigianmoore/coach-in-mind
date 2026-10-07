@@ -22,6 +22,8 @@ import {
   REGIONS_BY_STATE,
 } from "@/lib/constants";
 import type { Coach2MentorMentorListing, Coach2MentorRequest, Person } from "@/types/database";
+import WordLimitedTextarea from "@/components/WordLimitedTextarea";
+import FilePreview from "@/components/FilePreview";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
 
 interface RequestWithCoachName extends Coach2MentorRequest {
@@ -570,6 +572,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
             onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)}
             className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-semibold hover:file:bg-gray-200"
           />
+          <FilePreview file={evidenceFile} />
           {evidenceFile ? (
             <p className="mt-1 text-xs text-gray-500">
               Selected: {evidenceFile.name}
@@ -717,12 +720,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           <label className="text-xs font-semibold uppercase text-gray-500">
             Bio — your background, achievements, mentoring approach
           </label>
-          <textarea
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            rows={4}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-          />
+          <WordLimitedTextarea value={bio} onChange={setBio} maxWords={150} rows={4} />
         </div>
 
         <div>
@@ -786,12 +784,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           <label className="text-xs font-semibold uppercase text-gray-500">
             Notes for Coach In Mind admin (private — not shown to coaches)
           </label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={2}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-          />
+          <WordLimitedTextarea value={notes} onChange={setNotes} maxWords={100} rows={2} />
         </div>
 
         <label className="flex items-start gap-2 text-sm">

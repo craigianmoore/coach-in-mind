@@ -27,6 +27,7 @@ import {
   MEMBER_FEDERATIONS,
 } from "@/lib/constants";
 import type { Club, Club2CoachClubVacancy, Club2CoachShare, Person } from "@/types/database";
+import WordLimitedTextarea from "@/components/WordLimitedTextarea";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
 import MatchedContacts from "@/components/MatchedContacts";
 import ContactDetailsGlass from "@/components/ContactDetailsGlass";
@@ -1171,13 +1172,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           <label className="text-xs font-semibold uppercase text-gray-500">
             Short overview — sell your club to coaches
           </label>
-          <textarea
-            maxLength={300}
-            value={form.overview}
-            onChange={(e) => setForm((f) => ({ ...f, overview: e.target.value }))}
-            rows={3}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-          />
+          <WordLimitedTextarea value={form.overview} onChange={(v) => setForm((f) => ({ ...f, overview: v }))} maxWords={60} rows={3} />
         </div>
 
         <div>
@@ -1200,12 +1195,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
         <div>
           <label className="text-xs font-semibold uppercase text-gray-500">Notes for Coach In Mind admin (private — not shown publicly)</label>
-          <textarea
-            value={form.notes}
-            onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-            rows={2}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-          />
+          <WordLimitedTextarea value={form.notes} onChange={(v) => setForm((f) => ({ ...f, notes: v }))} maxWords={100} rows={2} />
         </div>
 
         <label className="flex items-start gap-2 text-sm">

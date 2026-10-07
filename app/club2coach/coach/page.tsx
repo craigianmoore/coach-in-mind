@@ -24,6 +24,7 @@ import {
   STATE_LABELS,
 } from "@/lib/constants";
 import type { Club2CoachCoachListing, Person } from "@/types/database";
+import WordLimitedTextarea from "@/components/WordLimitedTextarea";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
 import MatchedContacts from "@/components/MatchedContacts";
 import ContactDetailsGlass from "@/components/ContactDetailsGlass";
@@ -878,23 +879,12 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           <label className="text-xs font-semibold uppercase text-gray-500">
             Short overview — sell yourself to clubs
           </label>
-          <textarea
-            maxLength={300}
-            value={overview}
-            onChange={(e) => setOverview(e.target.value)}
-            rows={3}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-          />
+          <WordLimitedTextarea value={overview} onChange={setOverview} maxWords={60} rows={3} />
         </div>
 
         <div>
           <label className="text-xs font-semibold uppercase text-gray-500">Notes for Coach In Mind admin (private — not shown publicly)</label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={2}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-          />
+          <WordLimitedTextarea value={notes} onChange={setNotes} maxWords={100} rows={2} />
         </div>
 
         <label className="flex items-start gap-2 text-sm">

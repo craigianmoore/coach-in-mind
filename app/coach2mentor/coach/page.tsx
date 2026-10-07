@@ -27,6 +27,7 @@ import type {
   Person,
   AdminSettings,
 } from "@/types/database";
+import WordLimitedTextarea from "@/components/WordLimitedTextarea";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
 import { getEmbedUrl } from "@/lib/videoEmbed";
 
@@ -698,12 +699,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
           <label className="text-xs font-semibold uppercase text-gray-500">
             What are you hoping to get from mentoring?
           </label>
-          <textarea
-            value={goals}
-            onChange={(e) => setGoals(e.target.value)}
-            rows={3}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-          />
+          <WordLimitedTextarea value={goals} onChange={setGoals} maxWords={100} rows={3} />
         </div>
 
         {personalWeights && (
@@ -737,12 +733,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
 
         <div>
           <label className="text-xs font-semibold uppercase text-gray-500">Notes for Coach In Mind admin (private — not shown publicly)</label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={2}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-          />
+          <WordLimitedTextarea value={notes} onChange={setNotes} maxWords={100} rows={2} />
         </div>
 
         <div className="flex items-start gap-2 text-sm">
