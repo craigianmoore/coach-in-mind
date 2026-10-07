@@ -144,6 +144,8 @@ export interface Coach2MentorCoachListing {
   notes: string | null;
   status: ListingStatus;
   agreed_to_terms: boolean; // Terms of Service / Privacy Policy consent — required before saving
+  founding_member?: boolean;
+  founding_expires_at?: string | null;
   paid: boolean;
   paid_at: string | null;
   price_aud: number | null;

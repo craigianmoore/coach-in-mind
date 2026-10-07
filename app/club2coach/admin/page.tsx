@@ -918,7 +918,7 @@ function Club2CoachAdmin() {
     return shares.filter((s) => s.coach_listing_id === coachListingId).length;
   }
   const activeCoaches = coachListings.filter((l) => {
-    if (!l.paid || l.status === "placed" || l.status === "refunded" || l.status === "paused" || l.deleted_at) return false;
+    if (!l.paid || l.status === "placed" || l.status === "refunded" || l.deleted_at) return false;
     if (l.included_introductions != null && coachIntroductionsUsed(l.id) >= l.included_introductions) {
       return false;
     }

@@ -170,8 +170,8 @@ story.append(bullets([
     "Set up a profile describing the kind of role you're looking for.",
     "Choose a package of 1–3 club introductions, or — if you're one of the first 60 coaches — use "
     "your free founding introduction (see below).",
-    "<b>You decide when you're looking.</b> A saved listing isn't live until you activate it, and "
-    "once it's active you can pause and resume it from your coach page at any time.",
+    "<b>You decide when you're looking.</b> A free founding introduction only starts when you press "
+    "Activate on your coach page.",
     "You'll get an email as soon as your listing is saved. It isn't active yet — it only joins "
     "matching once payment is confirmed (or a free or gifted introduction is applied).",
     "Once it's active, Coach In Mind matches you against active vacancies and introduces "
@@ -185,11 +185,13 @@ story.append(bullets([
 story.append(callout(
     "Founding member offer",
     [
-        "The first 60 coaches to save a Club 2 Coach listing can claim one free introduction. Press "
-        "<b>Activate</b> on your coach page when you're ready to start looking — the free introduction "
-        "is valid for 60 days from that day, and if it hasn't been used by then it expires (you can "
-        "still buy a package). It's one free introduction per coach, and it ends once all 60 places "
-        "are taken. Clubs keep their own free first introduction.",
+        "The first 60 coaches to save a listing can claim one free introduction — on either Club 2 "
+        "Coach or Coach 2 Mentor (you choose; it can't be used on a mentor profile). Press "
+        "<b>Activate</b> on your coach page when you're ready to start looking. The free introduction "
+        "is valid for 60 days from that day; we'll email you a week before it expires, and if it "
+        "hasn't been used by then it expires (you can still buy a package). It's one free "
+        "introduction per coach, and it ends once all 60 places are taken. Clubs keep their own free "
+        "first introduction.",
     ],
 ))
 story.append(Spacer(1, 4))
@@ -221,7 +223,8 @@ story.append(Paragraph("If you're a coach seeking a mentor", h3_style))
 story.append(bullets([
     "Set up a profile describing what you're looking for from mentoring, and set your own personal "
     "priorities (e.g. how much specialism overlap or availability matters to you).",
-    "Choose a package of 1–3 mentor introductions.",
+    "Choose a package of 1–3 mentor introductions, or use your free founding introduction if you "
+    "are one of the first 60 coaches (one per coach, across both services).",
     "Coach In Mind reviews and suggests mentors matched to your profile and priorities.",
     "Once a suggested mentor is approved, they'll be asked to accept or decline — contact details "
     "are only shared once they accept.",

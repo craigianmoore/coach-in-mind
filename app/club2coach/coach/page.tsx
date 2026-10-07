@@ -452,41 +452,19 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
         >
           {existing.paid ? (
             <>
-              {existing.status === "paused" ? (
-                <>
-                  ⏸ Your listing is <strong>paused</strong> — you won&apos;t be matched with clubs until you resume it.
-                </>
-              ) : (
-                <>
-                  ✓ Your listing is active and included in matching — you're set up for{" "}
-                  {existing.included_introductions ?? "?"} club introduction
-                  {existing.included_introductions === 1 ? "" : "s"}
-                  {existing.included_introductions != null && (
-                    <> ({introductionsUsed} of {existing.included_introductions} used)</>
-                  )}
-                  .
-                </>
+              ✓ Your listing is active and included in matching — you're set up for{" "}
+              {existing.included_introductions ?? "?"} club introduction
+              {existing.included_introductions === 1 ? "" : "s"}
+              {existing.included_introductions != null && (
+                <> ({introductionsUsed} of {existing.included_introductions} used)</>
               )}
+              .
               {existing.founding_member && existing.founding_expires_at && introductionsUsed === 0 && (
                 <p className="mt-2 font-semibold">
                   ⭐ Your free founding introduction expires on{" "}
                   {new Date(existing.founding_expires_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}{" "}
                   if it isn&apos;t used.
                 </p>
-              )}
-              {(existing.status === "active" || existing.status === "paused") && (
-                <button
-                  onClick={async () => {
-                    await supabase.rpc("set_coach_listing_active", {
-                      target_listing_id: existing.id,
-                      make_active: existing.status === "paused",
-                    });
-                    await load();
-                  }}
-                  className="mt-3 rounded-lg border border-current px-4 py-1.5 text-sm font-semibold"
-                >
-                  {existing.status === "paused" ? "Resume — start looking for a role" : "Pause my listing"}
-                </button>
               )}
             </>
           ) : (
@@ -496,7 +474,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
               payment is confirmed. Coach In Mind will be in touch about
               how to pay, or pay now to activate immediately.
               <div className="mt-3">
-                <FoundingActivate listingId={existing.id} onActivated={() => load()} />
+                <FoundingActivate listingTable="club2coach_coach_listings" listingId={existing.id} onActivated={() => load()} />
                 <PayWithCardButton
                   listingTable="club2coach_coach_listings"
                   listingId={existing.id}

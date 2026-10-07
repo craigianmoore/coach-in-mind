@@ -6,6 +6,8 @@ import CheckboxGroup from "@/components/CheckboxGroup";
 import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
+import FoundingBanner from "@/components/FoundingBanner";
+import FoundingActivate from "@/components/FoundingActivate";
 import PayWithCardButton from "@/components/PayWithCardButton";
 import ReferralCard from "@/components/ReferralCard";
 import { useStripePaymentsEnabled } from "@/lib/useStripePaymentsEnabled";
@@ -316,6 +318,8 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
         there's no browsing required.
       </p>
 
+      {!existing?.paid && <FoundingBanner className="mt-4" />}
+
       {existing && (
         <div
           className={`mt-4 rounded-lg border p-4 text-sm ${
@@ -332,6 +336,13 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
                 <> ({introductionsUsed} of {existing.included_introductions} used)</>
               )}
               . Coach In Mind will introduce you to your top matches.
+              {existing.founding_member && existing.founding_expires_at && introductionsUsed === 0 && (
+                <p className="mt-2 font-semibold">
+                  ⭐ Your free founding introduction expires on{" "}
+                  {new Date(existing.founding_expires_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}{" "}
+                  if it isn&apos;t used.
+                </p>
+              )}
             </>
           ) : (
             <>
@@ -339,6 +350,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
               your profile, then Coach In Mind will be in touch about how
               to pay, or pay now to activate immediately.
               <div className="mt-3">
+                <FoundingActivate listingTable="coach2mentor_coach_listings" listingId={existing.id} onActivated={() => load()} />
                 <PayWithCardButton
                   listingTable="coach2mentor_coach_listings"
                   listingId={existing.id}

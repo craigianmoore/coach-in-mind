@@ -43,7 +43,7 @@ export default function FoundingBanner({
           First 60 coaches get a FREE introduction
         </p>
         <p className="mt-2 text-lg font-semibold">
-          Only {left} spot{left === 1 ? "" : "s"} left — activate it when you're ready; it lasts 60 days.
+          Use it for Club 2 Coach or Coach 2 Mentor — you choose. Only {left} spot{left === 1 ? "" : "s"} left. Lasts 60 days from activation.
         </p>
         {bar}
         <Link
@@ -65,7 +65,7 @@ export default function FoundingBanner({
         First {s.lim} coaches get a FREE introduction
       </p>
       <p className="mt-1 text-sm font-semibold">
-        Only {left} of {s.lim} left — save your Club 2 Coach listing, then Activate it when you're ready (valid 60 days).
+        Only {left} of {s.lim} left — save your listing (Club 2 Coach or Coach 2 Mentor), then Activate it when you're ready. Valid 60 days.
       </p>
       {bar}
     </div>

@@ -118,10 +118,12 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">What's the founding member offer?</p>
               <p className="mt-1 text-gray-600">
-                The first 60 coaches to save a Club 2 Coach listing can claim one free introduction.
-                Press Activate on your coach page when you're ready to start looking — it's valid
-                for 60 days from that day and expires if it isn't used. Once all 60 places are
-                taken the offer ends. Clubs have their own free first introduction.
+                The first 60 coaches to save a listing can claim one free introduction, on either
+                Club 2 Coach or Coach 2 Mentor (you choose — one per coach, and not for mentor
+                profiles). Press Activate on your coach page when you're ready to start looking.
+                It's valid for 60 days from that day, we'll email you a week before it expires, and
+                it expires if it isn't used. Once all 60 places are taken the offer ends. Clubs
+                have their own free first introduction.
               </p>
             </div>
             <div>

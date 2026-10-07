@@ -2263,3 +2263,154 @@ end;
 $$;
 revoke all on function expire_founding_introductions() from public, anon, authenticated;
 grant execute on function expire_founding_introductions() to service_role;
+
+
+-- ── Founding offer v3: Club2Coach OR Coach2Mentor (coach chooses), no pause,
+-- 7-day expiry reminder; test listings expire when the next one is activated.
+alter table coach2mentor_coach_listings add column if not exists founding_member boolean not null default false;
+alter table coach2mentor_coach_listings add column if not exists founding_expires_at timestamptz;
+alter table club2coach_coach_listings add column if not exists founding_reminder_sent_at timestamptz;
+alter table coach2mentor_coach_listings add column if not exists founding_reminder_sent_at timestamptz;
+
+drop function if exists set_coach_listing_active(uuid, boolean);
+
+-- Spots used = founding introductions across BOTH services.
+create or replace function founding_status()
+returns table(enabled boolean, lim integer, used integer)
+language sql
+stable
+security definer
+set search_path = public
+set row_security = off
+as $$
+  select coalesce((select founding_enabled from platform_settings limit 1), true),
+         coalesce((select founding_coach_limit from platform_settings limit 1), 60),
+         ((select count(*) from club2coach_coach_listings where founding_member)
+          + (select count(*) from coach2mentor_coach_listings where founding_member))::int;
+$$;
+grant execute on function founding_status() to anon, authenticated;
+
+drop function if exists claim_founding_introduction(uuid, boolean);
+create or replace function claim_founding_introduction(target_table text, target_listing_id uuid, dry_run boolean default false)
+returns jsonb language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+declare
+  me uuid := my_person_id();
+  p people%rowtype;
+  s record;
+  keys text[];
+  l_person uuid; l_paid boolean; l_deleted timestamptz; l_status text; l_founding boolean;
+  prod text;
+begin
+  if me is null then return jsonb_build_object('granted', false, 'reason', 'not_signed_in'); end if;
+  if target_table not in ('club2coach_coach_listings', 'coach2mentor_coach_listings') then
+    return jsonb_build_object('granted', false, 'reason', 'not_eligible');
+  end if;
+  perform pg_advisory_xact_lock(60060);
+  select * into p from people where id = me;
+  execute format('select person_id, paid, deleted_at, status, founding_member from %I where id = $1', target_table)
+    into l_person, l_paid, l_deleted, l_status, l_founding using target_listing_id;
+  if l_person is null or l_person <> me or l_paid or l_deleted is not null or l_founding or l_status in ('placed', 'refunded') then
+    return jsonb_build_object('granted', false, 'reason', 'not_eligible');
+  end if;
+  select * into s from founding_status();
+  if not s.enabled or s.used >= s.lim then
+    return jsonb_build_object('granted', false, 'reason', 'offer_closed');
+  end if;
+  keys := array['coach-email:' || norm_email(p.email)];
+  if norm_mobile(p.mobile) <> '' then keys := keys || ('coach-mobile:' || norm_mobile(p.mobile)); end if;
+  if exists (select 1 from free_first_claims where key = any(keys))
+     or exists (select 1 from club2coach_coach_listings where person_id = me and founding_member)
+     or exists (select 1 from coach2mentor_coach_listings where person_id = me and founding_member) then
+    return jsonb_build_object('granted', false, 'reason', 'already_used');
+  end if;
+  if dry_run then return jsonb_build_object('granted', false, 'eligible', true); end if;
+
+  insert into free_first_claims (key, person_id, listing_table, listing_id)
+  select k, me, target_table, target_listing_id from unnest(keys) as k
+  on conflict do nothing;
+
+  execute format(
+    'update %I set included_introductions = 1, paid = true, paid_at = now(), price_aud = 0, status = ''active'', founding_member = true, founding_expires_at = now() + interval ''60 days'' where id = $1',
+    target_table) using target_listing_id;
+
+  prod := case when target_table = 'club2coach_coach_listings' then 'club2coach' else 'coach2mentor' end;
+  insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id, notes)
+  values (me, prod, 'coach', target_table, target_listing_id, 0, me,
+          'Founding member — free introduction (valid 60 days), not a real payment');
+
+  -- Earlier (test) founding listings that were created before expiry dates
+  -- existed expire now, as this next one goes live.
+  update club2coach_coach_listings set founding_expires_at = now() where founding_member and founding_expires_at is null;
+  update coach2mentor_coach_listings set founding_expires_at = now() where founding_member and founding_expires_at is null;
+  return jsonb_build_object('granted', true);
+end;
+$$;
+grant execute on function claim_founding_introduction(text, uuid, boolean) to authenticated;
+
+-- Daily (service role only): a week-before reminder, stamped so it is sent once.
+create or replace function founding_reminders_due()
+returns table(reminder_person_id uuid, reminder_product text, reminder_expires_at timestamptz)
+language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+begin
+  return query
+  with a as (
+    update club2coach_coach_listings l set founding_reminder_sent_at = now()
+    where l.founding_member and l.paid and l.founding_reminder_sent_at is null
+      and l.founding_expires_at is not null and l.founding_expires_at > now() and l.founding_expires_at <= now() + interval '7 days'
+      and coalesce(l.price_aud, 0) = 0 and coalesce(l.included_introductions, 0) <= 1
+      and not exists (select 1 from club2coach_shares s where s.coach_listing_id = l.id and s.status = 'approved')
+    returning l.person_id as pid, 'club2coach'::text as prod, l.founding_expires_at as exp
+  ), b as (
+    update coach2mentor_coach_listings l set founding_reminder_sent_at = now()
+    where l.founding_member and l.paid and l.founding_reminder_sent_at is null
+      and l.founding_expires_at is not null and l.founding_expires_at > now() and l.founding_expires_at <= now() + interval '7 days'
+      and coalesce(l.price_aud, 0) = 0 and coalesce(l.included_introductions, 0) <= 1
+      and not exists (select 1 from coach2mentor_requests r where r.coach_listing_id = l.id and r.status in ('pending', 'accepted'))
+    returning l.person_id as pid, 'coach2mentor'::text as prod, l.founding_expires_at as exp
+  )
+  select pid, prod, exp from a union all select pid, prod, exp from b;
+end;
+$$;
+revoke all on function founding_reminders_due() from public, anon, authenticated;
+grant execute on function founding_reminders_due() to service_role;
+
+drop function if exists expire_founding_introductions();
+create or replace function expire_founding_introductions()
+returns table(expired_person_id uuid, expired_product text)
+language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+begin
+  return query
+  with due as (
+    select l.id, l.person_id from club2coach_coach_listings l
+    where l.founding_member and l.paid and l.founding_expires_at is not null and l.founding_expires_at <= now()
+      and coalesce(l.price_aud, 0) = 0 and coalesce(l.included_introductions, 0) <= 1
+      and not exists (select 1 from club2coach_shares s where s.coach_listing_id = l.id and s.status = 'approved')
+  ), clr as (
+    delete from club2coach_shares s using due where s.coach_listing_id = due.id and s.status = 'suggested'
+  ), upd as (
+    update club2coach_coach_listings l
+    set paid = false, paid_at = null, price_aud = null, included_introductions = 0, status = 'draft'
+    from due where l.id = due.id
+    returning l.person_id
+  )
+  select upd.person_id, 'club2coach'::text from upd;
+
+  return query
+  with due as (
+    select l.id, l.person_id from coach2mentor_coach_listings l
+    where l.founding_member and l.paid and l.founding_expires_at is not null and l.founding_expires_at <= now()
+      and coalesce(l.price_aud, 0) = 0 and coalesce(l.included_introductions, 0) <= 1
+      and not exists (select 1 from coach2mentor_requests r where r.coach_listing_id = l.id and r.status in ('pending', 'accepted'))
+  ), clr as (
+    delete from coach2mentor_requests r using due where r.coach_listing_id = due.id and r.status = 'suggested'
+  ), upd as (
+    update coach2mentor_coach_listings l
+    set paid = false, paid_at = null, price_aud = null, included_introductions = 0, status = 'draft'
+    from due where l.id = due.id
+    returning l.person_id
+  )
+  select upd.person_id, 'coach2mentor'::text from upd;
+end;
+$$;
+revoke all on function expire_founding_introductions() from public, anon, authenticated;
+grant execute on function expire_founding_introductions() to service_role;
