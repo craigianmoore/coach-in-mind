@@ -87,3 +87,12 @@ h1, h2, h3 {
 .bg-accent-soft {
   background-color: color-mix(in srgb, var(--accent) 15%, white);
 }
+
+/* Admin device view modes (Phone / Tablet / Laptop switcher). One layer of
+   overrides on top of the normal layout: denser grids and bigger touch
+   targets on smaller modes. */
+.admin-mode-phone .grid { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+.admin-mode-tablet .grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.admin-mode-phone button, .admin-mode-phone select, .admin-mode-phone input,
+.admin-mode-tablet button, .admin-mode-tablet select, .admin-mode-tablet input { min-height: 40px; }
+.admin-mode-phone .flex.items-center.justify-between { flex-wrap: wrap; gap: 0.5rem; }

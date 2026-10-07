@@ -93,6 +93,8 @@ function Club2CoachAdmin() {
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
+  const [deviceMode, setDeviceMode] = useState<"phone" | "tablet" | "laptop">("laptop");
+  const [textSize, setTextSize] = useState<"S" | "M" | "L" | "XL">("M");
   const [showAddClub, setShowAddClub] = useState(false);
   const [newClub, setNewClub] = useState({ name: "", state: "VIC", email: "" });
   const [editingEmailId, setEditingEmailId] = useState<string | null>(null);
@@ -253,6 +255,41 @@ function Club2CoachAdmin() {
         `You've been logged out — ${who} just logged in with the master PIN, which immediately ends every other active admin session. Refresh the page and re-enter your PIN to continue.`
       );
     }
+  }
+
+  // Device view + text size: auto-detected on first load, remembered per
+  // browser afterwards. Text size scales the whole page via the root font
+  // size (all Tailwind sizes are rem-based) and is reset when leaving admin.
+  const TEXT_PX = { S: 14, M: 16, L: 18, XL: 20 } as const;
+  useEffect(() => {
+    try {
+      const m = localStorage.getItem("cim_admin_device") as "phone" | "tablet" | "laptop" | null;
+      const t = localStorage.getItem("cim_admin_text") as "S" | "M" | "L" | "XL" | null;
+      if (m === "phone" || m === "tablet" || m === "laptop") setDeviceMode(m);
+      else setDeviceMode(window.innerWidth < 640 ? "phone" : window.innerWidth < 1024 ? "tablet" : "laptop");
+      if (t === "S" || t === "M" || t === "L" || t === "XL") setTextSize(t);
+    } catch {
+      /* storage unavailable — defaults are fine */
+    }
+  }, []);
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${TEXT_PX[textSize]}px`;
+    return () => {
+      document.documentElement.style.fontSize = "";
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textSize]);
+  function chooseDevice(m: "phone" | "tablet" | "laptop") {
+    setDeviceMode(m);
+    try {
+      localStorage.setItem("cim_admin_device", m);
+    } catch {}
+  }
+  function chooseText(t: "S" | "M" | "L" | "XL") {
+    setTextSize(t);
+    try {
+      localStorage.setItem("cim_admin_text", t);
+    } catch {}
   }
 
   async function loadClubContacts() {
@@ -1152,8 +1189,34 @@ function Club2CoachAdmin() {
 
   if (loading) return <p className="py-8 text-sm text-gray-500">Loading…</p>;
 
+  const seg = (active: boolean) =>
+    `px-2.5 py-1 text-xs font-semibold ${active ? "bg-gray-800 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`;
+
   return (
-    <div className="py-8">
+    <div className={`admin-mode-${deviceMode} mx-auto py-8`} style={{ maxWidth: deviceMode === "phone" ? 430 : deviceMode === "tablet" ? 800 : undefined }}>
+      <div className="mb-3 flex flex-wrap items-center justify-end gap-3">
+        <div className="flex items-center gap-1 text-xs text-gray-500">
+          View
+          <div className="flex overflow-hidden rounded-lg border border-gray-300">
+            {(["phone", "tablet", "laptop"] as const).map((m) => (
+              <button key={m} type="button" onClick={() => chooseDevice(m)} className={`${seg(deviceMode === m)} capitalize`}>
+                {m}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-1 text-xs text-gray-500">
+          Text
+          <div className="flex overflow-hidden rounded-lg border border-gray-300">
+            {(["S", "M", "L", "XL"] as const).map((t) => (
+              <button key={t} type="button" onClick={() => chooseText(t)} className={seg(textSize === t)}>
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {sessionNotice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="max-w-sm rounded-xl bg-white p-6 text-center shadow-xl">
@@ -1182,12 +1245,12 @@ function Club2CoachAdmin() {
         </button>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2 border-b">
+      <div className="mt-4 flex flex-nowrap overflow-x-auto whitespace-nowrap border-b">
         {(["unpaid", "overview", "matches", "weighting", "listings", "clubs", "promos", "admins", "support", "people"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium capitalize ${
+            className={`flex-shrink-0 px-2.5 py-2 text-sm font-medium capitalize ${
               tab === t ? "border-b-2 border-accent text-accent" : "text-gray-500"
             }`}
             style={tab === t ? { borderColor: "var(--accent-dark)", color: "var(--accent-dark)" } : {}}
