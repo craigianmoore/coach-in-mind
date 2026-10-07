@@ -2042,3 +2042,40 @@ begin
 end;
 $$;
 grant execute on function claim_founding_introduction(uuid) to authenticated;
+
+-- Referrals: a club can only ever earn a referral reward ONCE, no matter
+-- how many people at that club sign up or who referred them.
+alter table referral_rewards add column if not exists referee_club_id uuid;
+
+create or replace function referral_reward_on_payment() returns trigger language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+declare ref referrals%rowtype; rr people%rowtype; re people%rowtype; n int; cr int; cid uuid;
+begin
+  if new.amount_aud is null or new.amount_aud <= 0 or new.role not in ('coach', 'club') then return new; end if;
+  if exists (select 1 from payments where person_id = new.person_id and amount_aud > 0 and id <> new.id) then return new; end if;
+  select * into ref from referrals where referee_person_id = new.person_id;
+  if not found then return new; end if;
+  if exists (select 1 from referral_rewards where referee_person_id = new.person_id) then return new; end if;
+  select * into rr from people where id = ref.referrer_person_id;
+  select * into re from people where id = new.person_id;
+  cr := case when new.role = 'club' then 2 else 1 end;
+  if new.role = 'club' and new.listing_table = 'club2coach_club_vacancies' then
+    select club_id into cid from club2coach_club_vacancies where id = new.listing_id;
+  end if;
+  if norm_email(rr.email) = norm_email(re.email) or (norm_mobile(rr.mobile) <> '' and norm_mobile(rr.mobile) = norm_mobile(re.mobile)) then
+    insert into referral_rewards (referrer_person_id, referee_person_id, credits, status, reason, referee_club_id) values (ref.referrer_person_id, new.person_id, cr, 'rejected', 'Same email or mobile as referrer', cid);
+    return new;
+  end if;
+  if cid is not null and exists (select 1 from referral_rewards where referee_club_id = cid and status in ('pending', 'granted')) then
+    insert into referral_rewards (referrer_person_id, referee_person_id, credits, status, reason, referee_club_id) values (ref.referrer_person_id, new.person_id, cr, 'rejected', 'This club has already earned a referral reward', cid);
+    return new;
+  end if;
+  select count(*) into n from referral_rewards where referrer_person_id = ref.referrer_person_id and status in ('pending', 'granted');
+  if n >= 3 then
+    insert into referral_rewards (referrer_person_id, referee_person_id, credits, status, reason, referee_club_id) values (ref.referrer_person_id, new.person_id, cr, 'capped', 'Referrer already has 3 rewards', cid);
+    return new;
+  end if;
+  insert into referral_rewards (referrer_person_id, referee_person_id, credits, status, referee_club_id) values (ref.referrer_person_id, new.person_id, cr, 'pending', cid);
+  perform apply_pending_referral_rewards(ref.referrer_person_id);
+  return new;
+end;
+$$;
