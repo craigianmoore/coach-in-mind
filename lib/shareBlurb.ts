@@ -18,7 +18,7 @@ export function buildShareBlurb(origin: string) {
     <li style="margin-bottom: 6px;"><strong>Club2Coach</strong> — clubs get matched with accredited coaches, scored on accreditation, competition level, age group and region.</li>
     <li><strong>Coach2Mentor</strong> — coaches connect directly with experienced mentors for guidance and development.</li>
   </ul>
-  <p>Your first introduction is free — whether you're a club or a coach — so it costs nothing to try.</p>
+  <p>Clubs get their first introduction free, and the first 60 coaches get a free founding credit — so it costs nothing to try.</p>
   <p>Have a look here: <a href="${url}" style="color: #191B41; font-weight: bold;">${url}</a></p>
   <p style="margin-top: 20px;">Kind regards,<br/>The Coach In Mind Team</p>
   <img src="${logoUrl}" alt="Coach In Mind" width="110" style="display:block; margin-top: 18px;" />
@@ -31,7 +31,7 @@ export function buildShareBlurb(origin: string) {
     "- Club2Coach: clubs get matched with accredited coaches, scored on accreditation, competition level, age group and region.",
     "- Coach2Mentor: coaches connect directly with experienced mentors for guidance and development.",
     "",
-    "Your first introduction is free — whether you're a club or a coach — so it costs nothing to try.",
+    "Clubs get their first introduction free, and the first 60 coaches get a free founding credit — so it costs nothing to try.",
     "",
     `Have a look here: ${url}`,
     "",

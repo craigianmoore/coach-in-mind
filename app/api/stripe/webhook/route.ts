@@ -143,8 +143,9 @@ export async function POST(req: NextRequest) {
       .eq("id", listingId)
       .maybeSingle();
     // An unpaid listing's included_introductions is only the package the coach asked for.
-    introductionsToSet = (current?.paid ? current?.included_introductions ?? 0 : 0) + packageSize;
     relistRefunded = isCoachListing && current?.status === "refunded";
+    // A refunded listing's old credits are gone: a re-buy starts from just the new package.
+    introductionsToSet = (current?.paid && !relistRefunded ? current?.included_introductions ?? 0 : 0) + packageSize;
   }
 
   const updatePayload: Record<string, unknown> = {
@@ -156,6 +157,9 @@ export async function POST(req: NextRequest) {
     // A coach who was refunded and buys again starts clean (otherwise the row stays "refunded" and excluded from the bank).
     updatePayload.status = "draft";
     updatePayload.refunded_at = null;
+    updatePayload.activations_used = 0;
+    updatePayload.activated_at = null;
+    updatePayload.active_until = null;
   }
   if (!isCoachListing) updatePayload.status = "active"; // coach listings go live only via the Activate button
   if (usesIntroductions) {
@@ -164,8 +168,11 @@ export async function POST(req: NextRequest) {
   } else {
     // Mentor capacity: a top-up ADDS mentee places to what they already have.
     // Always ADD to an already-paid mentor (never overwrite), whatever the checkout mode said.
-    const { data: cur } = await supabase.from(listingTable).select("max_mentees, paid").eq("id", listingId).maybeSingle();
-    updatePayload.max_mentees = (cur?.paid ? cur?.max_mentees ?? 0 : 0) + packageSize;
+    const { data: cur } = await supabase.from(listingTable).select("max_mentees, paid, status").eq("id", listingId).maybeSingle();
+    const wasRefunded = cur?.status === "refunded";
+    // A refunded mentor's old places are gone: a re-buy starts from just the new package.
+    updatePayload.max_mentees = (cur?.paid && !wasRefunded ? cur?.max_mentees ?? 0 : 0) + packageSize;
+    if (wasRefunded) updatePayload.refunded_at = null;
   }
 
   const { error: updateError } = await supabase.from(listingTable).update(updatePayload).eq("id", listingId);

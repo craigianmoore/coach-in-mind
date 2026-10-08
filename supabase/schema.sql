@@ -2972,3 +2972,65 @@ grant execute on function coach_refund_notices_due() to service_role;
 -- Don't email coaches whose 90 days already passed before launch (test data): mark existing ones as notified.
 update club2coach_coach_listings set refund_window_notified_at = now() where activated_at is not null and activated_at <= now() - interval '90 days' and refund_window_notified_at is null;
 update coach2mentor_coach_listings set refund_window_notified_at = now() where activated_at is not null and activated_at <= now() - interval '90 days' and refund_window_notified_at is null;
+
+-- ===== v11: close the mentor-request / share row-level holes found in the final review =====
+-- 1) Only admins (or the server) create mentor requests; nothing in the app lets a coach insert one directly.
+drop policy if exists "coach can create a request from their own listing" on coach2mentor_requests;
+drop policy if exists "admin can create requests" on coach2mentor_requests;
+create policy "admin can create requests"
+  on coach2mentor_requests for insert
+  with check (is_admin_caller());
+
+-- 2) A mentor may only accept/decline a pending request (and only while they have free places);
+--    every other column is pinned. Admin and the server (service role) are unaffected.
+create or replace function protect_c2m_request_fields() returns trigger language plpgsql as $$
+declare cap int; acc int;
+begin
+  if current_user in ('authenticated', 'anon') and not coalesce(is_admin_caller(), false) then
+    new.coach_listing_id := old.coach_listing_id;
+    new.mentor_listing_id := old.mentor_listing_id;
+    new.score := old.score;
+    new.message := old.message;
+    new.admin_notes := old.admin_notes;
+    new.created_at := old.created_at;
+    new.pending_notified_at := old.pending_notified_at;
+    new.accepted_notified_at := old.accepted_notified_at;
+    if new.status is distinct from old.status then
+      if old.status = 'pending' and new.status in ('accepted', 'declined') then
+        if new.status = 'accepted' then
+          select coalesce(max_mentees, 0) into cap from coach2mentor_mentor_listings where id = old.mentor_listing_id;
+          select count(*) into acc from coach2mentor_requests where mentor_listing_id = old.mentor_listing_id and status = 'accepted' and id <> old.id;
+          if acc >= coalesce(cap, 0) then
+            raise exception 'You have no free mentee places left';
+          end if;
+        end if;
+      else
+        new.status := old.status;
+      end if;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists protect_c2m_request on coach2mentor_requests;
+create trigger protect_c2m_request before update on coach2mentor_requests for each row execute function protect_c2m_request_fields();
+
+-- 3) A club may only record the outcome of its own introduction; the rest of the share row is pinned.
+create or replace function protect_c2c_share_fields() returns trigger language plpgsql as $$
+begin
+  if current_user in ('authenticated', 'anon') and not coalesce(is_admin_caller(), false) then
+    new.coach_listing_id := old.coach_listing_id;
+    new.club_vacancy_id := old.club_vacancy_id;
+    new.score := old.score;
+    new.admin_notes := old.admin_notes;
+    new.shared_at := old.shared_at;
+    new.status := old.status;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists protect_c2c_share on club2coach_shares;
+create trigger protect_c2c_share before update on club2coach_shares for each row execute function protect_c2c_share_fields();
+
+-- 4) Helper functions that nobody signed-in or anonymous needs to call.
+revoke execute on function coach2mentor_has_active_link(uuid, uuid) from public, anon, authenticated;

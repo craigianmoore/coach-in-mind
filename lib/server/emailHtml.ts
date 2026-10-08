@@ -3,7 +3,7 @@
 const LOGO_URL = "https://www.coachinmind.com.au/coach-in-mind-logo.png";
 
 function esc(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 export function renderEmailHtml(text: string): string {
@@ -11,7 +11,7 @@ export function renderEmailHtml(text: string): string {
     .split(/\n{2,}/)
     .map((para) => {
       const html = esc(para)
-        .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#1d4ed8">$1</a>')
+        .replace(/(https?:\/\/[A-Za-z0-9\-._~:/?#%=&;+]+)/g, '<a href="$1" style="color:#1d4ed8">$1</a>')
         .replace(/\n/g, "<br>");
       return `<p style="margin:0 0 14px;line-height:1.5">${html}</p>`;
     })

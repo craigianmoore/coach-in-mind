@@ -4,12 +4,13 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { safeNext } from "@/lib/safeNext";
 
 function LoginForm() {
   const router = useRouter();
   const supabase = createClient();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/profile";
+  const next = safeNext(searchParams.get("next"), "/profile") as string;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -310,10 +310,18 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
   }
 
   async function respondToRequest(requestId: string, response: "accepted" | "declined") {
-    await supabase
+    const { error: respondError } = await supabase
       .from("coach2mentor_requests")
       .update({ status: response, responded_at: new Date().toISOString() })
       .eq("id", requestId);
+    if (respondError) {
+      window.alert(
+        respondError.message.includes("no free mentee places")
+          ? "You've used all your mentee places. Buy more places below to accept another coach."
+          : "Sorry, that didn't save. Please try again."
+      );
+      return;
+    }
     if (response === "accepted") notifyMentoring();
     await load();
   }

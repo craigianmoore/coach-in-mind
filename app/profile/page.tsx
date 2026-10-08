@@ -1,5 +1,6 @@
 "use client";
 
+import { safeNext } from "@/lib/safeNext";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -14,7 +15,7 @@ function ProfileForm() {
   const router = useRouter();
   const supabase = createClient();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next");
+  const next = safeNext(searchParams.get("next"));
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
