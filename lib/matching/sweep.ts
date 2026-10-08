@@ -10,7 +10,7 @@
 // app/club2coach/admin/page.tsx and app/coach2mentor/admin/page.tsx if
 // the matching rules ever change there.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isActivated } from "@/lib/coachPool";
+import { CLUB_INTRO_CAP, isActivated } from "@/lib/coachPool";
 import { scoreClub2CoachMatch, scoreCoach2MentorMatch } from "@/lib/scoring";
 import type {
   Club2CoachCoachListing,
@@ -51,10 +51,10 @@ export async function runClub2CoachMatchSweep(
   // excluded from "active" explicitly — it isn't caught by the
   // placed/filled/expired checks alone.
   // A coach is matchable only while their activation window is open (Activate button).
-  // One credit = one club introduction: a coach already approved to a club in their current activation is done.
-  const activeCoaches = coachListings.filter(
-    (l) => isActivated(l) && !shares.some((s) => s.coach_listing_id === l.id && s.status === "approved" && !!l.activated_at && s.shared_at >= l.activated_at)
-  );
+  // One credit = up to CLUB_INTRO_CAP club introductions in the 30 days: a coach at the cap is done.
+  const introsThisActivation = (l: Club2CoachCoachListing) =>
+    shares.filter((s) => s.coach_listing_id === l.id && s.status === "approved" && !!l.activated_at && s.shared_at >= l.activated_at).length;
+  const activeCoaches = coachListings.filter((l) => isActivated(l) && introsThisActivation(l) < CLUB_INTRO_CAP);
   const activeVacancies = vacancies.filter(
     (v) =>
       v.paid &&
@@ -83,8 +83,8 @@ export async function runClub2CoachMatchSweep(
     return usedSlots < v.included_introductions;
   });
 
-  // One coach credit = one club introduction: once a coach is approved to a club in this run, they're done.
-  const usedCoachIds = new Set<string>();
+  // Counts approvals made in this run, so a coach can't go past the cap between database reads.
+  const runIntros = new Map<string, number>();
   let totalNew = 0;
   for (const vacancy of targets) {
     const usedSlots = shares.filter((s) => s.club_vacancy_id === vacancy.id).length;
@@ -92,7 +92,7 @@ export async function runClub2CoachMatchSweep(
     if (remaining <= 0) continue;
 
     const candidates = activeCoaches
-      .filter((c) => !usedCoachIds.has(c.id) && !sharedPairs.has(`${c.id}:${vacancy.id}`))
+      .filter((c) => introsThisActivation(c) + (runIntros.get(c.id) ?? 0) < CLUB_INTRO_CAP && !sharedPairs.has(`${c.id}:${vacancy.id}`))
       .map((coach) => {
         const coachPerson = people[coach.person_id];
         const vacancyWeights = vacancy.personal_weights ?? weights;
@@ -113,7 +113,7 @@ export async function runClub2CoachMatchSweep(
       });
       if (!error) {
         totalNew += 1;
-        if (autoApprove) usedCoachIds.add(coach.id);
+        if (autoApprove) runIntros.set(coach.id, (runIntros.get(coach.id) ?? 0) + 1);
         if (autoApprove && !vacancy.shared_at) {
           await supabase
             .from("club2coach_club_vacancies")

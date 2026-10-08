@@ -69,7 +69,7 @@ export async function GET(req: Request) {
     await send({
       to: who.email,
       subject: `Your ${nameFor(row.expired_product)} listing has ended`,
-      text: `Hi ${who.first},\n\nYour ${nameFor(row.expired_product)} listing has reached the end of its period, so it's no longer in matching and that credit has been used. Any introductions already made are unaffected. If you paid for this credit and no introduction was made, you can ask for a refund through the Support page once 90 days have passed since you pressed Activate, and for up to 45 days after that (this doesn't limit your rights under the Australian Consumer Law). A free founding credit isn't refundable.\n\nIf you're still looking, activate it again with another credit (buy one if you need to) from your listing page:\n${linkFor(row.expired_product)}`,
+      text: `Hi ${who.first},\n\nYour ${nameFor(row.expired_product)} listing has reached the end of its period, so it's no longer in matching and that credit has been used. Any introductions already made are unaffected. If you paid for this credit and no introduction was made, you can ask for a refund through the Support page from day ${row.expired_product === "club2coach" ? 35 : 90} after you pressed Activate, and for up to 45 days after that (this doesn't limit your rights under the Australian Consumer Law). A free founding credit isn't refundable.\n\nIf you're still looking, activate it again with another credit (buy one if you need to) from your listing page:\n${linkFor(row.expired_product)}`,
     });
   }
 
@@ -83,15 +83,15 @@ export async function GET(req: Request) {
     digest.push(`${p?.full_name ?? "A coach"} (${p?.email ?? "no email"}) — ${nameFor(row.notice_product)}`);
     if (!p?.email) continue;
     const first = p.full_name?.trim().split(/\s+/)[0] || "there";
-    const until = new Date(new Date(row.notice_activated_at).getTime() + 135 * 86400000).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    const until = new Date(new Date(row.notice_activated_at).getTime() + (row.notice_product === "club2coach" ? 80 : 135) * 86400000).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
     await send({
       to: p.email,
       subject: `Your ${nameFor(row.notice_product)} refund window has opened`,
-      text: `Hi ${first},\n\nIt's been 90 days since you pressed Activate on your ${nameFor(row.notice_product)} listing and no introduction has been made. If you'd like a full refund of that package, you can request it through the Support page until ${until}:\n${APP_URL}/support\n\nOr you can activate again with another credit from your listing page:\n${linkFor(row.notice_product)}\n\nThis doesn't limit any rights you have under the Australian Consumer Law.`,
+      text: `Hi ${first},\n\nIt's been ${row.notice_product === "club2coach" ? 35 : 90} days since you pressed Activate on your ${nameFor(row.notice_product)} listing and no introduction has been made. If you'd like a full refund of that package, you can request it through the Support page until ${until}:\n${APP_URL}/support\n\nOr you can activate again with another credit from your listing page:\n${linkFor(row.notice_product)}\n\nThis doesn't limit any rights you have under the Australian Consumer Law.`,
     });
   }
   if (digest.length > 0) {
-    await sendAdminEmail("Coach refund windows opened today", `These coaches have reached day 90 with no introduction:\n\n${digest.join("\n")}`);
+    await sendAdminEmail("Coach refund windows opened today", `These coaches have reached their refund window with no introduction:\n\n${digest.join("\n")}`);
   }
 
   // Club adverts run 90 days. Past that they end; with no introduction made, the credit is returned.

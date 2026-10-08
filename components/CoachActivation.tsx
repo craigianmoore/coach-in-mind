@@ -1,7 +1,7 @@
 "use client";
 
-// The coach's Activate panel. On Club 2 Coach one credit = one club introduction (in matching up to 60 days,
-// closed as soon as a club is introduced); on Coach 2 Mentor one credit = 60 days. Credits sit in a
+// The coach's Activate panel. On Club 2 Coach one credit = 30 days in front of clubs (up to 5 introductions);
+// on Coach 2 Mentor one credit = 60 days. Credits sit in a
 // shared bank and never expire until they are spent here. If the bank is empty
 // and the founding offer is still open, the free founding credit can be used.
 // All rules (ownership, balance, founding limits) are enforced in the database.
@@ -72,7 +72,7 @@ export default function CoachActivation({
           In matching until {fmt(listing.active_until)} · {left} day{left === 1 ? "" : "s"} left
         </p>
         <p className="mt-2 text-sm">
-          Coach In Mind is looking for your match. On Club 2 Coach, one credit = one club introduction: as soon as a club is introduced to you, this credit is used and you'll see their details on this page. If no club has been introduced by the end date, the credit is used up too; to look again, activate with another credit.
+          Coach In Mind is looking for your match. On Club 2 Coach your credit covers these 30 days and up to 5 club introductions; you'll see each club's details on this page as you're introduced. When it ends, activate with another credit to be shown to clubs again.
         </p>
         {typeof bankProp === "number" && (
           <p className="mt-2 text-sm font-semibold">
@@ -91,7 +91,7 @@ export default function CoachActivation({
       <p>
         <strong>{expired ? "Your listing isn't in matching any more." : "Your listing isn't in matching yet."}</strong>{" "}
         {product === "club2coach"
-          ? `One credit gets you one club introduction: press Activate and you're in matching for up to ${days} days, and the credit is used when a club is introduced to you.`
+          ? `One credit shows you to clubs for ${days} days once you press Activate, with up to 5 club introductions in that time.`
           : `One credit puts it in front of mentors for ${days} days from the day you press Activate.`}
         {" "}You have <strong>{bank}</strong> credit{bank === 1 ? "" : "s"} in your credit balance.
       </p>
@@ -101,7 +101,7 @@ export default function CoachActivation({
           disabled={busy}
           className="mt-3 rounded-lg bg-brand-navy px-5 py-2 text-sm font-semibold text-white hover:bg-brand-navyLight disabled:opacity-50"
         >
-          {busy ? "Activating…" : product === "club2coach" ? "Activate — use 1 credit (1 club introduction)" : `Activate — use 1 credit (${days} days)`}
+          {busy ? "Activating…" : product === "club2coach" ? `Activate — use 1 credit (${days} days)` : `Activate — use 1 credit (${days} days)`}
         </button>
       )}
       {dry?.founding_available && (

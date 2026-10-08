@@ -91,7 +91,7 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">What am I actually paying for?</p>
               <p className="mt-1 text-gray-600">
-                A package of credits (1–3 for coaches, 1–5 for clubs; a coach credit = one club introduction, a club credit = one advert) or, for
+                A package of credits (1–3 for coaches, 1–5 for clubs; a coach credit = 30 days in front of clubs (up to 5 introductions), a club credit = one advert) or, for
                 mentors, mentee places (1, 2, 3, 5 or 10 at a time, from $100 each) that you can top up whenever you need more room. You're
                 paying for a curated introduction, not a guaranteed outcome — what happens after
                 you're introduced is between you and the other party.
@@ -121,7 +121,7 @@ export default function HelpPage() {
                 The first 60 coaches to save a listing get one free credit, to use on either
                 Club 2 Coach or Coach 2 Mentor (you choose — one per coach, and not for mentor
                 profiles). Press Activate on your coach page when you're ready to start looking; the
-                clock starts then (up to 60 days) and we email you
+                clock starts then (30 days on Club 2 Coach, 60 on Coach 2 Mentor) and we email you
                 a week before it ends. Once all 60 places are taken the offer ends. Clubs
                 have their own free first introduction.
               </p>
@@ -129,7 +129,7 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">Do my credits expire?</p>
               <p className="mt-1 text-gray-600">
-                Unused credits never expire, but a used credit does. On Club 2 Coach, one credit = one club introduction: press Activate and your listing is in matching for up to 60 days; once a club is introduced to you, that credit is used — to be introduced to another club you use or buy another. If 60 days pass with no introduction, the credit is used up too. On Coach 2 Mentor, one credit = 60 days in matching. To look for both a club and a mentor you activate
+                Unused credits never expire, but a used credit does. On Club 2 Coach, one credit = 30 days of being shown to clubs, with up to 5 club introductions in that time: press Activate and your listing is in matching; the credit ends after 30 days or at the fifth introduction, whichever comes first — to be shown to clubs again you use or buy another. On Coach 2 Mentor, one credit = 60 days in matching. To look for both a club and a mentor you activate
                 both, one credit each; your credit balance is shared across the two. Club credits belong to the advert: it runs 90 days, then ends. With no
                 introduction the credit comes back automatically; if coaches were introduced it is used up
                 and unused introductions don't carry over — to re-advertise, you use a new credit.
@@ -141,8 +141,8 @@ export default function HelpPage() {
                 Clubs: if no introduction is made in your 90 days, your credit is returned automatically (it
                 doesn't expire) — or you can ask for a refund of that package instead from the Support page
                 within 45 days of our email telling you it was returned. Coaches: if no introduction has been
-                made within 90 days of pressing Activate, you can request a full refund from the Support page
-                any time from day 90 until 45 days after that. This doesn't limit your rights under the
+                made in the 30 days after pressing Activate (Club 2 Coach), you can request a full refund from the Support page
+                any time from day 35 until 45 days after that (Coach 2 Mentor: day 90). This doesn't limit your rights under the
                 Australian Consumer Law. Once at least one introduction has been made, the package is
                 non-refundable, including any unused introductions in it.
               </p>

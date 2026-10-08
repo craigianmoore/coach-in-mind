@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { REFUND_OPENS_DAY } from "@/lib/coachPool";
 import type { Club2CoachClubVacancy, Club2CoachCoachListing, Club2CoachShare } from "@/types/database";
 
 type P = { id: string; full_name: string; email: string; mobile: string; postcode?: string | null };
@@ -253,7 +254,7 @@ export default function AdminOverview({
                           {l.role_sought} · <span className={`rounded-full px-2 py-0.5 font-semibold ${t.badge}`}>{l.status}</span> · {l.paid ? "paid" : "unpaid"} · {fmt(l.created_at)}
                         </p>
                         {coachWait(l) != null && (
-                          <p className={`text-xs font-semibold ${coachWait(l)! >= 90 ? "text-red-600" : "text-orange-600"}`}>{waitLabel(coachWait(l))}</p>
+                          <p className={`text-xs font-semibold ${coachWait(l)! >= REFUND_OPENS_DAY.club2coach ? "text-red-600" : "text-orange-600"}`}>{waitLabel(coachWait(l), false, REFUND_OPENS_DAY.club2coach)}</p>
                         )}
                       </button>
                       {openIds.has(l.id) && (

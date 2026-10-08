@@ -100,9 +100,8 @@ export default function TermsPage() {
       <p className="mt-2">
         For coaches, a package is a set of credits forming a credit balance that is shared across Club 2
         Coach and Coach 2 Mentor. Unused credits do not expire. Activating a listing uses one
-        credit and puts that listing in matching for up to 60 days. On Club 2 Coach, one credit buys one club introduction: once a club is introduced to you the credit is used, and
-        a further credit is needed to be introduced to another club. On Coach 2 Mentor, the credit covers the 60 days. If the period ends first, the credit is used up and a further credit is needed to
-        re-apply.
+        credit and puts that listing in matching. On Club 2 Coach, one credit shows your listing to clubs for 30 days and includes up to 5 club introductions in that time; the credit ends when the 30 days end or the fifth
+        introduction is made, whichever comes first, and a further credit is needed to be shown to clubs again. On Coach 2 Mentor, one credit covers 60 days in matching.
       </p>
       <p className="mt-2">
         Fees paid for introduction packages cover our effort in
@@ -111,8 +110,8 @@ export default function TermsPage() {
         introduction has been made in that time, the credit is returned to the club automatically so it
         can re-advertise (a returned credit does not expire); the club may instead ask for a full refund of
         that package by contacting us within 45 days of the date we email it that the credit has been
-        returned. For coaches, if no introduction has been made within 90 days of pressing Activate, you
-        can request a full refund of that package at any time from day 90 until 45 days after that; we
+        returned. For coaches on Club 2 Coach, if no introduction has been made within 30 days of pressing Activate, you
+        can request a full refund of that credit at any time from day 35 until 45 days after that; for Coach 2 Mentor the same applies from day 90 until 45 days after that; we
         will tell you these dates by email when your listing period ends. Refunds are requested via the{" "}
         <a href="/support" className="text-brand-navy underline">
           Support

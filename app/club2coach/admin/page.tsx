@@ -1,6 +1,6 @@
 "use client";
 
-import { isActivated } from "@/lib/coachPool";
+import { CLUB_INTRO_CAP, COACH_ACTIVE_DAYS, isActivated } from "@/lib/coachPool";
 import { notifyMatches } from "@/lib/notify";
 import { useEffect, useState } from "react";
 import PinGate from "@/components/PinGate";
@@ -577,8 +577,8 @@ function Club2CoachAdmin() {
       return usedSlots < v.included_introductions;
     });
 
-    // One coach credit = one club introduction: once a coach is approved to a club in this run, they're done.
-    const usedCoachIds = new Set<string>();
+    // Counts approvals made in this run, so a coach can't go past the cap between reloads.
+    const runIntros = new Map<string, number>();
     let totalNew = 0;
     for (const vacancy of targets) {
       const usedSlots = shares.filter((s) => s.club_vacancy_id === vacancy.id).length;
@@ -586,7 +586,7 @@ function Club2CoachAdmin() {
       if (remaining <= 0) continue;
 
       const candidates = activeCoaches
-        .filter((c) => !usedCoachIds.has(c.id) && !sharedPairs.has(`${c.id}:${vacancy.id}`))
+        .filter((c) => introsThisActivation(c) + (runIntros.get(c.id) ?? 0) < CLUB_INTRO_CAP && !sharedPairs.has(`${c.id}:${vacancy.id}`))
         .map((coach) => {
           const coachPerson = people[coach.person_id];
           const vacancyWeights = vacancy.personal_weights ?? weights;
@@ -607,7 +607,7 @@ function Club2CoachAdmin() {
         });
         if (!error) {
           totalNew += 1;
-          if (autoApprove) usedCoachIds.add(coach.id);
+          if (autoApprove) runIntros.set(coach.id, (runIntros.get(coach.id) ?? 0) + 1);
           if (autoApprove && !vacancy.shared_at) {
             await supabase
               .from("club2coach_club_vacancies")
@@ -674,17 +674,17 @@ function Club2CoachAdmin() {
     }
     supabase.rpc("refresh_admin_session");
     // Undoing an approved introduction gives the coach their credit back: if their activation was closed by it
-    // and the 60 days haven't run out, put the listing back into matching.
+    // and the 30 days haven't run out, put the listing back into matching.
     const undone = shares.find((s) => s.id === shareId);
     await supabase.from("club2coach_shares").delete().eq("id", shareId);
     if (undone?.status === "approved") {
       const cl = coachListings.find((l) => l.id === undone.coach_listing_id);
       if (cl?.activated_at && cl.status === "expired") {
-        const until = new Date(new Date(cl.activated_at).getTime() + 60 * 86400000);
+        const until = new Date(new Date(cl.activated_at).getTime() + COACH_ACTIVE_DAYS.club2coach * 86400000);
         if (until.getTime() > Date.now()) {
           await supabase.from("club2coach_coach_listings").update({ status: "active", active_until: until.toISOString() }).eq("id", cl.id);
         } else {
-          setStatus("Introduction undone. That coach's 60 days had already run out — add them another credit by hand if they should get one back.");
+          setStatus("Introduction undone. That coach's 30 days had already run out — add them another credit by hand if they should get one back.");
         }
       }
     }
@@ -912,10 +912,10 @@ function Club2CoachAdmin() {
     return shares.filter((s) => s.coach_listing_id === coachListingId).length;
   }
   // A coach is matchable only while their activation window is open (Activate button).
-  // One credit = one club introduction: a coach already approved to a club in their current activation is done.
-  const activeCoaches = coachListings.filter(
-    (l) => isActivated(l) && !shares.some((s) => s.coach_listing_id === l.id && s.status === "approved" && !!l.activated_at && s.shared_at >= l.activated_at)
-  );
+  // One credit = up to CLUB_INTRO_CAP club introductions in the 30 days: a coach at the cap is done.
+  const introsThisActivation = (l: Club2CoachCoachListing) =>
+    shares.filter((s) => s.coach_listing_id === l.id && s.status === "approved" && !!l.activated_at && s.shared_at >= l.activated_at).length;
+  const activeCoaches = coachListings.filter((l) => isActivated(l) && introsThisActivation(l) < CLUB_INTRO_CAP);
   const activeVacancies = vacancies.filter(
     (v) =>
       v.paid &&
