@@ -82,6 +82,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
 
   const [matches, setMatches] = useState<(Coach2MentorRequest & { mentorName?: string; mentorBio?: string; mentorIntroVideoUrl?: string })[]>([]);
   const [bank, setBank] = useState(0);
+  const [justSaved, setJustSaved] = useState(false);
   const [topupPackage, setTopupPackage] = useState(1);
   const [requestingTopup, setRequestingTopup] = useState(false);
 
@@ -280,6 +281,8 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
 
     await load();
     setSaving(false);
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 6000);
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (isNew) {
@@ -315,7 +318,9 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
       {!existing?.paid && <FoundingBanner className="mt-4" />}
 
       {existing && (
-        <CoachActivation listingTable="coach2mentor_coach_listings" listing={existing} onChanged={() => load()} />
+        <div className="mt-4">
+          <CoachActivation listingTable="coach2mentor_coach_listings" listing={existing} onChanged={() => load()} bank={bank} />
+        </div>
       )}
 
       {existing && !existing.paid && (
@@ -738,6 +743,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
         >
           {saving ? "Saving…" : existing ? "Save changes" : "Save profile"}
         </button>
+        {justSaved && <p className="mt-2 text-sm font-semibold text-green-700">✓ Changes saved</p>}
       </form>
 
       <TermsModal

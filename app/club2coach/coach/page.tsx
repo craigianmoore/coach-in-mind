@@ -65,6 +65,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(1);
   const [bank, setBank] = useState(0);
+  const [justSaved, setJustSaved] = useState(false);
   const [topupPackage, setTopupPackage] = useState(1);
   const [requestingTopup, setRequestingTopup] = useState(false);
 
@@ -374,6 +375,8 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
 
     await load();
     setSaving(false);
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 6000);
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (!existing) {
@@ -432,11 +435,12 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
 
       {!existing?.paid && <FoundingBanner className="mt-4" />}
 
-      <ContactDetailsGlass fullName={person.full_name} email={person.email} mobile={person.mobile} who="a club" />
-
-      {existing && (
-        <CoachActivation listingTable="club2coach_coach_listings" listing={existing} onChanged={() => load()} />
-      )}
+      <div className="mt-4 grid items-stretch gap-4 md:grid-cols-[minmax(0,300px)_1fr] [&>*]:!mt-0">
+        <ContactDetailsGlass fullName={person.full_name} email={person.email} mobile={person.mobile} who="a club" />
+        {existing && (
+          <CoachActivation listingTable="club2coach_coach_listings" listing={existing} onChanged={() => load()} bank={bank} />
+        )}
+      </div>
 
       {existing && !existing.paid && (
         <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -905,6 +909,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           >
             {saving ? "Saving…" : existing ? "Save changes" : "Add coach listing"}
           </button>
+          {justSaved && <span className="self-center text-sm font-semibold text-green-700">✓ Changes saved</span>}
           {existing && (
             <button
               type="button"

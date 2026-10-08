@@ -18,10 +18,12 @@ export default function CoachActivation({
   listingTable,
   listing,
   onChanged,
+  bank: bankProp,
 }: {
   listingTable: Table;
   listing: { id: string; status: string; active_until?: string | null; deleted_at?: string | null; paid?: boolean };
   onChanged: () => void;
+  bank?: number; // credits left in the shared bank (shown while active)
 }) {
   const supabase = createClient();
   const product = listingTable === "club2coach_coach_listings" ? "club2coach" : "coach2mentor";
@@ -62,11 +64,22 @@ export default function CoachActivation({
   }
 
   if (active && listing.active_until) {
+    const left = daysLeft(listing.active_until);
     return (
-      <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-        ✓ <strong>Active</strong> — you&apos;re in matching until {fmt(listing.active_until)} ({daysLeft(listing.active_until)} day
-        {daysLeft(listing.active_until) === 1 ? "" : "s"} left). Coach In Mind is looking for your match. When it ends that credit is
-        used up; to be looked at again you activate with another credit.
+      <div className="flex h-full flex-col justify-center rounded-xl border-2 border-green-300 bg-green-50 p-5 text-green-900">
+        <p className="text-3xl font-extrabold uppercase tracking-widest text-green-700">✓ Active</p>
+        <p className="mt-2 text-base font-semibold">
+          In matching until {fmt(listing.active_until)} · {left} day{left === 1 ? "" : "s"} left
+        </p>
+        <p className="mt-2 text-sm">
+          Coach In Mind is looking for your match. When this ends, that credit is used up; to open another introduction option,
+          activate with another credit.
+        </p>
+        {typeof bankProp === "number" && (
+          <p className="mt-2 text-sm font-semibold">
+            Credits remaining in your bank: {bankProp}
+          </p>
+        )}
       </div>
     );
   }
@@ -75,7 +88,7 @@ export default function CoachActivation({
   const expired = listing.status === "expired";
 
   return (
-    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+    <div className="h-full rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
       <p>
         <strong>{expired ? "Your listing has ended." : "Your listing isn't in matching yet."}</strong> One credit puts it in
         front of {product === "club2coach" ? "clubs" : "mentors"} for {days} days from the day you press Activate.

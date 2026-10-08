@@ -352,25 +352,25 @@ function ProfileForm() {
               href="/club2coach/coach"
               className="rounded-lg border border-brand-goldLight bg-brand-goldLight/10 p-3 text-sm font-medium hover:bg-brand-goldLight/20"
             >
-              Find a coaching role (Club 2 Coach)
+              <strong className="underline">Find</strong> a coaching role (Club 2 Coach)
             </Link>
             <Link
               href="/club2coach/club"
               className="rounded-lg border border-brand-goldLight bg-brand-goldLight/10 p-3 text-sm font-medium hover:bg-brand-goldLight/20"
             >
-              Advertise a vacancy (Club 2 Coach)
+              <strong className="underline">Advertise</strong> a vacancy (Club 2 Coach)
             </Link>
             <Link
               href="/coach2mentor/coach"
               className="rounded-lg border border-brand-navy bg-brand-navy/5 p-3 text-sm font-medium hover:bg-brand-navy/10"
             >
-              Find a mentor (Coach 2 Mentor)
+              <strong className="underline">Find</strong> a mentor (Coach 2 Mentor)
             </Link>
             <Link
               href="/coach2mentor/mentor"
               className="rounded-lg border border-brand-navy bg-brand-navy/5 p-3 text-sm font-medium hover:bg-brand-navy/10"
             >
-              Become a mentor (Coach 2 Mentor)
+              <strong className="underline">Become</strong> a mentor (Coach 2 Mentor)
             </Link>
           </div>
         </div>
