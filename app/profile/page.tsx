@@ -6,8 +6,7 @@ import Link from "next/link";
 import AuthGuard from "@/components/AuthGuard";
 import { createClient } from "@/lib/supabase/client";
 import { REGIONS, ACCREDITATION_LEVELS, GENDER_OPTIONS } from "@/lib/constants";
-import type { Person, CoachCreditRequest } from "@/types/database";
-import { CLUB2COACH_COACH_PACKAGES } from "@/lib/constants";
+import type { Person } from "@/types/database";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
 import { isValidPostcode, POSTCODE_FINDER_URL } from "@/lib/postcode";
 
@@ -35,12 +34,6 @@ function ProfileForm() {
 
   const [hasClub2CoachListing, setHasClub2CoachListing] = useState(false);
   const [hasCoach2MentorListing, setHasCoach2MentorListing] = useState(false);
-  const [pendingCreditRequest, setPendingCreditRequest] = useState<CoachCreditRequest | null>(null);
-  const [splitTotal, setSplitTotal] = useState(2);
-  const [splitClub, setSplitClub] = useState(1);
-  const [splitMentor, setSplitMentor] = useState(1);
-  const [splitError, setSplitError] = useState<string | null>(null);
-  const [requestingSplit, setRequestingSplit] = useState(false);
 
   useEffect(() => {
     try {
@@ -80,7 +73,7 @@ function ProfileForm() {
       setPostcode(p.postcode ?? "");
       setCurrentLicence(p.current_licence ?? "None / In Progress");
 
-      const [{ data: c2c }, { data: c2m }, { data: creditReq }] = await Promise.all([
+      const [{ data: c2c }, { data: c2m }] = await Promise.all([
         supabase
           .from("club2coach_coach_listings")
           .select("id")
@@ -93,54 +86,11 @@ function ProfileForm() {
           .eq("person_id", p.id)
           .is("deleted_at", null)
           .maybeSingle(),
-        supabase
-          .from("coach_credit_requests")
-          .select("*")
-          .eq("person_id", p.id)
-          .eq("status", "pending")
-          .maybeSingle(),
       ]);
       setHasClub2CoachListing(Boolean(c2c));
       setHasCoach2MentorListing(Boolean(c2m));
-      setPendingCreditRequest((creditReq as CoachCreditRequest) ?? null);
     }
     setLoading(false);
-  }
-
-  function updateSplitTotal(n: number) {
-    setSplitTotal(n);
-    // Keep an even-ish default split when the total changes, rather
-    // than leaving stale numbers that no longer add up.
-    const club = Math.ceil(n / 2);
-    setSplitClub(club);
-    setSplitMentor(n - club);
-  }
-
-  async function requestCreditSplit() {
-    setSplitError(null);
-    if (splitClub + splitMentor !== splitTotal) {
-      setSplitError(`Club 2 Coach + Coach 2 Mentor must add up to ${splitTotal}.`);
-      return;
-    }
-    if (splitClub < 0 || splitMentor < 0) {
-      setSplitError("Numbers can't be negative.");
-      return;
-    }
-    if (!existing) return;
-
-    setRequestingSplit(true);
-    const { error } = await supabase.from("coach_credit_requests").insert({
-      person_id: existing.id,
-      total_package: splitTotal,
-      club2coach_count: splitClub,
-      coach2mentor_count: splitMentor,
-    });
-    setRequestingSplit(false);
-    if (error) {
-      setSplitError(error.message);
-      return;
-    }
-    await load();
   }
 
   // Soft, non-blocking check: does this mobile number already belong
