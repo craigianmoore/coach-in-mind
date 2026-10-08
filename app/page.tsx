@@ -56,7 +56,7 @@ export default function HomePage() {
           className="flex flex-col gap-4 rounded-2xl bg-white p-8 text-left shadow-xl ring-1 ring-black/5 transition hover:-translate-y-2 hover:shadow-2xl"
         >
           <span className="flex h-[88px] w-[88px] self-center items-center justify-center rounded-2xl border-[3px] border-[#6B7482] bg-[#CBD1DA] shadow-md">
-            <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#3F4753" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><g strokeWidth="1.4"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M12 4v16" /><path d="M2 9.5h3v5H2M22 9.5h-3v5h3" /><path d="M5.8 6.8l2.8 2.8M8.6 6.8 5.8 9.6" /><circle cx="16.4" cy="15.6" r="1.6" /><path d="M7.4 16.4c1.6-.2 3.4-1.8 3.8-3.6" /></g></svg>
+            <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#3F4753" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><g transform="rotate(90 12 12)"><rect x="2" y="4" width="20" height="16" rx="2" strokeWidth="1.5" /><g strokeWidth="0.9"><path d="M12 4v16" /><path d="M2 9.5h3v5H2M22 9.5h-3v5h3" /><path d="M5.8 6.8l2.8 2.8M8.6 6.8 5.8 9.6" /><circle cx="16.4" cy="15.6" r="1.6" /><path d="M7.4 16.4c1.6-.2 3.4-1.8 3.8-3.6" /></g></g></svg>
           </span>
           <span className="self-center text-xl font-extrabold uppercase tracking-wider text-[#3F4753]">
             For coaches
