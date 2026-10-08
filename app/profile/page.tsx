@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AuthGuard from "@/components/AuthGuard";
 import { createClient } from "@/lib/supabase/client";
-import { REGIONS, ACCREDITATION_LEVELS, GENDER_OPTIONS } from "@/lib/constants";
+import { REGIONS_BY_STATE, STATE_LABELS, ACCREDITATION_LEVELS, GENDER_OPTIONS } from "@/lib/constants";
 import type { Person } from "@/types/database";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
 import { isValidPostcode, POSTCODE_FINDER_URL } from "@/lib/postcode";
@@ -297,10 +297,14 @@ function ProfileForm() {
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             >
               <option value="">Select…</option>
-              {REGIONS.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
+              {Object.entries(REGIONS_BY_STATE).map(([st, list]) => (
+                <optgroup key={st} label={STATE_LABELS[st] ?? st}>
+                  {list.map((r) => (
+                    <option key={`${st}-${r}`} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>

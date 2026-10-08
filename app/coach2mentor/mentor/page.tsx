@@ -490,7 +490,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
             <div className="mt-2 flex flex-col gap-4">
               {statePreferences.map((s) => (
                 <div key={s}>
-                  <p className="mb-1.5 text-xs font-semibold text-gray-600">{MEMBER_FEDERATIONS[s]}</p>
+                  <p className="mb-2 border-b border-gray-200 pb-1 text-sm font-bold text-brand-navy">{MEMBER_FEDERATIONS[s]}</p>
                   <CheckboxGroup
                     options={REGIONS_BY_STATE[s] ?? []}
                     selected={regionsServed}
