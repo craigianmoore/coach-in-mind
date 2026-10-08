@@ -56,7 +56,7 @@ export default function HomePage() {
           className="flex flex-col gap-4 rounded-2xl bg-white p-8 text-left shadow-xl ring-1 ring-black/5 transition hover:-translate-y-2 hover:shadow-2xl"
         >
           <span className="flex h-[88px] w-[88px] self-center items-center justify-center rounded-2xl border-[3px] border-[#6B7482] bg-[#CBD1DA] shadow-md">
-            <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#3F4753" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
+            <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#3F4753" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="15.5" cy="14.5" r="5.5" /><circle cx="15.5" cy="14.5" r="1.6" /><path d="M10.6 12 2.5 9.5V13l6.3 1.6" /><path d="M13 9.2 11.5 4" /><circle cx="10.5" cy="3" r="1.4" /></svg>
           </span>
           <span className="self-center text-xl font-extrabold uppercase tracking-wider text-[#3F4753]">
             For coaches
