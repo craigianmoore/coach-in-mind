@@ -53,7 +53,7 @@ export async function GET(req: Request) {
     await sendEmail({
       to: who.email,
       subject: `Your ${nameFor(row.expired_product)} listing has ended`,
-      text: `Hi ${who.first},\n\nYour ${nameFor(row.expired_product)} listing has reached the end of its period, so it's no longer in matching and that credit has been used. Any introductions already made are unaffected.\n\nIf you're still looking, activate it again with another credit (buy one if you need to) from your listing page:\n${linkFor(row.expired_product)}`,
+      text: `Hi ${who.first},\n\nYour ${nameFor(row.expired_product)} listing has reached the end of its period, so it's no longer in matching and that credit has been used. Any introductions already made are unaffected. If no introduction was made, you can ask for a refund through the Support page once 90 days have passed since you pressed Activate, and for up to 45 days after that (this doesn't limit your rights under the Australian Consumer Law).\n\nIf you're still looking, activate it again with another credit (buy one if you need to) from your listing page:\n${linkFor(row.expired_product)}`,
     });
   }
 
@@ -67,7 +67,7 @@ export async function GET(req: Request) {
       to: who.email,
       subject: row.was_recredited ? "Your advert has ended — your credit has been returned" : "Your advert has ended",
       text: row.was_recredited
-        ? `Hi ${who.first},\n\nYour advert for ${row.expired_role} at ${row.expired_club} has run its 90 days and no coach was introduced, so we've returned your credit. Repost the vacancy from your club page and choose "Use my returned credit" to run it for another 90 days at no charge:\n${link}\n\nIf you'd rather have a refund of that package than the credit, reply to this email or use the Support page.`
+        ? `Hi ${who.first},\n\nYour advert for ${row.expired_role} at ${row.expired_club} has run its 90 days and no coach was introduced, so we've returned your credit. Repost the vacancy from your club page and choose "Use my returned credit" to run it for another 90 days at no charge:\n${link}\n\nYour returned credit doesn't expire. If you'd rather have a refund of that package than the credit, reply to this email or use the Support page within 45 days of today. This doesn't limit any rights you have under the Australian Consumer Law.`
         : `Hi ${who.first},\n\nYour advert for ${row.expired_role} at ${row.expired_club} has run its 90 days and has now ended. If the role is still open you can repost it from your club page:\n${link}`,
     });
   }

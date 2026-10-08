@@ -257,9 +257,10 @@ story.append(bullets([
     "ask for a refund instead). If coaches were introduced, the credit is used and unused "
     "introductions don't carry over — to re-advertise, use a new credit.",
     "<b>Refunds.</b> Clubs: if no introduction is made in the 90 days your credit is returned "
-    "automatically, or you can ask for a refund through the Support page instead. Coaches: if no "
-    "introduction has been made within 90 days of pressing Activate you can ask for a full refund "
-    "through the Support page. Once at least one "
+    "automatically (it doesn't expire), or you can ask for a refund through the Support page within 45 days of "
+    "our email telling you it was returned. Coaches: if no introduction has been made within 90 days of "
+    "pressing Activate you can ask for a full refund through the Support page, from day 90 until 45 days after. "
+    "This doesn't limit your rights under the Australian Consumer Law. Once at least one "
     "introduction has been made, the package is non-refundable — including any unused introductions "
     "in it.",
 ]))

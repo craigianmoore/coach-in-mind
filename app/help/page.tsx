@@ -140,10 +140,12 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">Can I get a refund?</p>
               <p className="mt-1 text-gray-600">
-                Clubs: if no introduction is made in your 90 days, your credit is returned automatically — or
-                you can ask for a refund of that package instead from the Support page. Coaches: if no
-                introduction has been made within 90 days of pressing Activate, you can request a full
-                refund from the Support page. Once at least one introduction has been made, the package is
+                Clubs: if no introduction is made in your 90 days, your credit is returned automatically (it
+                doesn't expire) — or you can ask for a refund of that package instead from the Support page
+                within 45 days of our email telling you it was returned. Coaches: if no introduction has been
+                made within 90 days of pressing Activate, you can request a full refund from the Support page
+                any time from day 90 until 45 days after that. This doesn't limit your rights under the
+                Australian Consumer Law. Once at least one introduction has been made, the package is
                 non-refundable, including any unused introductions in it.
               </p>
             </div>

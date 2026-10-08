@@ -108,9 +108,11 @@ export default function TermsPage() {
         attempting to find and share suitable matches — see Section 2
         above regarding outcomes. A club's advert runs for 90 days from the day it goes live. If no
         introduction has been made in that time, the credit is returned to the club automatically so it
-        can re-advertise; the club may instead ask for a full refund of that package. For coaches, if no
-        introduction has been made within 90 days of pressing Activate, you can request a full refund of
-        that package via the{" "}
+        can re-advertise (a returned credit does not expire); the club may instead ask for a full refund of
+        that package by contacting us within 45 days of the date we email it that the credit has been
+        returned. For coaches, if no introduction has been made within 90 days of pressing Activate, you
+        can request a full refund of that package at any time from day 90 until 45 days after that; we
+        will tell you these dates by email when your listing period ends. Refunds are requested via the{" "}
         <a href="/support" className="text-brand-navy underline">
           Support
         </a>{" "}
@@ -121,7 +123,8 @@ export default function TermsPage() {
         discretion, including where we're unable to deliver the
         service paid for. Nothing in this section affects any right
         you have under the Australian Consumer Law that cannot
-        lawfully be excluded.
+        lawfully be excluded. The request windows above apply to the refunds we offer under this
+        section and do not limit those rights.
       </p>
 
       <h2 className="mt-8 text-lg font-semibold text-gray-900">6. Your conduct</h2>
