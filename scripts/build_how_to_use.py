@@ -237,8 +237,10 @@ story.append(CondPageBreak(40 * mm))
 story.append(Paragraph("If you're a mentor", h3_style))
 story.append(bullets([
     "Set up a profile describing your background, specialisms, and availability.",
-    "Choose your mentee capacity (how many coaches you can mentor at once, up to 10) — pricing "
-    "scales with capacity.",
+    "Upload evidence of your accreditation. We check every mentor before they go live (usually "
+    "1-2 business days) and email you when you're verified.",
+    "Then choose your mentee capacity (how many coaches you can mentor at once, up to 10) — pricing "
+    "scales with capacity — and pay by card.",
     "When a coach is matched and approved, you'll see the request on your own dashboard and can "
     "accept or decline it.",
     "Once you accept, contact details are shared and you arrange things directly with the coach "

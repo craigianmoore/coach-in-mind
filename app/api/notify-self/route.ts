@@ -26,9 +26,9 @@ const TEMPLATES: Record<string, { subject: string; body: (d: string) => string }
       `We've received your Coach 2 Mentor profile, and it's saved.\n\nIt isn't in matching yet. Buy a credit (or, while founding spots last, use your free founding credit) and press Activate on your profile page — your profile is then in matching for 60 days from that day:\n${APP_URL}/coach2mentor/coach\n\nOnce you've activated it we'll start matching you with mentors, and email you when you've been matched.`,
   },
   mentor_profile: {
-    subject: "Your mentor profile is saved — one step left to activate it",
+    subject: "Your mentor profile is saved — we're verifying it",
     body: () =>
-      `We've received your mentor profile, and it's saved.\n\nIt isn't active yet: your profile is only included in matching once your mentee places are confirmed. You can buy places by card from your mentor page (you can edit your profile there at any time):\n${APP_URL}/coach2mentor/mentor\n\nAs soon as it's active we'll start matching coaches to you, and email you when you've been matched.`,
+      `We've received your mentor profile, and it's saved.\n\nBefore any mentor goes live we check their accreditation evidence, so coaches can trust who they're introduced to. This usually takes 1–2 business days, and we'll email you as soon as you're verified. You can then choose your mentee places and pay by card from your mentor page (you can edit your profile there at any time):\n${APP_URL}/coach2mentor/mentor\n\nOnce your places are confirmed we'll start matching coaches to you, and email you when you've been matched.`,
   },
 };
 

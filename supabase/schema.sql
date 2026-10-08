@@ -3034,3 +3034,58 @@ create trigger protect_c2c_share before update on club2coach_shares for each row
 
 -- 4) Helper functions that nobody signed-in or anonymous needs to call.
 revoke execute on function coach2mentor_has_active_link(uuid, uuid) from public, anon, authenticated;
+
+-- ===== v12: mentors must be verified (accreditation evidence checked) before they can buy places or be matched =====
+alter table coach2mentor_mentor_listings add column if not exists verified_at timestamptz;
+-- Mentors who were already live when this shipped count as verified.
+update coach2mentor_mentor_listings set verified_at = now() where paid and verified_at is null;
+
+-- Pin verified_at against client edits (same trigger as the billing fields; latest definition replaces v9).
+create or replace function protect_listing_billing_fields() returns trigger language plpgsql as $$
+declare n jsonb := to_jsonb(new); o jsonb := case when tg_op = 'UPDATE' then to_jsonb(old) else '{}'::jsonb end; k text; dflt jsonb;
+begin
+  if current_user in ('authenticated', 'anon') and not coalesce(is_admin_caller(), false) then
+    foreach k in array array['paid','paid_at','price_aud','refunded_at','activated_at','active_until','activations_used','founding_member','recredited_at','from_recredit','is_charity','verified_at'] loop
+      if n ? k then
+        dflt := case k when 'paid' then 'false'::jsonb when 'activations_used' then '0'::jsonb when 'founding_member' then 'false'::jsonb
+                       when 'from_recredit' then 'false'::jsonb when 'is_charity' then 'false'::jsonb else 'null'::jsonb end;
+        n := jsonb_set(n, array[k], coalesce(o -> k, dflt));
+      end if;
+    end loop;
+    if n ? 'included_introductions' then
+      if tg_op = 'UPDATE' and coalesce((o ->> 'paid')::boolean, false) then
+        n := jsonb_set(n, array['included_introductions'], coalesce(o -> 'included_introductions', 'null'::jsonb));
+      elsif (n ->> 'included_introductions') is not null then
+        n := jsonb_set(n, array['included_introductions'], to_jsonb(least(greatest((n ->> 'included_introductions')::int, 0), 5)));
+      end if;
+    end if;
+    if n ? 'max_mentees' then
+      if tg_op = 'UPDATE' and coalesce((o ->> 'paid')::boolean, false) then
+        n := jsonb_set(n, array['max_mentees'], coalesce(o -> 'max_mentees', 'null'::jsonb));
+      elsif (n ->> 'max_mentees') is not null then
+        n := jsonb_set(n, array['max_mentees'], to_jsonb(least(greatest((n ->> 'max_mentees')::int, 1), 10)));
+      end if;
+    end if;
+    if n ? 'status' then
+      if tg_op = 'INSERT' then n := jsonb_set(n, array['status'], '"draft"'::jsonb);
+      elsif (o ->> 'status') = 'refunded' then n := jsonb_set(n, array['status'], o -> 'status');
+      elsif (n ->> 'status') in ('active', 'expired', 'refunded') and (n ->> 'status') is distinct from (o ->> 'status') then
+        n := jsonb_set(n, array['status'], o -> 'status');
+      end if;
+    end if;
+    new := jsonb_populate_record(new, n);
+  end if;
+  return new;
+end;
+$$;
+
+-- Admin-only: verify (or un-verify) a mentor after checking their evidence.
+create or replace function verify_mentor_listing(target uuid, verify boolean default true) returns void
+language plpgsql security definer set search_path = public set row_security = off as $$
+begin
+  if not coalesce(is_admin_caller(), false) then raise exception 'Not allowed'; end if;
+  update coach2mentor_mentor_listings set verified_at = case when verify then now() else null end where id = target;
+end;
+$$;
+revoke all on function verify_mentor_listing(uuid, boolean) from public, anon;
+grant execute on function verify_mentor_listing(uuid, boolean) to authenticated;

@@ -99,6 +99,16 @@ export async function POST(req: NextRequest) {
   if (listing.person_id !== me?.id && !isAdmin) {
     return NextResponse.json({ error: "Listing not found, or you don't have access to it." }, { status: 403 });
   }
+  // Mentors can only buy places once an admin has checked their accreditation evidence.
+  if (listingTable === "coach2mentor_mentor_listings" && !isAdmin) {
+    const { data: v } = await supabase.from(listingTable).select("verified_at").eq("id", listingId).maybeSingle();
+    if (!v?.verified_at) {
+      return NextResponse.json(
+        { error: "Your mentor profile is still being verified. We'll email you as soon as it's checked, and then you can buy your places." },
+        { status: 403 }
+      );
+    }
+  }
 
   const amount = lookupAmount(listingTable, packageSize);
   if (amount == null) {

@@ -149,6 +149,7 @@ export async function runCoach2MentorMatchSweep(supabase: SupabaseClient): Promi
   // so "refunded" is already excluded here without needing a separate check.
   const activeMentors = mentorListings.filter((m) => {
     if (!m.paid || m.deleted_at || m.status !== "active" || !m.currently_open) return false;
+    if (!m.verified_at) return false; // only mentors an admin has verified are ever introduced
     if (m.max_mentees != null && mentorAcceptedCount(m.id) >= m.max_mentees) return false;
     return true;
   });

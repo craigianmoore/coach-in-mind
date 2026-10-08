@@ -191,9 +191,32 @@ function Coach2MentorAdmin() {
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   }
 
+  async function verifyMentor(id: string, verify: boolean) {
+    supabase.rpc("refresh_admin_session");
+    setStatus(null);
+    const { error } = await supabase.rpc("verify_mentor_listing", { target: id, verify });
+    if (error) {
+      setStatus(error.message);
+      return;
+    }
+    if (verify) {
+      fetch("/api/notify-mentor-verified", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId: id }),
+      }).catch(() => {});
+    }
+    setStatus(verify ? "Mentor verified — they've been emailed and can now buy places." : "Verification removed.");
+    await loadAll();
+  }
+
   async function markMentorPaid(id: string) {
     supabase.rpc("refresh_admin_session");
     setStatus(null);
+    if (!mentorListings.find((m) => m.id === id)?.verified_at) {
+      setStatus("Verify this mentor first (check their evidence, then click Verify).");
+      return;
+    }
     const capacity = mentorCapacity[id] ?? 1;
     const amount = Number(mentorAmount[id] ?? COACH2MENTOR_MENTOR_CAPACITY_PACKAGES[capacity]);
     const { error } = await supabase.rpc("mark_coach2mentor_mentor_paid", {
@@ -589,8 +612,21 @@ function Coach2MentorAdmin() {
                         </p>
                       )}
                       {l.notes && <p className="mt-1 text-xs italic text-gray-400">Notes: {l.notes}</p>}
+                      <p className={`mt-1 text-xs font-semibold ${l.verified_at ? "text-green-700" : "text-amber-700"}`}>
+                        {l.verified_at ? "✓ Verified" : "Not verified yet — check the evidence, then click Verify"}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => verifyMentor(l.id, !l.verified_at)}
+                        className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${
+                          l.verified_at
+                            ? "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                            : "bg-green-600 text-white hover:bg-green-700"
+                        }`}
+                      >
+                        {l.verified_at ? "Remove verification" : "Verify mentor"}
+                      </button>
                       <select
                         value={mentorCapacity[l.id] ?? l.max_mentees ?? 1}
                         onChange={(e) => {

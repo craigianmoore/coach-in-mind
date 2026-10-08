@@ -1,6 +1,20 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: Request) {
+  // Only signed-in users can trigger this email (the form itself already requires sign-in), and
+  // each person is limited to a handful per hour so it can't be used to flood the support inbox.
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const { count } = await supabase
+    .from("support_queries")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", new Date(Date.now() - 3600_000).toISOString());
+  if ((count ?? 0) > 5) return NextResponse.json({ ok: false, error: "Too many messages — please try again later." }, { status: 429 });
+
   const body = await req.json().catch(() => ({}));
   const name = typeof body.name === "string" ? body.name.slice(0, 120) : "";
   const email = typeof body.email === "string" ? body.email.slice(0, 200) : "";

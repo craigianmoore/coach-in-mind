@@ -198,6 +198,7 @@ export interface Coach2MentorMentorListing {
   paid_at: string | null;
   price_aud: number | null;
   deleted_at: string | null; // soft-delete: set instead of removing the row, so payment history stays intact
+  verified_at?: string | null; // mentor listings only: set by an admin after checking accreditation evidence; required before buying places
   created_at: string;
   updated_at: string;
   accreditation_evidence_path: string | null; // path within the private "mentor-evidence" storage bucket

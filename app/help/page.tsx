@@ -208,8 +208,9 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">Offering to mentor</p>
               <p className="mt-1 text-gray-600">
-                Set up your mentor profile, choose your mentee capacity, and once paid, you'll
-                start receiving match requests on your own dashboard — accept or decline each one
+                Set up your mentor profile and upload your accreditation evidence. We check every
+                mentor before they go live (usually 1–2 business days) and email you when you're verified. Then choose
+                your mentee places and pay, and you'll start receiving match requests on your own dashboard — accept or decline each one
                 individually.
               </p>
             </div>

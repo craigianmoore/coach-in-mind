@@ -290,7 +290,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
     if (!existing) {
       notifyAdmin(
         `New Coach 2 Mentor mentor profile: ${person.full_name}`,
-        `A mentor has submitted a new Coach 2 Mentor profile (awaiting payment).\n\nMentor: ${person.full_name}\nEmail: ${person.email}\nMobile: ${person.mobile}\nCareer stage: ${careerStage} · Licence: ${licence}\n\nReview: https://www.coachinmind.com.au/coach2mentor/admin`
+        `A mentor has submitted a new Coach 2 Mentor profile (awaiting your verification: check their evidence, then click Verify mentor).\n\nMentor: ${person.full_name}\nEmail: ${person.email}\nMobile: ${person.mobile}\nCareer stage: ${careerStage} · Licence: ${licence}\n\nReview: https://www.coachinmind.com.au/coach2mentor/admin`
       );
       notifySelf("mentor_profile");
     }
@@ -345,6 +345,13 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
               ✓ Your profile is active — Coach In Mind will introduce you to up to{" "}
               {existing.max_mentees} coach{existing.max_mentees === 1 ? "" : "es"} based on your
               capacity.
+            </>
+          ) : !existing.verified_at ? (
+            <>
+              <strong>Thanks — your profile is saved and is being verified.</strong> We check every
+              mentor&apos;s accreditation evidence before they can go live, so coaches can trust who
+              they&apos;re introduced to. This usually takes 1–2 business days, and we&apos;ll email you
+              as soon as you&apos;re verified. You can then choose your mentee places and pay by card.
             </>
           ) : (
             <>
