@@ -258,7 +258,7 @@ story.append(bullets([
     "introductions don't carry over — to re-advertise, use a new credit.",
     "<b>Refunds.</b> Clubs: if no introduction is made in the 90 days your credit is returned "
     "automatically, or you can ask for a refund through the Support page instead. Coaches: if no "
-    "introduction has been made within 120 days of pressing Activate you can ask for a full refund "
+    "introduction has been made within 90 days of pressing Activate you can ask for a full refund "
     "through the Support page. Once at least one "
     "introduction has been made, the package is non-refundable — including any unused introductions "
     "in it.",

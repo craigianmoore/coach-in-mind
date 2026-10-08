@@ -77,8 +77,8 @@ export default function AdminOverview({
   const introducedVac = new Set(approved.map((s) => s.club_vacancy_id));
   const waitingDays = (paid: boolean, paidAt: string | null, filled: boolean, introduced: boolean): number | null =>
     paid && paidAt && !filled && !introduced ? Math.floor((Date.now() - new Date(paidAt).getTime()) / 86400000) : null;
-  const waitLabel = (d: number | null, limit = 120) =>
-    d == null ? null : d >= limit ? `⏳ Waiting ${d} days — ${limit === 90 ? "advert ended, credit returned" : "refund window open"}` : `⏳ Waiting ${d} day${d === 1 ? "" : "s"} for first introduction`;
+  const waitLabel = (d: number | null, advert = false, limit = 90) =>
+    d == null ? null : d >= limit ? `⏳ Waiting ${d} days — ${advert ? "advert ended, credit returned" : "refund window open"}` : `⏳ Waiting ${d} day${d === 1 ? "" : "s"} for first introduction`;
   // Coaches: the refund clock runs from the day they pressed Activate (founding/free credits have nothing to refund).
   const coachWait = (l: Club2CoachCoachListing) => waitingDays(!!l.activated_at && !l.founding_member, l.activated_at ?? null, false, introducedCoach.has(l.id));
   const vacWait = (v: Club2CoachClubVacancy) =>
@@ -249,7 +249,7 @@ export default function AdminOverview({
                           {l.role_sought} · <span className={`rounded-full px-2 py-0.5 font-semibold ${t.badge}`}>{l.status}</span> · {l.paid ? "paid" : "unpaid"} · {fmt(l.created_at)}
                         </p>
                         {coachWait(l) != null && (
-                          <p className={`text-xs font-semibold ${coachWait(l)! >= 120 ? "text-red-600" : "text-orange-600"}`}>{waitLabel(coachWait(l))}</p>
+                          <p className={`text-xs font-semibold ${coachWait(l)! >= 90 ? "text-red-600" : "text-orange-600"}`}>{waitLabel(coachWait(l))}</p>
                         )}
                       </button>
                       {openIds.has(l.id) && (
@@ -299,7 +299,7 @@ export default function AdminOverview({
                           <span className={`rounded-full px-2 py-0.5 font-semibold ${t.badge}`}>{v.filled_at ? "filled" : v.status}</span> · {v.is_charity ? "gifted" : v.paid ? "paid" : "unpaid"} · {fmt(v.created_at)}
                         </p>
                         {vacWait(v) != null && (
-                          <p className={`text-xs font-semibold ${vacWait(v)! >= 90 ? "text-red-600" : "text-orange-600"}`}>{waitLabel(vacWait(v), 90)}</p>
+                          <p className={`text-xs font-semibold ${vacWait(v)! >= 90 ? "text-red-600" : "text-orange-600"}`}>{waitLabel(vacWait(v), true)}</p>
                         )}
                       </button>
                       {openIds.has(v.id) && (
