@@ -153,7 +153,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       setAgreedToTerms(l.agreed_to_terms ?? false);
       setSelectedPackage(l.included_introductions ?? 1);
 
-      setBank(await loadCoachBank(supabase));
+      setBank(await loadCoachBank(supabase, person.id));
     } else {
       resetForm();
     }

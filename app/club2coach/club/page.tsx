@@ -730,7 +730,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           </div>
           {existing ? (
             <div className="mt-3">
-              <ClubRecredit vacancyId={existing.id} onUsed={() => load()} />
+              <ClubRecredit vacancyId={existing.id} personId={person.id} onUsed={() => load()} />
               <FreeFirstCredit listingTable="club2coach_club_vacancies" listingId={existing.id} onClaimed={() => load()} />
               <PayWithCardButton
                 listingTable="club2coach_club_vacancies"

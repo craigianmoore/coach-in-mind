@@ -209,7 +209,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
       );
       setMatches(enriched);
 
-      setBank(await loadCoachBank(supabase));
+      setBank(await loadCoachBank(supabase, person.id));
     } else {
       resetForm();
       setPersonalWeights(global ?? null);

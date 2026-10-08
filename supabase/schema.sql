@@ -2737,3 +2737,96 @@ begin
 end;
 $$;
 grant execute on function use_club_recredit(uuid) to authenticated;
+-- ===== v7: security + review fixes =====
+-- 1. Users must not be able to edit billing / credit / clock fields on their own rows.
+create or replace function protect_listing_billing_fields() returns trigger language plpgsql as $$
+declare n jsonb := to_jsonb(new); o jsonb := case when tg_op = 'UPDATE' then to_jsonb(old) else '{}'::jsonb end; k text; dflt jsonb;
+begin
+  if current_user in ('authenticated', 'anon') and not coalesce(is_admin_caller(), false) then
+    foreach k in array array['paid','paid_at','price_aud','refunded_at','activated_at','active_until','activations_used','founding_member','recredited_at','from_recredit','is_charity'] loop
+      if n ? k then
+        dflt := case k when 'paid' then 'false'::jsonb when 'activations_used' then '0'::jsonb when 'founding_member' then 'false'::jsonb
+                       when 'from_recredit' then 'false'::jsonb when 'is_charity' then 'false'::jsonb else 'null'::jsonb end;
+        n := jsonb_set(n, array[k], coalesce(o -> k, dflt));
+      end if;
+    end loop;
+    -- a coach/club can request a package size, but never raise credits on an already-paid row
+    if n ? 'included_introductions' then
+      if tg_op = 'UPDATE' and coalesce((o ->> 'paid')::boolean, false) then
+        n := jsonb_set(n, array['included_introductions'], coalesce(o -> 'included_introductions', 'null'::jsonb));
+      elsif (n ->> 'included_introductions') is not null then
+        n := jsonb_set(n, array['included_introductions'], to_jsonb(least(greatest((n ->> 'included_introductions')::int, 0), 5)));
+      end if;
+    end if;
+    -- status: users cannot make a listing active/expired/refunded themselves
+    if n ? 'status' then
+      if tg_op = 'INSERT' then n := jsonb_set(n, array['status'], '"draft"'::jsonb);
+      elsif (n ->> 'status') in ('active', 'expired', 'refunded') and (n ->> 'status') is distinct from (o ->> 'status') then
+        n := jsonb_set(n, array['status'], o -> 'status');
+      end if;
+    end if;
+    new := jsonb_populate_record(new, n);
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists protect_billing_c2c_coach on club2coach_coach_listings;
+create trigger protect_billing_c2c_coach before insert or update on club2coach_coach_listings for each row execute function protect_listing_billing_fields();
+drop trigger if exists protect_billing_c2m_coach on coach2mentor_coach_listings;
+create trigger protect_billing_c2m_coach before insert or update on coach2mentor_coach_listings for each row execute function protect_listing_billing_fields();
+drop trigger if exists protect_billing_vacancy on club2coach_club_vacancies;
+create trigger protect_billing_vacancy before insert or update on club2coach_club_vacancies for each row execute function protect_listing_billing_fields();
+drop trigger if exists protect_billing_mentor on coach2mentor_mentor_listings;
+create trigger protect_billing_mentor before insert or update on coach2mentor_mentor_listings for each row execute function protect_listing_billing_fields();
+
+-- 2. Re-credit only when no introduction was actually MADE (approved); unapproved suggestions are cleared.
+create or replace function expire_club_vacancies()
+returns table(expired_person_id uuid, expired_club text, expired_role text, was_recredited boolean)
+language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+declare v record; recr boolean;
+begin
+  for v in
+    select * from club2coach_club_vacancies
+    where paid and paid_at is not null and paid_at <= now() - interval '90 days'
+      and deleted_at is null and status not in ('filled', 'expired', 'refunded', 'superseded')
+    for update
+  loop
+    update club2coach_club_vacancies set status = 'expired' where id = v.id;
+    recr := false;
+    if not exists (select 1 from club2coach_shares s where s.club_vacancy_id = v.id and s.status = 'approved')
+       and not coalesce(v.is_charity, false) and v.refunded_at is null and v.recredited_at is null
+       and (coalesce(v.price_aud, 0) > 0 or v.from_recredit) then
+      insert into club_recredits (person_id, introductions, source_vacancy_id)
+      values (v.person_id, least(greatest(coalesce(v.included_introductions, 1), 1), 5), v.id);
+      update club2coach_club_vacancies set recredited_at = now() where id = v.id;
+      recr := true;
+    end if;
+    delete from club2coach_shares s where s.club_vacancy_id = v.id and s.status = 'suggested';
+    expired_person_id := v.person_id; expired_club := v.club_name; expired_role := v.role_being_recruited; was_recredited := recr;
+    return next;
+  end loop;
+end;
+$$;
+revoke all on function expire_club_vacancies() from public, anon, authenticated;
+grant execute on function expire_club_vacancies() to service_role;
+
+-- 3. Reposting a paid advert that never introduced anyone must not burn the club's credit: it is returned.
+create or replace function recredit_on_supersede() returns trigger language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+begin
+  if new.status = 'superseded' and old.status is distinct from 'superseded' and old.paid and old.recredited_at is null
+     and not coalesce(old.is_charity, false) and old.refunded_at is null and (coalesce(old.price_aud, 0) > 0 or old.from_recredit)
+     and not exists (select 1 from club2coach_shares s where s.club_vacancy_id = old.id and s.status = 'approved') then
+    insert into club_recredits (person_id, introductions, source_vacancy_id)
+    values (old.person_id, least(greatest(coalesce(old.included_introductions, 1), 1), 5), old.id);
+    new.recredited_at := now();
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists recredit_superseded on club2coach_club_vacancies;
+create trigger recredit_superseded before update of status on club2coach_club_vacancies for each row execute function recredit_on_supersede();
+
+-- 4. Old founding / pause functions must not stay callable.
+drop function if exists claim_founding_introduction(uuid, boolean);
+drop function if exists claim_founding_introduction(uuid);
+drop function if exists set_coach_listing_active(uuid, boolean);

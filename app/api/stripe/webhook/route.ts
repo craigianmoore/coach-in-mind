@@ -42,6 +42,9 @@ export async function POST(req: NextRequest) {
   // there, means a duplicate delivery is a harmless no-op rather than
   // double-marking a listing paid or double-logging a payment.
   const { error: dedupeError } = await supabase.from("stripe_processed_events").insert({ event_id: event.id });
+  // If handling fails below we return 500, so release the event id — otherwise Stripe's retry
+  // would hit "already processed" and the payment would never be applied.
+  const releaseEvent = () => supabase.from("stripe_processed_events").delete().eq("event_id", event.id);
   if (dedupeError) {
     // A unique-constraint violation here means we've already handled
     // this exact event — that's success, not failure.
@@ -80,6 +83,11 @@ export async function POST(req: NextRequest) {
     const now = new Date().toISOString();
 
     await supabase.from("payments").update({ status: "refunded", refunded_at: now }).eq("id", payment.id);
+
+    // A refund replaces any credit already returned to a club for that advert.
+    if (payment.listing_table === "club2coach_club_vacancies") {
+      await supabase.from("club_recredits").update({ used_at: now }).eq("source_vacancy_id", payment.listing_id).is("used_at", null);
+    }
 
     // Mirror onto the listing itself: flips it out of "active" (so it
     // drops out of matching, same as draft/paused/placed already do)
@@ -120,14 +128,16 @@ export async function POST(req: NextRequest) {
   // spent later with the Activate button — buying does not start any clock.
   const isCoachListing = listingTable === "club2coach_coach_listings" || listingTable === "coach2mentor_coach_listings";
   let introductionsToSet = packageSize;
+  let relistRefunded = false;
   if ((mode === "topup" || isCoachListing) && usesIntroductions) {
     const { data: current } = await supabase
       .from(listingTable)
-      .select("included_introductions, paid")
+      .select("included_introductions, paid, status")
       .eq("id", listingId)
       .maybeSingle();
     // An unpaid listing's included_introductions is only the package the coach asked for.
     introductionsToSet = (current?.paid ? current?.included_introductions ?? 0 : 0) + packageSize;
+    relistRefunded = isCoachListing && current?.status === "refunded";
   }
 
   const updatePayload: Record<string, unknown> = {
@@ -135,6 +145,11 @@ export async function POST(req: NextRequest) {
     paid_at: new Date().toISOString(),
     price_aud: amount,
   };
+  if (relistRefunded) {
+    // A coach who was refunded and buys again starts clean (otherwise the row stays "refunded" and excluded from the bank).
+    updatePayload.status = "draft";
+    updatePayload.refunded_at = null;
+  }
   if (!isCoachListing) updatePayload.status = "active"; // coach listings go live only via the Activate button
   if (usesIntroductions) {
     updatePayload.included_introductions = introductionsToSet;
@@ -146,6 +161,7 @@ export async function POST(req: NextRequest) {
   const { error: updateError } = await supabase.from(listingTable).update(updatePayload).eq("id", listingId);
   if (updateError) {
     console.error("Stripe webhook: failed to update listing", listingTable, listingId, updateError);
+    await releaseEvent();
     return NextResponse.json({ error: "Failed to update listing." }, { status: 500 });
   }
 

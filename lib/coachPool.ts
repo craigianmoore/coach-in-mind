@@ -10,9 +10,10 @@ export const COACH_ACTIVE_DAYS = { club2coach: 60, coach2mentor: 60 } as const;
 export type PoolRow = { person_id: string; entitled: number; used: number; any_paid: boolean };
 
 // Credits left in a coach's bank (own row for a coach; any row for admin/service).
-export async function loadCoachBank(supabase: SupabaseClient): Promise<number> {
+export async function loadCoachBank(supabase: SupabaseClient, personId: string): Promise<number> {
   const { data } = await supabase.rpc("coach_pool_totals");
-  const row = ((data as PoolRow[]) ?? [])[0];
+  // Admins get every coach's row back, so pick this coach's own.
+  const row = ((data as PoolRow[]) ?? []).find((r) => r.person_id === personId);
   return row ? Math.max(0, row.entitled - row.used) : 0;
 }
 

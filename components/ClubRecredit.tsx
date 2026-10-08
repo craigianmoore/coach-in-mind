@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-export default function ClubRecredit({ vacancyId, onUsed }: { vacancyId: string; onUsed: () => void }) {
+export default function ClubRecredit({ vacancyId, personId, onUsed }: { vacancyId: string; personId: string; onUsed: () => void }) {
   const supabase = createClient();
   const [available, setAvailable] = useState<number | null>(null); // introductions on the oldest unused credit
   const [busy, setBusy] = useState(false);
@@ -17,6 +17,7 @@ export default function ClubRecredit({ vacancyId, onUsed }: { vacancyId: string;
     supabase
       .from("club_recredits")
       .select("introductions")
+      .eq("person_id", personId)
       .is("used_at", null)
       .order("created_at", { ascending: true })
       .limit(1)
@@ -40,6 +41,8 @@ export default function ClubRecredit({ vacancyId, onUsed }: { vacancyId: string;
       setError("Sorry — that credit couldn't be applied. Please refresh and try again.");
       return;
     }
+    // Put the vacancy straight into matching instead of waiting for the daily job (best effort).
+    fetch("/api/sweep-vacancy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ vacancyId }) }).catch(() => {});
     onUsed();
   }
 
