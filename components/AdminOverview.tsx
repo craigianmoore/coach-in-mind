@@ -193,7 +193,7 @@ export default function AdminOverview({
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
         {stat("Coach listings", liveCoaches.length)}
         {stat("Active coaches", liveCoaches.filter((l) => l.paid && l.status === "active").length)}
-        {stat("Vacancies", liveVacancies.length)}
+        {stat("Vacancies (all, incl. filled)", liveVacancies.length)}
         {stat("Active vacancies", liveVacancies.filter((v) => v.paid && v.status === "active").length)}
         {stat("Matches made", approved.length)}
         {stat("Roles filled", filledVacancies.length)}

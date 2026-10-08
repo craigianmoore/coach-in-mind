@@ -335,12 +335,14 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     // Resolve any still-pending introduction too — the vacancy closing
     // already stops further matching, but this keeps the share's own
     // outcome from being left dangling at "pending" forever.
-    if (activity) {
-      const pending = activity.find((s) => s.status === "approved" && s.outcome === "pending");
-      if (pending) {
-        await supabase.from("club2coach_shares").update({ outcome: "filled" }).eq("id", pending.id);
-      }
-    }
+    // Fetched fresh (not from `activity`, which is only loaded while the edit
+    // form is open — marking filled from the list left the share pending).
+    await supabase
+      .from("club2coach_shares")
+      .update({ outcome: "filled" })
+      .eq("club_vacancy_id", v.id)
+      .eq("status", "approved")
+      .eq("outcome", "pending");
     await load();
     if (editingId === v.id) closeForm();
   }
