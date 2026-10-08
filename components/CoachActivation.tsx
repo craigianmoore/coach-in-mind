@@ -72,8 +72,7 @@ export default function CoachActivation({
           In matching until {fmt(listing.active_until)} · {left} day{left === 1 ? "" : "s"} left
         </p>
         <p className="mt-2 text-sm">
-          Coach In Mind is looking for your match. When this ends, that credit is used up; to open another introduction option,
-          activate with another credit.
+          Coach In Mind is looking for your match. On Club 2 Coach, one credit = one club introduction: as soon as a club is introduced to you, this credit is used and you'll see their details on this page. If no club has been introduced by the end date, the credit is used up too; to look again, activate with another credit.
         </p>
         {typeof bankProp === "number" && (
           <p className="mt-2 text-sm font-semibold">

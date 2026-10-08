@@ -100,7 +100,8 @@ export default function TermsPage() {
       <p className="mt-2">
         For coaches, a package is a set of credits forming a credit balance that is shared across Club 2
         Coach and Coach 2 Mentor. Unused credits do not expire. Activating a listing uses one
-        credit and puts that listing in matching for 60 days (on either service); when that period ends the credit is used up and a further credit is needed to
+        credit and puts that listing in matching for up to 60 days. On Club 2 Coach, one credit buys one club introduction: once a club is introduced to you the credit is used, and
+        a further credit is needed to be introduced to another club. On Coach 2 Mentor, the credit covers the 60 days. If the period ends first, the credit is used up and a further credit is needed to
         re-apply.
       </p>
       <p className="mt-2">

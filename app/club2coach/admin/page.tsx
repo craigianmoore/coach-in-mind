@@ -577,6 +577,8 @@ function Club2CoachAdmin() {
       return usedSlots < v.included_introductions;
     });
 
+    // One coach credit = one club introduction: once a coach is approved to a club in this run, they're done.
+    const usedCoachIds = new Set<string>();
     let totalNew = 0;
     for (const vacancy of targets) {
       const usedSlots = shares.filter((s) => s.club_vacancy_id === vacancy.id).length;
@@ -584,7 +586,7 @@ function Club2CoachAdmin() {
       if (remaining <= 0) continue;
 
       const candidates = activeCoaches
-        .filter((c) => !sharedPairs.has(`${c.id}:${vacancy.id}`))
+        .filter((c) => !usedCoachIds.has(c.id) && !sharedPairs.has(`${c.id}:${vacancy.id}`))
         .map((coach) => {
           const coachPerson = people[coach.person_id];
           const vacancyWeights = vacancy.personal_weights ?? weights;
@@ -605,6 +607,7 @@ function Club2CoachAdmin() {
         });
         if (!error) {
           totalNew += 1;
+          if (autoApprove) usedCoachIds.add(coach.id);
           if (autoApprove && !vacancy.shared_at) {
             await supabase
               .from("club2coach_club_vacancies")
