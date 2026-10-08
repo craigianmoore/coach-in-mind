@@ -2830,3 +2830,76 @@ create trigger recredit_superseded before update of status on club2coach_club_va
 drop function if exists claim_founding_introduction(uuid, boolean);
 drop function if exists claim_founding_introduction(uuid);
 drop function if exists set_coach_listing_active(uuid, boolean);
+-- ===== v8: admin PIN hardening =====
+-- 1. Nobody can grant themselves an admin session (or reset their own PIN-attempt counter) by editing their own people row.
+create or replace function protect_people_admin_fields() returns trigger language plpgsql as $$
+declare n jsonb := to_jsonb(new); o jsonb := case when tg_op = 'UPDATE' then to_jsonb(old) else '{}'::jsonb end; k text;
+begin
+  if current_user in ('authenticated', 'anon') then
+    foreach k in array array['admin_session_until','admin_session_granted_at','admin_session_pin_id','failed_admin_pin_attempts','admin_pin_locked_until'] loop
+      if n ? k then
+        n := jsonb_set(n, array[k], coalesce(o -> k, case k when 'failed_admin_pin_attempts' then '0'::jsonb else 'null'::jsonb end));
+      end if;
+    end loop;
+    new := jsonb_populate_record(new, n);
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists protect_people_admin on people;
+create trigger protect_people_admin before insert or update on people for each row execute function protect_people_admin_fields();
+
+-- 2. PIN-setting functions are not for the browser.
+revoke execute on function set_admin_pin(text) from public, anon, authenticated;
+revoke execute on function change_admin_pin(text, text) from public, anon, authenticated;
+
+create or replace function list_admin_pins()
+returns table(id uuid, label text, created_at timestamptz, is_master boolean)
+language sql security definer set search_path = public, extensions as $$
+  select id, label, created_at, is_master from admin_pins where is_admin_caller() order by is_master desc, created_at asc;
+$$;
+
+-- 3. Lock-out on wrong guesses: 3 wrong = locked 15 min, then 30 min, 1 h ... (max 24 h); plus a global brake.
+do $$ begin
+  if not exists (select 1 from pg_proc where proname = 'grant_admin_pin_session_inner') then
+    alter function grant_admin_pin_session(text) rename to grant_admin_pin_session_inner;
+  end if;
+end $$;
+revoke execute on function grant_admin_pin_session_inner(text) from public, anon, authenticated;
+
+create table if not exists admin_pin_failures (
+  id bigserial primary key,
+  person_id uuid,
+  at timestamptz not null default now()
+);
+alter table admin_pin_failures enable row level security;
+
+create or replace function grant_admin_pin_session(input_pin text)
+returns boolean language plpgsql security definer set search_path = public, extensions as $$
+declare p people%rowtype; ok boolean; recent int; f int; lock_mins int;
+begin
+  select * into p from people where user_id = auth.uid();
+  if not found then return false; end if;
+  if p.admin_pin_locked_until is not null and p.admin_pin_locked_until > now() then
+    raise exception 'Too many incorrect PIN attempts. Try again after % (Melbourne time).',
+      to_char(p.admin_pin_locked_until at time zone 'Australia/Melbourne', 'HH24:MI');
+  end if;
+  select count(*) into recent from admin_pin_failures where at > now() - interval '1 hour';
+  if recent >= 15 then
+    raise exception 'Admin sign-in is paused for a while after repeated incorrect PINs. Please try again later.';
+  end if;
+  ok := grant_admin_pin_session_inner(input_pin);
+  if ok then
+    update people set failed_admin_pin_attempts = 0, admin_pin_locked_until = null where id = p.id;
+    return true;
+  end if;
+  f := coalesce(p.failed_admin_pin_attempts, 0) + 1;
+  lock_mins := case when f % 3 = 0 then least((15 * power(2, (f / 3) - 1))::int, 1440) else 0 end;
+  update people set failed_admin_pin_attempts = f,
+    admin_pin_locked_until = case when lock_mins > 0 then now() + make_interval(mins => lock_mins) else null end
+  where id = p.id;
+  insert into admin_pin_failures (person_id) values (p.id);
+  return false;
+end;
+$$;
+grant execute on function grant_admin_pin_session(text) to authenticated;

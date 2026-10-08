@@ -73,7 +73,7 @@ function PinGateInner({ children }: { children: React.ReactNode }) {
     if (data === true) {
       setUnlocked(true);
     } else {
-      setError("Incorrect PIN.");
+      setError("Incorrect PIN. After 3 wrong attempts admin access is locked for a while.");
     }
     setLoading(false);
   }
