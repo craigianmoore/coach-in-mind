@@ -2943,3 +2943,32 @@ begin
   return new;
 end;
 $$;
+-- ===== v10: day-90 refund-window notice (once per activation) =====
+alter table club2coach_coach_listings add column if not exists refund_window_notified_at timestamptz;
+alter table coach2mentor_coach_listings add column if not exists refund_window_notified_at timestamptz;
+create or replace function coach_refund_notices_due()
+returns table(notice_person_id uuid, notice_product text, notice_activated_at timestamptz)
+language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+begin
+  return query
+  with a as (
+    update club2coach_coach_listings l set refund_window_notified_at = now()
+    where l.paid and not coalesce(l.founding_member, false) and l.refunded_at is null and l.status <> 'refunded'
+      and l.activated_at is not null and l.activated_at <= now() - interval '90 days' and l.refund_window_notified_at is null
+      and not exists (select 1 from club2coach_shares s where s.coach_listing_id = l.id and s.status = 'approved')
+    returning l.person_id as pid, 'club2coach'::text as prod, l.activated_at as act
+  ), b as (
+    update coach2mentor_coach_listings l set refund_window_notified_at = now()
+    where l.paid and not coalesce(l.founding_member, false) and l.refunded_at is null and l.status <> 'refunded'
+      and l.activated_at is not null and l.activated_at <= now() - interval '90 days' and l.refund_window_notified_at is null
+      and not exists (select 1 from coach2mentor_requests r where r.coach_listing_id = l.id and r.status = 'accepted')
+    returning l.person_id as pid, 'coach2mentor'::text as prod, l.activated_at as act
+  )
+  select pid, prod, act from a union all select pid, prod, act from b;
+end;
+$$;
+revoke all on function coach_refund_notices_due() from public, anon, authenticated;
+grant execute on function coach_refund_notices_due() to service_role;
+-- Don't email coaches whose 90 days already passed before launch (test data): mark existing ones as notified.
+update club2coach_coach_listings set refund_window_notified_at = now() where activated_at is not null and activated_at <= now() - interval '90 days' and refund_window_notified_at is null;
+update coach2mentor_coach_listings set refund_window_notified_at = now() where activated_at is not null and activated_at <= now() - interval '90 days' and refund_window_notified_at is null;
