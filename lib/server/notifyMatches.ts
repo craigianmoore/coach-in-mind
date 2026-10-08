@@ -1,6 +1,36 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { APP_URL, sendEmail } from "./sendEmail";
 
+// One coach credit = one club introduction: once a coach has an approved introduction in their
+// current activation, close it (listing leaves matching) and withdraw their other pending
+// suggestions. Runs after every approval and at the start of each cron sweep. Service-role client only.
+export async function closeUsedActivations(supabase: SupabaseClient): Promise<number> {
+  const { data: live } = await supabase
+    .from("club2coach_coach_listings")
+    .select("id,activated_at")
+    .eq("status", "active")
+    .gt("active_until", new Date().toISOString())
+    .not("activated_at", "is", null);
+  let closed = 0;
+  for (const l of live ?? []) {
+    const { data: used } = await supabase
+      .from("club2coach_shares")
+      .select("id")
+      .eq("coach_listing_id", l.id)
+      .eq("status", "approved")
+      .gte("shared_at", l.activated_at)
+      .limit(1);
+    if (!used || used.length === 0) continue;
+    await supabase
+      .from("club2coach_coach_listings")
+      .update({ status: "expired", active_until: new Date().toISOString() })
+      .eq("id", l.id);
+    await supabase.from("club2coach_shares").delete().eq("coach_listing_id", l.id).eq("status", "suggested");
+    closed += 1;
+  }
+  return closed;
+}
+
 // Emails both parties of every newly approved Club2Coach introduction
 // exactly once. Each share is "claimed" by stamping participants_notified_at
 // before sending (so concurrent callers can't double-send) and released
@@ -13,6 +43,7 @@ export async function notifyApprovedShares(supabase: SupabaseClient): Promise<nu
     .eq("status", "approved")
     .is("participants_notified_at", null)
     .limit(50);
+  await closeUsedActivations(supabase);
   let sent = 0;
 
   for (const s of shares ?? []) {

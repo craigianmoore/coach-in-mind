@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { runClub2CoachMatchSweep, runCoach2MentorMatchSweep } from "@/lib/matching/sweep";
-import { notifyApprovedShares } from "@/lib/server/notifyMatches";
+import { closeUsedActivations, notifyApprovedShares } from "@/lib/server/notifyMatches";
 import { notifyMentoringRequests } from "@/lib/server/notifyMentoring";
 import { APP_URL, sendEmail } from "@/lib/server/sendEmail";
 import { sendAdminEmail } from "@/lib/server/sendAdminEmail";
@@ -45,6 +45,8 @@ export async function GET(req: Request) {
     if (!ok) console.error(`cron match-sweep: email not sent (${what}) to ${args.to}`);
     return ok;
   };
+
+  await closeUsedActivations(supabase); // coaches whose credit was used by an introduction leave matching quietly
 
   const { data: reminders, error: remindersError } = await supabase.rpc("coach_expiry_reminders_due");
   logErr("coach_expiry_reminders_due", remindersError);
