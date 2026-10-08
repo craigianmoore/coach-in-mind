@@ -196,7 +196,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Compute matches immediately, so whoever just paid doesn't have to
-  // wait for an admin to open the Matches tab (or for the once-daily
+  // wait for an admin to open the Matches tab (or for the scheduled
   // safety-net cron) before they show up as matchable. Best-effort:
   // a failure here shouldn't turn a successful payment into a 500 that
   // makes Stripe retry the whole webhook.

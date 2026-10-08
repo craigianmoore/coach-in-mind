@@ -224,7 +224,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
     const list = (data as Club2CoachClubVacancy[]) ?? [];
 
-    // Expiry (and the automatic credit return) is done by the daily server job.
+    // Expiry (and the automatic credit return) is done by the scheduled server job (hourly).
 
     setVacancies(list);
     setLoading(false);
