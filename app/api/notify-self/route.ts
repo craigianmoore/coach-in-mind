@@ -21,12 +21,14 @@ const TEMPLATES: Record<string, { subject: string; body: (d: string) => string }
       `We've received your vacancy${d ? ` (${d})` : ""}, and it's saved.\n\nIt isn't active yet: your vacancy is only included in matching once payment is confirmed. You can pay by card (or use any free introduction credit) from your vacancy page:\n${APP_URL}/club2coach/club\n\nAs soon as it's active we'll start matching coaches to it, and email you when you've been matched.`,
   },
   coach_profile: {
-    subject: "We've received your Coach 2 Mentor profile",
-    body: () => `We've received your coach profile. You can review or edit it at any time:\n${APP_URL}/coach2mentor/coach`,
+    subject: "Your Coach 2 Mentor profile is saved — one step left to activate it",
+    body: () =>
+      `We've received your Coach 2 Mentor profile, and it's saved.\n\nIt isn't in matching yet. Buy a credit (or, while founding spots last, use your free founding credit) and press Activate on your profile page — your profile is then in matching for 60 days from that day:\n${APP_URL}/coach2mentor/coach\n\nOnce you've activated it we'll start matching you with mentors, and email you when you've been matched.`,
   },
   mentor_profile: {
-    subject: "We've received your mentor profile",
-    body: () => `We've received your mentor profile. You can review or edit it at any time:\n${APP_URL}/coach2mentor/mentor`,
+    subject: "Your mentor profile is saved — one step left to activate it",
+    body: () =>
+      `We've received your mentor profile, and it's saved.\n\nIt isn't active yet: your profile is only included in matching once your mentee places are confirmed. You can buy places by card from your mentor page (you can edit your profile there at any time):\n${APP_URL}/coach2mentor/mentor\n\nAs soon as it's active we'll start matching coaches to you, and email you when you've been matched.`,
   },
 };
 

@@ -288,7 +288,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
     if (isNew) {
       notifyAdmin(
         `New Coach 2 Mentor coach profile: ${person.full_name}`,
-        `A coach has created a new Coach 2 Mentor profile.\n\nCoach: ${person.full_name}\nEmail: ${person.email}\nMobile: ${person.mobile}\nCareer stage: ${careerStage}\n\nReview: https://www.coachinmind.com.au/coach2mentor/admin`
+        `A coach has submitted a new Coach 2 Mentor profile (awaiting payment / activation).\n\nCoach: ${person.full_name}\nEmail: ${person.email}\nMobile: ${person.mobile}\nCareer stage: ${careerStage}\n\nReview: https://www.coachinmind.com.au/coach2mentor/admin`
       );
       notifySelf("coach_profile");
     }
