@@ -57,6 +57,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
   const [inPersonDiffers, setInPersonDiffers] = useState(false);
   const [inPersonAmount, setInPersonAmount] = useState("");
   const [selectedCapacity, setSelectedCapacity] = useState(1);
+  const [topupCount, setTopupCount] = useState(1);
   const [currentlyOpen, setCurrentlyOpen] = useState(true);
   const [bio, setBio] = useState("");
   const [introVideoUrl, setIntroVideoUrl] = useState("");
@@ -621,16 +622,35 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Mentee capacity</label>
             <p className="mt-1 text-sm text-gray-700">
-              {selectedCapacity} mentee place{selectedCapacity === 1 ? "" : "s"}. Need room for more mentees?
-              Each extra place is ${COACH2MENTOR_MENTOR_CAPACITY_PACKAGES[1]} AUD.
+              {selectedCapacity} mentee place{selectedCapacity === 1 ? "" : "s"}. Need room for more mentees? Add places at the same package prices.
             </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {Object.entries(COACH2MENTOR_MENTOR_CAPACITY_PACKAGES).map(([count, price]) => (
+                <label
+                  key={count}
+                  className={`cursor-pointer rounded-lg border-2 p-2 text-center text-sm ${
+                    topupCount === Number(count) ? "border-brand-navy bg-brand-navy/5" : "border-gray-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="topup"
+                    className="sr-only"
+                    checked={topupCount === Number(count)}
+                    onChange={() => setTopupCount(Number(count))}
+                  />
+                  <p className="font-semibold">+{count} mentee{count === "1" ? "" : "s"}</p>
+                  <p className="text-gray-500">${price} AUD</p>
+                </label>
+              ))}
+            </div>
+            <div className="mt-2">
               <PayWithCardButton
                 listingTable="coach2mentor_mentor_listings"
                 listingId={existing.id}
-                packageSize={1}
+                packageSize={topupCount}
                 mode="topup"
-                label={`Add 1 mentee place ($${COACH2MENTOR_MENTOR_CAPACITY_PACKAGES[1]})`}
+                label={`Add ${topupCount} mentee place${topupCount === 1 ? "" : "s"} ($${COACH2MENTOR_MENTOR_CAPACITY_PACKAGES[topupCount]})`}
               />
             </div>
           </div>
