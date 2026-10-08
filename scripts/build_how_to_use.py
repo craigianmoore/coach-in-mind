@@ -170,13 +170,13 @@ story.append(Paragraph("If you're a coach", h3_style))
 story.append(bullets([
     "Set up a profile describing the kind of role you're looking for.",
     "Buy a package of 1–3 credits, or — if you're one of the first 60 coaches — use your free "
-    "founding credit (see below). Credits go into your bank and never expire while they sit there.",
+    "founding credit (see below). Credits are added to your credit balance and never expire until you use them.",
     "<b>You decide when you're looking.</b> One credit = one application. Press <b>Activate</b> on "
     "your coach page to spend a credit and start the clock: your listing is in matching for "
     "<b>60 days</b> (Club 2 Coach or Coach 2 Mentor), then it ends and that credit "
     "is used up. To be looked at again you activate with another credit.",
     "To look for a club AND a mentor you activate both listings — one credit each. Your credits are "
-    "one bank shared across both services.",
+    "one balance shared across both services.",
     "You'll get an email as soon as your listing is saved. It joins matching only once you activate "
     "it, and we email you a week before it ends.",
     "While it's active, Coach In Mind matches you against live vacancies and introduces "
@@ -247,7 +247,7 @@ story.append(bullets([
 
 story.append(Paragraph("Credits, expiry and refunds", h2_style))
 story.append(bullets([
-    "<b>Coach credits sit in a bank that never expires, but a used credit does.</b> One credit = "
+    "<b>Unused coach credits never expire, but a used credit does.</b> One credit = "
     "one application. When a coach presses Activate, that credit is spent and the listing is live "
     "for 60 days (either service); then it ends and the credit is gone. "
     "To re-apply, use or buy another credit. Mentors have no clock — they buy credits to advertise "

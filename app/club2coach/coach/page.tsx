@@ -445,7 +445,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       {existing && !existing.paid && (
         <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <strong>Need a credit? (${CLUB2COACH_COACH_PACKAGES[selectedPackage]} AUD for your chosen package):</strong> save
-          your listing, then Coach In Mind will be in touch about how to pay, or pay now by card. Credits go into your bank — you
+          your listing, then Coach In Mind will be in touch about how to pay, or pay now by card. Credits are added to your credit balance — you
           press Activate when you&apos;re ready to start.
           <div className="mt-3">
             <PayWithCardButton listingTable="club2coach_coach_listings" listingId={existing.id} packageSize={selectedPackage} mode="new" />
@@ -561,7 +561,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           ) : (
             <p className="mt-2 text-xs text-gray-500">
               Each credit puts your listing in front of clubs for 60 days once you press Activate. Credits
-              in your bank never expire; once a credit is used you need another to re-apply.
+              in your balance never expire; once a credit is used you need another to re-apply.
             </p>
           )}
         </div>

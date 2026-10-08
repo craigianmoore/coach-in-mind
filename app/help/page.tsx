@@ -129,10 +129,10 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">Do my credits expire?</p>
               <p className="mt-1 text-gray-600">
-                Credits in your bank never expire, but a used credit does. One credit = one
+                Unused credits never expire, but a used credit does. One credit = one
                 application: press Activate and your listing is in matching for 60 days, then it ends and that credit is gone — to
                 re-apply you use or buy another. To look for both a club and a mentor you activate
-                both, one credit each; your credits are one bank shared across the two. Club credits belong to the advert: it runs 90 days, then ends. With no
+                both, one credit each; your credit balance is shared across the two. Club credits belong to the advert: it runs 90 days, then ends. With no
                 introduction the credit comes back automatically; if coaches were introduced it is used up
                 and unused introductions don't carry over — to re-advertise, you use a new credit.
               </p>

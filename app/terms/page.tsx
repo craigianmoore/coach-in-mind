@@ -98,8 +98,8 @@ export default function TermsPage() {
         Australian dollars and are inclusive of GST.
       </p>
       <p className="mt-2">
-        For coaches, a package is a set of credits held in a bank that is shared across Club 2
-        Coach and Coach 2 Mentor. Credits in the bank do not expire. Activating a listing uses one
+        For coaches, a package is a set of credits forming a credit balance that is shared across Club 2
+        Coach and Coach 2 Mentor. Unused credits do not expire. Activating a listing uses one
         credit and puts that listing in matching for 60 days (on either service); when that period ends the credit is used up and a further credit is needed to
         re-apply.
       </p>

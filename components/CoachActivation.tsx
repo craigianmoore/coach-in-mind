@@ -77,7 +77,7 @@ export default function CoachActivation({
         </p>
         {typeof bankProp === "number" && (
           <p className="mt-2 text-sm font-semibold">
-            Credits remaining in your bank: {bankProp}
+            Credits remaining: {bankProp}
           </p>
         )}
       </div>
@@ -92,7 +92,7 @@ export default function CoachActivation({
       <p>
         <strong>{expired ? "Your listing has ended." : "Your listing isn't in matching yet."}</strong> One credit puts it in
         front of {product === "club2coach" ? "clubs" : "mentors"} for {days} days from the day you press Activate.
-        {" "}You have <strong>{bank}</strong> credit{bank === 1 ? "" : "s"} in your bank.
+        {" "}You have <strong>{bank}</strong> credit{bank === 1 ? "" : "s"} in your credit balance.
       </p>
       {bank >= 1 && (
         <button
