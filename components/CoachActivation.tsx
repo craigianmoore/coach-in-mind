@@ -72,7 +72,9 @@ export default function CoachActivation({
           In matching until {fmt(listing.active_until)} · {left} day{left === 1 ? "" : "s"} left
         </p>
         <p className="mt-2 text-sm">
-          Coach In Mind is looking for your match. On Club 2 Coach your credit covers these 30 days and up to 5 club introductions; you'll see each club's details on this page as you're introduced. When it ends, activate with another credit to be shown to clubs again.
+          {product === "club2coach"
+            ? "Coach In Mind is looking for your match. Your credit covers these 30 days and up to 5 club introductions; you'll see each club's details on this page as you're introduced. When it ends, activate with another credit to be shown to clubs again."
+            : "Coach In Mind is looking for your match. Your credit covers these 60 days. When it ends, activate with another credit to be shown to mentors again."}
         </p>
         {typeof bankProp === "number" && (
           <p className="mt-2 text-sm font-semibold">

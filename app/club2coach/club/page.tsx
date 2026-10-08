@@ -146,7 +146,11 @@ function formatDate(dateStr: string | null): string {
 
 function statusBadge(v: Club2CoachClubVacancy) {
   if (v.status === "filled") {
-    return <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">Filled</span>;
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-500 to-green-600 px-3 py-1 text-xs font-bold text-white shadow-sm ring-2 ring-green-200">
+        🏆 Filled
+      </span>
+    );
   }
   if (v.status === "expired") {
     return <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">Expired</span>;
@@ -650,7 +654,9 @@ function Club2CoachClubForm({ person }: { person: Person }) {
       {existing && (
         <div
           className={`mt-4 rounded-lg border p-4 text-sm ${
-            existing.status === "filled" || existing.status === "expired" || existing.status === "superseded"
+            existing.status === "filled"
+              ? "border-green-300 bg-gradient-to-r from-green-50 to-emerald-100 text-green-900 shadow-sm"
+              : existing.status === "expired" || existing.status === "superseded"
               ? "border-gray-200 bg-gray-50 text-gray-700"
               : existing.paid
               ? "border-green-200 bg-green-50 text-green-800"
@@ -675,7 +681,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
               )}
             </>
           ) : existing.status === "filled" ? (
-            <>This vacancy is marked as filled.</>
+            <><span className="text-base font-bold">🏆 Role filled — congratulations!</span><br />Thanks for using Coach In Mind. If you have another vacancy, you can advertise it any time.</>
           ) : existing.status === "expired" ? (
             <>
               This advert has run its 90 days.{" "}
