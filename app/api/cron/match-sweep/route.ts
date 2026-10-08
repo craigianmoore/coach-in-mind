@@ -18,13 +18,9 @@ import { APP_URL, sendEmail } from "@/lib/server/sendEmail";
 // set on the project.
 export async function GET(req: Request) {
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-    }
-  } else {
-    console.warn("CRON_SECRET is not set — /api/cron/match-sweep is unprotected.");
+  // Fail closed: without CRON_SECRET nobody (including Vercel Cron) can run this.
+  if (!cronSecret || req.headers.get("authorization") !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
   const supabase = createServiceClient();

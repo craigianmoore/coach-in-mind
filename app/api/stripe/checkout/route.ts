@@ -92,6 +92,13 @@ export async function POST(req: NextRequest) {
   if (listingError || !listing) {
     return NextResponse.json({ error: "Listing not found, or you don't have access to it." }, { status: 403 });
   }
+  // Some tables let any signed-in user SELECT listings (browse policies), so RLS alone is not
+  // proof of ownership: require the listing to belong to the caller, or the caller to be an admin.
+  const { data: me } = await supabase.from("people").select("id").eq("user_id", user.id).maybeSingle();
+  const { data: isAdmin } = await supabase.rpc("is_admin_caller");
+  if (listing.person_id !== me?.id && !isAdmin) {
+    return NextResponse.json({ error: "Listing not found, or you don't have access to it." }, { status: 403 });
+  }
 
   const amount = lookupAmount(listingTable, packageSize);
   if (amount == null) {

@@ -46,9 +46,13 @@ export async function POST(req: NextRequest) {
   // would hit "already processed" and the payment would never be applied.
   const releaseEvent = () => supabase.from("stripe_processed_events").delete().eq("event_id", event.id);
   if (dedupeError) {
-    // A unique-constraint violation here means we've already handled
-    // this exact event — that's success, not failure.
-    return NextResponse.json({ received: true, note: "already processed" });
+    // Only a unique-constraint violation means we've already handled this exact event.
+    // Anything else (transient DB error) must make Stripe retry.
+    if (dedupeError.code === "23505") {
+      return NextResponse.json({ received: true, note: "already processed" });
+    }
+    console.error("Stripe webhook: could not record event", dedupeError);
+    return NextResponse.json({ error: "Could not record event." }, { status: 500 });
   }
 
   if (event.type === "charge.refunded") {
@@ -115,6 +119,9 @@ export async function POST(req: NextRequest) {
   const personId = metadata.personId;
   const amount = (session.amount_total ?? 0) / 100; // Stripe's own recorded amount, in dollars — the source of truth for what was actually charged
 
+  if (session.payment_status && session.payment_status !== "paid") {
+    return NextResponse.json({ received: true, note: "not paid, skipped" });
+  }
   if (!listingTable || !listingId || !amount) {
     console.error("Stripe webhook: missing expected metadata on session", session.id);
     return NextResponse.json({ received: true, note: "missing metadata, skipped" });
@@ -156,12 +163,9 @@ export async function POST(req: NextRequest) {
     updatePayload.topup_requested = null; // clears any pending top-up request now that it's fulfilled
   } else {
     // Mentor capacity: a top-up ADDS mentee places to what they already have.
-    let capacityToSet = packageSize;
-    if (mode === "topup") {
-      const { data: cur } = await supabase.from(listingTable).select("max_mentees, paid").eq("id", listingId).maybeSingle();
-      capacityToSet = (cur?.paid ? cur?.max_mentees ?? 0 : 0) + packageSize;
-    }
-    updatePayload.max_mentees = capacityToSet;
+    // Always ADD to an already-paid mentor (never overwrite), whatever the checkout mode said.
+    const { data: cur } = await supabase.from(listingTable).select("max_mentees, paid").eq("id", listingId).maybeSingle();
+    updatePayload.max_mentees = (cur?.paid ? cur?.max_mentees ?? 0 : 0) + packageSize;
   }
 
   const { error: updateError } = await supabase.from(listingTable).update(updatePayload).eq("id", listingId);

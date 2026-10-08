@@ -235,7 +235,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       rate_negotiable: rateNegotiable,
       in_person_rate_differs: inPersonDiffers,
       in_person_rate_amount: inPersonDiffers && inPersonAmount ? Number(inPersonAmount) : null,
-      max_mentees: selectedCapacity,
+      ...(existing?.paid ? {} : { max_mentees: selectedCapacity }),
       currently_open: currentlyOpen,
       bio,
       intro_video_url: introVideoUrl.trim() || null,
