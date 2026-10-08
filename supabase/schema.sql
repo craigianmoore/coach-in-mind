@@ -3033,7 +3033,8 @@ drop trigger if exists protect_c2c_share on club2coach_shares;
 create trigger protect_c2c_share before update on club2coach_shares for each row execute function protect_c2c_share_fields();
 
 -- 4) Helper functions that nobody signed-in or anonymous needs to call.
-revoke execute on function coach2mentor_has_active_link(uuid, uuid) from public, anon, authenticated;
+-- (the app and RLS call coach2mentor_has_active_link as the signed-in user, so it must stay executable by authenticated)
+grant execute on function coach2mentor_has_active_link(uuid, uuid) to authenticated;
 
 -- ===== v12: mentors must be verified (accreditation evidence checked) before they can buy places or be matched =====
 alter table coach2mentor_mentor_listings add column if not exists verified_at timestamptz;
