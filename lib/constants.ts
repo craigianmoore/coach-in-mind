@@ -364,6 +364,6 @@ export const COACH2MENTOR_MENTOR_CAPACITY_PACKAGES: Record<number, number> = {
   1: 100,
   2: 200,
   3: 300,
-  4: 400,
+  5: 400,
   10: 750,
 };
