@@ -318,7 +318,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       window.alert(
         respondError.message.includes("no free mentee places")
           ? "You've used all your mentee places. Buy more places below to accept another coach."
-          : "Sorry, that didn't save. Please try again."
+          : `Sorry, that didn't save. Please try again. (${respondError.message})`
       );
       return;
     }
