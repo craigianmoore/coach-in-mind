@@ -155,7 +155,13 @@ export async function POST(req: NextRequest) {
     updatePayload.included_introductions = introductionsToSet;
     updatePayload.topup_requested = null; // clears any pending top-up request now that it's fulfilled
   } else {
-    updatePayload.max_mentees = packageSize;
+    // Mentor capacity: a top-up ADDS mentee places to what they already have.
+    let capacityToSet = packageSize;
+    if (mode === "topup") {
+      const { data: cur } = await supabase.from(listingTable).select("max_mentees, paid").eq("id", listingId).maybeSingle();
+      capacityToSet = (cur?.paid ? cur?.max_mentees ?? 0 : 0) + packageSize;
+    }
+    updatePayload.max_mentees = capacityToSet;
   }
 
   const { error: updateError } = await supabase.from(listingTable).update(updatePayload).eq("id", listingId);

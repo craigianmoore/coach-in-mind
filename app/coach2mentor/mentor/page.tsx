@@ -621,9 +621,18 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Mentee capacity</label>
             <p className="mt-1 text-sm text-gray-700">
-              {selectedCapacity} mentee{selectedCapacity === 1 ? "" : "s"} — to change this, contact
-              Coach In Mind about upgrading your package.
+              {selectedCapacity} mentee place{selectedCapacity === 1 ? "" : "s"}. Need room for more mentees?
+              Each extra place is ${COACH2MENTOR_MENTOR_CAPACITY_PACKAGES[1]} AUD.
             </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <PayWithCardButton
+                listingTable="coach2mentor_mentor_listings"
+                listingId={existing.id}
+                packageSize={1}
+                mode="topup"
+                label={`Add 1 mentee place ($${COACH2MENTOR_MENTOR_CAPACITY_PACKAGES[1]})`}
+              />
+            </div>
           </div>
         )}
 
