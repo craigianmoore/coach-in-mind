@@ -334,7 +334,7 @@ export const ROLE_PRICES_AUD = {
   club2coach_coach: 20, // starting tier — see CLUB2COACH_COACH_PACKAGES for the full ladder
   club2coach_club: 75, // starting tier — see CLUB2COACH_CLUB_PACKAGES for the full ladder
   coach2mentor_coach: 20,
-  coach2mentor_mentor: 75,
+  coach2mentor_mentor: 100,
 } as const;
 
 // Club2Coach runs on paid introduction packages rather than a flat
@@ -358,15 +358,12 @@ export const CLUB2COACH_CLUB_PACKAGES: Record<number, number> = {
 // Coach2Mentor mentor capacity — how many mentees a mentor can take on
 // determines what they pay, since more capacity unlocks more potential
 // revenue for them (mentors typically recoup this within a session or
-// two of their own per-session rate). Same rate ladder as
-// CLUB2COACH_CLUB_PACKAGES — $75/unit with a small discount at the top
-// tier — plus a 10-mentee bulk tier on top ($60/mentee) so high-capacity
-// mentors aren't capped at 5.
+// two of their own per-session rate). $100 per mentee place, with a
+// 10-place bulk tier at $750 ($75/place) for high-capacity mentors.
 export const COACH2MENTOR_MENTOR_CAPACITY_PACKAGES: Record<number, number> = {
-  1: 75,
-  2: 150,
-  3: 225,
-  4: 300,
-  5: 350,
-  10: 600,
+  1: 100,
+  2: 200,
+  3: 300,
+  4: 400,
+  10: 750,
 };
