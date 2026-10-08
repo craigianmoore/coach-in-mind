@@ -2665,3 +2665,75 @@ end;
 $$;
 grant execute on function activate_coach_listing(text, uuid, boolean, boolean) to authenticated;
 update coach2mentor_coach_listings set active_until = activated_at + interval '60 days' where activated_at is not null and status = 'active';
+-- ===== v6: club adverts run 90 days; no introduction = credit returned automatically =====
+alter table club2coach_club_vacancies add column if not exists recredited_at timestamptz;
+alter table club2coach_club_vacancies add column if not exists from_recredit boolean not null default false;
+
+create table if not exists club_recredits (
+  id uuid primary key default uuid_generate_v4(),
+  person_id uuid not null references people(id) on delete cascade,
+  introductions int not null default 1,
+  source_vacancy_id uuid references club2coach_club_vacancies(id) on delete set null,
+  created_at timestamptz not null default now(),
+  used_vacancy_id uuid references club2coach_club_vacancies(id) on delete set null,
+  used_at timestamptz
+);
+alter table club_recredits enable row level security;
+drop policy if exists "owner or admin can view recredits" on club_recredits;
+create policy "owner or admin can view recredits" on club_recredits for select
+  using (person_id = my_person_id() or is_admin_caller());
+
+-- Daily (service role): adverts past 90 days end. If no coach was introduced, the credit is returned.
+create or replace function expire_club_vacancies()
+returns table(expired_person_id uuid, expired_club text, expired_role text, was_recredited boolean)
+language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+declare v record; recr boolean;
+begin
+  for v in
+    select * from club2coach_club_vacancies
+    where paid and paid_at is not null and paid_at <= now() - interval '90 days'
+      and deleted_at is null and status not in ('filled', 'expired', 'refunded', 'superseded')
+    for update
+  loop
+    update club2coach_club_vacancies set status = 'expired' where id = v.id;
+    recr := false;
+    if not exists (select 1 from club2coach_shares s where s.club_vacancy_id = v.id)
+       and not coalesce(v.is_charity, false) and v.refunded_at is null and v.recredited_at is null
+       and (coalesce(v.price_aud, 0) > 0 or v.from_recredit) then
+      insert into club_recredits (person_id, introductions, source_vacancy_id)
+      values (v.person_id, greatest(coalesce(v.included_introductions, 1), 1), v.id);
+      update club2coach_club_vacancies set recredited_at = now() where id = v.id;
+      recr := true;
+    end if;
+    expired_person_id := v.person_id; expired_club := v.club_name; expired_role := v.role_being_recruited; was_recredited := recr;
+    return next;
+  end loop;
+end;
+$$;
+revoke all on function expire_club_vacancies() from public, anon, authenticated;
+grant execute on function expire_club_vacancies() to service_role;
+
+-- Club presses "use my returned credit" on a saved, unpaid vacancy.
+create or replace function use_club_recredit(target_vacancy_id uuid)
+returns jsonb language plpgsql security definer set search_path = public, extensions set row_security = off as $$
+declare me uuid := my_person_id(); v record; r record;
+begin
+  if me is null then return jsonb_build_object('used', false, 'reason', 'not_signed_in'); end if;
+  perform pg_advisory_xact_lock(60061);
+  select * into v from club2coach_club_vacancies where id = target_vacancy_id;
+  if not found or v.person_id <> me or v.paid or v.deleted_at is not null or v.status in ('filled', 'expired', 'refunded', 'superseded') then
+    return jsonb_build_object('used', false, 'reason', 'not_eligible');
+  end if;
+  select * into r from club_recredits where person_id = me and used_at is null order by created_at limit 1;
+  if not found then return jsonb_build_object('used', false, 'reason', 'no_credit'); end if;
+  update club_recredits set used_vacancy_id = v.id, used_at = now() where id = r.id;
+  update club2coach_club_vacancies
+    set paid = true, paid_at = now(), price_aud = 0, status = 'active', included_introductions = r.introductions, from_recredit = true,
+        refund_reminder_sent_at = null, refund_window_notified_at = null
+    where id = v.id;
+  insert into payments (person_id, product, role, listing_table, listing_id, amount_aud, marked_by_person_id, notes)
+  values (me, 'club2coach', 'club', 'club2coach_club_vacancies', v.id, 0, me, 'Returned credit used (no introduction on the previous advert)');
+  return jsonb_build_object('used', true, 'introductions', r.introductions);
+end;
+$$;
+grant execute on function use_club_recredit(uuid) to authenticated;

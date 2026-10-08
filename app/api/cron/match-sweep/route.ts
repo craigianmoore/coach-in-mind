@@ -61,6 +61,21 @@ export async function GET(req: Request) {
     });
   }
 
+  // Club adverts run 90 days. Past that they end; with no introduction made, the credit is returned.
+  const { data: endedAdverts } = await supabase.rpc("expire_club_vacancies");
+  for (const row of (endedAdverts as { expired_person_id: string; expired_club: string; expired_role: string; was_recredited: boolean }[] | null) ?? []) {
+    const who = await emailFor(row.expired_person_id);
+    if (!who) continue;
+    const link = `${APP_URL}/club2coach/club`;
+    await sendEmail({
+      to: who.email,
+      subject: row.was_recredited ? "Your advert has ended — your credit has been returned" : "Your advert has ended",
+      text: row.was_recredited
+        ? `Hi ${who.first},\n\nYour advert for ${row.expired_role} at ${row.expired_club} has run its 90 days and no coach was introduced, so we've returned your credit. Repost the vacancy from your club page and choose "Use my returned credit" to run it for another 90 days at no charge:\n${link}\n\nIf you'd rather have a refund of that package than the credit, reply to this email or use the Support page.`
+        : `Hi ${who.first},\n\nYour advert for ${row.expired_role} at ${row.expired_club} has run its 90 days and has now ended. If the role is still open you can repost it from your club page:\n${link}`,
+    });
+  }
+
   const [club2coach, coach2mentor] = await Promise.all([
     runClub2CoachMatchSweep(supabase),
     runCoach2MentorMatchSweep(supabase),

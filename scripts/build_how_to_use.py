@@ -138,13 +138,14 @@ story.append(bullets([
     "After each introduction, tell us whether it led to a hire from your own dashboard. We won't put "
     "forward another coach for that vacancy until you do — this makes sure you're never paying for "
     "coaches you don't need anymore.",
-    "A one-month contact window starts when your first coach is shared with you. If the role's still "
-    "open after that, simply advertise again.",
+    "Your advert runs for <b>90 days</b> from the day it goes live. If no coach has been introduced "
+    "by then, your credit is returned automatically so you can re-advertise at no charge (or you can "
+    "ask for a refund instead). If coaches were introduced, the advert simply ends and you can "
+    "advertise again with a new credit.",
     "Enter your club's postcode (where the club plays) so we can see where demand is.",
     "Didn't find your match, or want to tweak the ad? Use Repost on your vacancy to re-advertise "
     "with a few changes instead of starting from scratch. The original moves into your history so "
-    "two live posts never compete for the same coaches, and the one-month contact window keeps "
-    "counting for that role (it carries over while the original was still active).",
+    "two live posts never compete for the same coaches.",
     "You can mark a vacancy as filled, delete it, or view its activity (introductions made, dates) "
     "at any time from your own dashboard.",
 ]))
@@ -251,12 +252,14 @@ story.append(bullets([
     "for 60 days (either service); then it ends and the credit is gone. "
     "To re-apply, use or buy another credit. Mentors have no clock — they buy credits to advertise "
     "themselves to any coach who wants a mentor.",
-    "<b>Club credits belong to the vacancy and lapse with it.</b> A club's vacancy stays open for "
-    "one calendar month from when its first coach is shared, then expires unless it's filled. Any "
-    "introductions not yet used on an expired vacancy don't carry over — to re-advertise, the club "
-    "uses a new credit.",
-    "<b>Refunds.</b> If no introduction has been made within 120 days (4 months) — from payment for clubs, from the day you press Activate for coaches — you can ask "
-    " for a full refund through the Support page. Once at least one "
+    "<b>Club credits belong to the advert.</b> An advert runs 90 days, then ends unless it's filled "
+    "sooner. If no coach was introduced in that time the credit is returned automatically (you can "
+    "ask for a refund instead). If coaches were introduced, the credit is used and unused "
+    "introductions don't carry over — to re-advertise, use a new credit.",
+    "<b>Refunds.</b> Clubs: if no introduction is made in the 90 days your credit is returned "
+    "automatically, or you can ask for a refund through the Support page instead. Coaches: if no "
+    "introduction has been made within 120 days of pressing Activate you can ask for a full refund "
+    "through the Support page. Once at least one "
     "introduction has been made, the package is non-refundable — including any unused introductions "
     "in it.",
 ]))

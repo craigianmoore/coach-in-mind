@@ -69,6 +69,8 @@ export interface Club2CoachCoachListing {
 
 export interface Club2CoachClubVacancy {
   id: string;
+  recredited_at?: string | null; // set when the advert ended with no introduction and the credit was returned
+  from_recredit?: boolean;
   person_id: string;
   club_id: string | null; // FK to clubs — null only on pre-migration rows
   club_name: string; // denormalised from clubs.name at time of creation, for display

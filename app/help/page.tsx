@@ -109,8 +109,8 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">What happens if a match doesn't work out?</p>
               <p className="mt-1 text-gray-600">
-                For clubs on Club 2 Coach, if a role isn't filled within the one-month
-                contact window (which starts when your first coach is shared with you), the vacancy simply expires — you can advertise it again. If you run
+                For clubs on Club 2 Coach, an advert runs for 90 days. If no coach was introduced in that time your
+                credit is returned automatically so you can advertise again at no charge (or you can ask for a refund instead). If coaches were introduced and the role isn't filled, the advert ends and you advertise again with a new credit. If you run
                 out of introductions before finding the right fit, you can buy more
                 credits directly from your own profile or listing page at any time.
               </p>
@@ -132,18 +132,19 @@ export default function HelpPage() {
                 Credits in your bank never expire, but a used credit does. One credit = one
                 application: press Activate and your listing is in matching for 60 days, then it ends and that credit is gone — to
                 re-apply you use or buy another. To look for both a club and a mentor you activate
-                both, one credit each; your credits are one bank shared across the two. Club credits belong to the vacancy: it has a
-                one-month contact window that starts when your first coach is shared with you, and
-                if the role isn't filled it expires and any unused introductions don't carry over —
-                to re-advertise, you use a new credit.
+                both, one credit each; your credits are one bank shared across the two. Club credits belong to the advert: it runs 90 days, then ends. With no
+                introduction the credit comes back automatically; if coaches were introduced it is used up
+                and unused introductions don't carry over — to re-advertise, you use a new credit.
               </p>
             </div>
             <div>
               <p className="font-medium text-gray-800">Can I get a refund?</p>
               <p className="mt-1 text-gray-600">
-                If no introduction has been made within 120 days (4 months) — counted from payment for clubs and from the day you press Activate for coaches — you can request a full refund from the Support page. Once at least
-                one introduction has been made, the package is non-refundable, including any unused
-                introductions in it.
+                Clubs: if no introduction is made in your 90 days, your credit is returned automatically — or
+                you can ask for a refund of that package instead from the Support page. Coaches: if no
+                introduction has been made within 120 days of pressing Activate, you can request a full
+                refund from the Support page. Once at least one introduction has been made, the package is
+                non-refundable, including any unused introductions in it.
               </p>
             </div>
             <div>

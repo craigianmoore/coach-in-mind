@@ -106,10 +106,11 @@ export default function TermsPage() {
       <p className="mt-2">
         Fees paid for introduction packages cover our effort in
         attempting to find and share suitable matches — see Section 2
-        above regarding outcomes. If no introduction has been made
-        under your package within 4 months (120 days) — counted for coaches from the day you press Activate, and for
-        clubs from payment — you can request a full refund of that package via
-        the{" "}
+        above regarding outcomes. A club's advert runs for 90 days from the day it goes live. If no
+        introduction has been made in that time, the credit is returned to the club automatically so it
+        can re-advertise; the club may instead ask for a full refund of that package. For coaches, if no
+        introduction has been made within 120 days of pressing Activate, you can request a full refund of
+        that package via the{" "}
         <a href="/support" className="text-brand-navy underline">
           Support
         </a>{" "}

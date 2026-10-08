@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
 import PayWithCardButton from "@/components/PayWithCardButton";
 import FreeFirstCredit from "@/components/FreeFirstCredit";
+import ClubRecredit from "@/components/ClubRecredit";
 import { useStripePaymentsEnabled } from "@/lib/useStripePaymentsEnabled";
 import {
   COACHING_ROLES,
@@ -120,24 +121,18 @@ function formFromVacancy(v: Club2CoachClubVacancy): FormState {
   };
 }
 
-// A calendar month from a given date — not just "30 days" — matching
-// how a person reads "one month from now" (e.g. 15 Jan -> 15 Feb).
-function addOneCalendarMonth(dateStr: string): Date {
-  const d = new Date(dateStr);
-  d.setMonth(d.getMonth() + 1);
-  return d;
+// An advert runs 90 days from the day it goes live (payment, free credit or returned credit).
+const ADVERT_DAYS = 90;
+
+function advertEndsAt(v: Club2CoachClubVacancy): Date | null {
+  if (!v.paid || !v.paid_at) return null;
+  return new Date(new Date(v.paid_at).getTime() + ADVERT_DAYS * 86400000);
 }
 
-function isPastContactWindow(v: Club2CoachClubVacancy): boolean {
-  if (!v.shared_at) return false;
-  return new Date() > addOneCalendarMonth(v.shared_at);
-}
-
-function daysLeftInContactWindow(v: Club2CoachClubVacancy): number | null {
-  if (!v.shared_at) return null;
-  const expiry = addOneCalendarMonth(v.shared_at);
-  const ms = expiry.getTime() - Date.now();
-  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+function daysLeftInAdvert(v: Club2CoachClubVacancy): number | null {
+  const end = advertEndsAt(v);
+  if (!end) return null;
+  return Math.max(0, Math.ceil((end.getTime() - Date.now()) / 86400000));
 }
 
 function formatDate(dateStr: string | null): string {
@@ -229,24 +224,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
     const list = (data as Club2CoachClubVacancy[]) ?? [];
 
-    // Lazy auto-expiry: if a vacancy's one-month contact window has
-    // passed and nobody marked it filled, flip it to 'expired' now.
-    // Runs on every load rather than a scheduled job — self-corrects
-    // the moment anyone views the list.
-    const toExpire = list.filter(
-      (v) =>
-        v.status !== "filled" &&
-        v.status !== "expired" &&
-        v.status !== "superseded" &&
-        isPastContactWindow(v)
-    );
-    if (toExpire.length > 0) {
-      await supabase
-        .from("club2coach_club_vacancies")
-        .update({ status: "expired" })
-        .in("id", toExpire.map((v) => v.id));
-      toExpire.forEach((v) => (v.status = "expired"));
-    }
+    // Expiry (and the automatic credit return) is done by the daily server job.
 
     setVacancies(list);
     setLoading(false);
@@ -574,7 +552,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
         ) : (
           <div className="mt-6 flex flex-col gap-3">
             {vacancies.map((v) => {
-              const daysLeft = daysLeftInContactWindow(v);
+              const daysLeft = daysLeftInAdvert(v);
               const canMarkFilled = v.status !== "filled" && v.status !== "expired" && v.status !== "superseded";
               return (
                 <div
@@ -597,8 +575,8 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                     {v.status === "active" && v.paid && daysLeft !== null && (
                       <p className="mt-0.5 text-xs text-blue-700">
                         {daysLeft > 0
-                          ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} left in the contact window`
-                          : "Contact window closing"}
+                          ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} left on your advert`
+                          : "Advert ending today"}
                       </p>
                     )}
                   </button>
@@ -700,12 +678,13 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             <>This vacancy is marked as filled.</>
           ) : existing.status === "expired" ? (
             <>
-              This vacancy's one-month contact window has closed. Most
-              clubs will have made contact by now — if the role's still
-              open, use the Repost button below to readvertise it.
+              This advert has run its 90 days.{" "}
+              {existing.recredited_at
+                ? "No coach was introduced, so your credit has been returned — use it when you repost the vacancy."
+                : "If the role's still open, use the Repost button below to readvertise it."}
             </>
           ) : existing.paid ? (
-            <>✓ Your vacancy is active and included in matching.</>
+            <>✓ Your vacancy is active and included in matching{existing.paid_at ? ` until ${formatDate(advertEndsAt(existing)!.toISOString())}` : ""}. If no coach is introduced in 90 days, your credit is returned.</>
           ) : (
             <>
               <strong>Payment required (from ${CLUB2COACH_CLUB_PACKAGES[1]} AUD):</strong> your
@@ -751,6 +730,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           </div>
           {existing ? (
             <div className="mt-3">
+              <ClubRecredit vacancyId={existing.id} onUsed={() => load()} />
               <FreeFirstCredit listingTable="club2coach_club_vacancies" listingId={existing.id} onClaimed={() => load()} />
               <PayWithCardButton
                 listingTable="club2coach_club_vacancies"
@@ -816,15 +796,12 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           <ul className="mt-3 flex flex-col gap-1.5 text-sm text-gray-600">
             <li>Advertised: {formatDate(existing.created_at)}</li>
             <li>Payment confirmed: {existing.paid ? formatDate(existing.paid_at) : "Not yet paid"}</li>
-            {existing.shared_at ? (
-              <>
-                <li>Contact window opened: {formatDate(existing.shared_at)}</li>
-                <li>
-                  Contact window closes: {formatDate(addOneCalendarMonth(existing.shared_at).toISOString())}
-                </li>
-              </>
+            {existing.paid && existing.paid_at ? (
+              <li>
+                Advert runs until: {formatDate(advertEndsAt(existing)!.toISOString())} (90 days from going live)
+              </li>
             ) : (
-              <li>Contact window: not started yet — no coaches introduced so far</li>
+              <li>Advert: starts for 90 days once it is activated</li>
             )}
             <li>
               Coaches introduced: {activity === null ? "Loading…" : activity.length}
