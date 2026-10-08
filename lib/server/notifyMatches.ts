@@ -13,6 +13,8 @@ export async function closeUsedActivations(supabase: SupabaseClient): Promise<nu
     .not("activated_at", "is", null);
   let closed = 0;
   for (const l of live ?? []) {
+    // Suggestions left over from an earlier activation must never become this activation's introduction.
+    await supabase.from("club2coach_shares").delete().eq("coach_listing_id", l.id).eq("status", "suggested").lt("shared_at", l.activated_at);
     const { data: used } = await supabase
       .from("club2coach_shares")
       .select("id")
@@ -21,10 +23,14 @@ export async function closeUsedActivations(supabase: SupabaseClient): Promise<nu
       .gte("shared_at", l.activated_at)
       .limit(1);
     if (!used || used.length === 0) continue;
-    await supabase
+    const { data: upd, error: updErr } = await supabase
       .from("club2coach_coach_listings")
       .update({ status: "expired", active_until: new Date().toISOString() })
-      .eq("id", l.id);
+      .eq("id", l.id)
+      .eq("status", "active")
+      .eq("activated_at", l.activated_at)
+      .select("id");
+    if (updErr || !upd || upd.length === 0) continue;
     await supabase.from("club2coach_shares").delete().eq("coach_listing_id", l.id).eq("status", "suggested");
     closed += 1;
   }

@@ -1,7 +1,7 @@
 "use client";
 
-// The coach's Activate panel. One credit = one listing in matching for a fixed
-// window (60 days on either service). Credits sit in a
+// The coach's Activate panel. On Club 2 Coach one credit = one club introduction (in matching up to 60 days,
+// closed as soon as a club is introduced); on Coach 2 Mentor one credit = 60 days. Credits sit in a
 // shared bank and never expire until they are spent here. If the bank is empty
 // and the founding offer is still open, the free founding credit can be used.
 // All rules (ownership, balance, founding limits) are enforced in the database.
@@ -89,8 +89,10 @@ export default function CoachActivation({
   return (
     <div className="h-full rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
       <p>
-        <strong>{expired ? "Your listing has ended." : "Your listing isn't in matching yet."}</strong> One credit puts it in
-        front of {product === "club2coach" ? "clubs" : "mentors"} for {days} days from the day you press Activate.
+        <strong>{expired ? "Your listing isn't in matching any more." : "Your listing isn't in matching yet."}</strong>{" "}
+        {product === "club2coach"
+          ? `One credit gets you one club introduction: press Activate and you're in matching for up to ${days} days, and the credit is used when a club is introduced to you.`
+          : `One credit puts it in front of mentors for ${days} days from the day you press Activate.`}
         {" "}You have <strong>{bank}</strong> credit{bank === 1 ? "" : "s"} in your credit balance.
       </p>
       {bank >= 1 && (
@@ -99,7 +101,7 @@ export default function CoachActivation({
           disabled={busy}
           className="mt-3 rounded-lg bg-brand-navy px-5 py-2 text-sm font-semibold text-white hover:bg-brand-navyLight disabled:opacity-50"
         >
-          {busy ? "Activating…" : `Activate — use 1 credit (${days} days)`}
+          {busy ? "Activating…" : product === "club2coach" ? "Activate — use 1 credit (1 club introduction)" : `Activate — use 1 credit (${days} days)`}
         </button>
       )}
       {dry?.founding_available && (

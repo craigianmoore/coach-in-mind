@@ -673,7 +673,21 @@ function Club2CoachAdmin() {
       return;
     }
     supabase.rpc("refresh_admin_session");
+    // Undoing an approved introduction gives the coach their credit back: if their activation was closed by it
+    // and the 60 days haven't run out, put the listing back into matching.
+    const undone = shares.find((s) => s.id === shareId);
     await supabase.from("club2coach_shares").delete().eq("id", shareId);
+    if (undone?.status === "approved") {
+      const cl = coachListings.find((l) => l.id === undone.coach_listing_id);
+      if (cl?.activated_at && cl.status === "expired") {
+        const until = new Date(new Date(cl.activated_at).getTime() + 60 * 86400000);
+        if (until.getTime() > Date.now()) {
+          await supabase.from("club2coach_coach_listings").update({ status: "active", active_until: until.toISOString() }).eq("id", cl.id);
+        } else {
+          setStatus("Introduction undone. That coach's 60 days had already run out — add them another credit by hand if they should get one back.");
+        }
+      }
+    }
     await loadAll();
   }
 
@@ -898,7 +912,10 @@ function Club2CoachAdmin() {
     return shares.filter((s) => s.coach_listing_id === coachListingId).length;
   }
   // A coach is matchable only while their activation window is open (Activate button).
-  const activeCoaches = coachListings.filter((l) => isActivated(l));
+  // One credit = one club introduction: a coach already approved to a club in their current activation is done.
+  const activeCoaches = coachListings.filter(
+    (l) => isActivated(l) && !shares.some((s) => s.coach_listing_id === l.id && s.status === "approved" && !!l.activated_at && s.shared_at >= l.activated_at)
+  );
   const activeVacancies = vacancies.filter(
     (v) =>
       v.paid &&

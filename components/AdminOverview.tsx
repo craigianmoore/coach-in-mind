@@ -73,7 +73,11 @@ export default function AdminOverview({
   // Days a paid listing/vacancy has been waiting for its first introduction
   // (counted from payment). Once it reaches 4 months the customer can ask
   // for a refund, so those are flagged.
-  const introducedCoach = new Set(approved.map((s) => s.coach_listing_id));
+  // Per activation: an introduction from an earlier credit doesn't count against the current one.
+  const coachActivatedAt = new Map(coachListings.map((l) => [l.id, l.activated_at ?? null]));
+  const introducedCoach = new Set(
+    approved.filter((s) => { const a = coachActivatedAt.get(s.coach_listing_id); return !a || s.shared_at >= a; }).map((s) => s.coach_listing_id)
+  );
   const introducedVac = new Set(approved.map((s) => s.club_vacancy_id));
   const waitingDays = (paid: boolean, paidAt: string | null, filled: boolean, introduced: boolean): number | null =>
     paid && paidAt && !filled && !introduced ? Math.floor((Date.now() - new Date(paidAt).getTime()) / 86400000) : null;

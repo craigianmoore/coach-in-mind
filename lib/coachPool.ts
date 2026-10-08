@@ -1,8 +1,9 @@
 // Coach credits: one bank per coach, shared across Club 2 Coach and
 // Coach 2 Mentor. Credits never expire while they sit in the bank. Using
-// one (the Activate button) puts ONE listing into matching for a fixed
-// window — 60 days on either service — after
-// which that credit is gone and the coach spends another to re-apply.
+// one (the Activate button) puts ONE listing into matching for up to 60 days.
+// Club 2 Coach: the credit is used when a club introduction is approved (lib/server/notifyMatches.ts
+// closeUsedActivations). Coach 2 Mentor: the credit covers the 60 days. Either way, once it is used
+// the coach spends another to be matched again.
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const COACH_ACTIVE_DAYS = { club2coach: 60, coach2mentor: 60 } as const;

@@ -51,7 +51,10 @@ export async function runClub2CoachMatchSweep(
   // excluded from "active" explicitly — it isn't caught by the
   // placed/filled/expired checks alone.
   // A coach is matchable only while their activation window is open (Activate button).
-  const activeCoaches = coachListings.filter((l) => isActivated(l));
+  // One credit = one club introduction: a coach already approved to a club in their current activation is done.
+  const activeCoaches = coachListings.filter(
+    (l) => isActivated(l) && !shares.some((s) => s.coach_listing_id === l.id && s.status === "approved" && !!l.activated_at && s.shared_at >= l.activated_at)
+  );
   const activeVacancies = vacancies.filter(
     (v) =>
       v.paid &&

@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
   // access, full stop.
   const { data: listing, error: listingError } = await supabase
     .from(listingTable)
-    .select("id, person_id")
+    .select("id, person_id, paid, status")
     .eq("id", listingId)
     .maybeSingle();
 
@@ -108,6 +108,11 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       );
     }
+  }
+
+  // A first purchase on something already paid for would overwrite it — extra credits must go through top-up.
+  if (mode === "new" && listing.paid && listing.status !== "refunded") {
+    return NextResponse.json({ error: "This is already paid for — use the top-up option to add more." }, { status: 409 });
   }
 
   const amount = lookupAmount(listingTable, packageSize);
