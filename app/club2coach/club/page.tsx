@@ -1,5 +1,6 @@
 "use client";
 
+import { fetchAll } from "@/lib/fetchAll";
 import { useEffect, useState } from "react";
 import RequireProfile from "@/components/RequireProfile";
 import EmptyState from "@/components/EmptyState";
@@ -214,8 +215,10 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   }, [stripeEnabled]);
 
   async function loadClubs() {
-    const { data } = await supabase.from("clubs").select("*").order("name", { ascending: true });
-    setClubs((data as Club[]) ?? []);
+    const data = await fetchAll<Club>((a, b) =>
+      supabase.from("clubs").select("*").order("name", { ascending: true }).order("id").range(a, b),
+    );
+    setClubs(data);
   }
 
   async function load() {

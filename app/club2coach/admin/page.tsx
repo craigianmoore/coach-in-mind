@@ -1,5 +1,6 @@
 "use client";
 
+import { fetchAll } from "@/lib/fetchAll";
 import { CLUB_INTRO_CAP, COACH_ACTIVE_DAYS, isActivated } from "@/lib/coachPool";
 import { notifyMatches } from "@/lib/notify";
 import { useEffect, useState } from "react";
@@ -251,9 +252,13 @@ function Club2CoachAdmin() {
   }
 
   async function loadClubContacts() {
-    const [{ data: cl }, { data: cc }] = await Promise.all([
-      supabase.from("clubs").select("id,name,state").order("name", { ascending: true }),
-      supabase.from("club_contacts").select("club_id,email,source,confidence,contacted_at,do_not_contact"),
+    const [cl, cc] = await Promise.all([
+      fetchAll<{ id: string; name: string; state: string }>((a, b) =>
+        supabase.from("clubs").select("id,name,state").order("name", { ascending: true }).order("id").range(a, b),
+      ),
+      fetchAll<any>((a, b) =>
+        supabase.from("club_contacts").select("club_id,email,source,confidence,contacted_at,do_not_contact").order("club_id").range(a, b),
+      ),
     ]);
     const byClub = new Map<string, Omit<ClubContactRow, "id" | "name" | "state"> & { club_id: string }>();
     ((cc as (Omit<ClubContactRow, "id" | "name" | "state"> & { club_id: string })[]) ?? []).forEach((c) =>
