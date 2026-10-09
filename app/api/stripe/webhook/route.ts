@@ -14,6 +14,9 @@ import { notifyApprovedShares } from "@/lib/server/notifyMatches";
 import { notifyMentoringRequests } from "@/lib/server/notifyMentoring";
 import { sendAdminEmail } from "@/lib/server/sendAdminEmail";
 
+// Post-payment matching and emails run inside this request, so allow it time to finish.
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");
   const rawBody = await req.text();

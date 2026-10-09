@@ -52,7 +52,12 @@ function lookupAmount(listingTable: ListingTable, packageSize: number): number |
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
   const listingTable = body.listingTable as ListingTable;
   const listingId = body.listingId as string;
   const packageSize = Number(body.packageSize);
@@ -133,11 +138,16 @@ export async function POST(req: NextRequest) {
   }
 
   const { product, role, label } = TABLE_INFO[listingTable];
-  const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL ?? "https://www.coachinmind.com.au";
 
-  const session = await stripe.checkout.sessions.create({
+  let session;
+  try {
+  session = await stripe.checkout.sessions.create({
     mode: "payment",
     payment_method_types: ["card"],
+    // Prefill the receipt address from the verified sign-in email.
+    customer_email: user.email ?? undefined,
+    payment_intent_data: { receipt_email: user.email ?? undefined },
     line_items: [
       {
         price_data: {
@@ -165,6 +175,10 @@ export async function POST(req: NextRequest) {
     success_url: `${origin}/${product === "club2coach" ? "club2coach" : "coach2mentor"}/${role}?paid=1`,
     cancel_url: `${origin}/${product === "club2coach" ? "club2coach" : "coach2mentor"}/${role}?paid=0`,
   });
+  } catch (err) {
+    console.error("stripe checkout create failed", err);
+    return NextResponse.json({ error: "We couldn't start the payment. Please try again in a moment." }, { status: 502 });
+  }
 
   return NextResponse.json({ url: session.url });
 }

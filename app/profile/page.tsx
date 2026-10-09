@@ -238,9 +238,11 @@ function ProfileForm() {
             required
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+            readOnly
+            title="This is your sign-in email. It can't be changed here."
+            className="mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-600"
           />
+          <p className="mt-1 text-xs text-gray-500">This is your sign-in email, and it's where we send match and payment emails.</p>
         </div>
 
         {!existing && (
