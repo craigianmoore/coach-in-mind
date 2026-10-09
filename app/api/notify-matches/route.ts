@@ -7,7 +7,7 @@ import { notifyApprovedShares } from "@/lib/server/notifyMatches";
 // Only a signed-in admin (valid PIN session) can trigger it; it takes no
 // input, so a caller can't choose recipients or content.
 export async function POST() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: isAdmin } = await supabase.rpc("is_admin_caller");
   if (isAdmin !== true) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { APP_URL, sendEmail } from "@/lib/server/sendEmail";
+import { isRateLimited } from "@/lib/server/rateLimit";
 
 // Confirmation email to the signed-in user, at THEIR OWN address only
 // (read from their own people row — the client never supplies a recipient).
@@ -37,11 +38,15 @@ export async function POST(req: Request) {
   const tpl = typeof type === "string" ? TEMPLATES[type] : undefined;
   if (!tpl) return NextResponse.json({ ok: false, error: "Unknown type" }, { status: 400 });
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
+  if (await isRateLimited(supabase, "notify-self", 20, 3600)) {
+    return NextResponse.json({ ok: false, error: "Too many requests" }, { status: 429 });
+  }
 
   const { data: person } = await supabase.from("people").select("full_name,email").eq("user_id", user.id).maybeSingle();
   if (!person?.email) return NextResponse.json({ ok: false, error: "No email on file" }, { status: 200 });

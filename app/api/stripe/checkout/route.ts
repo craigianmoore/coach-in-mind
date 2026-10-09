@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing or invalid listingTable, listingId, or packageSize." }, { status: 400 });
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const {
     data: { user },

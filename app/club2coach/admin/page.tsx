@@ -818,16 +818,27 @@ function Club2CoachAdmin() {
   async function deletePerson(personId: string, name: string) {
     if (
       !window.confirm(
-        `Permanently delete ${name}? This removes their profile and every listing they hold on Club2Coach and Coach2Mentor. This cannot be undone. (Refused automatically if they have any payment history.)`
+        `Permanently delete ${name}? This removes their profile and every listing they hold on Club2Coach and Coach2Mentor. This cannot be undone. If they have payment history, their details are anonymised instead and the payment records are kept.`
       )
     ) {
       return;
     }
-    supabase.rpc("refresh_admin_session");
-    const { error } = await supabase.rpc("admin_delete_person", { target_person_id: personId });
-    if (error) {
-      window.alert(`Couldn't delete: ${error.message}`);
+    await supabase.rpc("refresh_admin_session");
+    const res = await fetch("/api/admin/erase-person", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ personId }),
+    });
+    const result = await res.json().catch(() => ({ ok: false, error: "Unexpected response." }));
+    if (!result.ok) {
+      window.alert(`Couldn't delete: ${result.error ?? "unknown error"}`);
       return;
+    }
+    if (result.outcome === "anonymised") {
+      window.alert("This person has payment history, so their details were anonymised and their login blocked. The payment records were kept.");
+    }
+    if (result.problems?.length) {
+      window.alert(`Done, but check: ${result.problems.join("; ")}`);
     }
     if (expandedPersonId === personId) setExpandedPersonId(null);
     await loadAll();

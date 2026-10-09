@@ -12,6 +12,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { runClub2CoachMatchSweep, runCoach2MentorMatchSweep } from "@/lib/matching/sweep";
 import { notifyApprovedShares } from "@/lib/server/notifyMatches";
 import { notifyMentoringRequests } from "@/lib/server/notifyMentoring";
+import { sendAdminEmail } from "@/lib/server/sendAdminEmail";
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");
@@ -30,7 +31,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Webhook signature verification failed: ${(err as Error).message}` }, { status: 400 });
   }
 
-  if (event.type !== "checkout.session.completed" && event.type !== "charge.refunded") {
+  if (
+    event.type !== "checkout.session.completed" &&
+    event.type !== "charge.refunded" &&
+    event.type !== "charge.dispute.created"
+  ) {
     // Not an event we care about — acknowledge and move on.
     return NextResponse.json({ received: true });
   }
@@ -53,6 +58,31 @@ export async function POST(req: NextRequest) {
     }
     console.error("Stripe webhook: could not record event", dedupeError);
     return NextResponse.json({ error: "Could not record event." }, { status: 500 });
+  }
+
+  if (event.type === "charge.dispute.created") {
+    // A chargeback was opened. Nothing is reversed automatically (the
+    // bank may rule either way) — flag it to the admin straight away so
+    // they can respond in the Stripe dashboard within the deadline.
+    const dispute = event.data.object as Stripe.Dispute;
+    const intentId =
+      typeof dispute.payment_intent === "string" ? dispute.payment_intent : dispute.payment_intent?.id ?? null;
+    let where = "no matching payment in our ledger";
+    if (intentId) {
+      const { data: p } = await supabase
+        .from("payments")
+        .select("listing_table, listing_id")
+        .eq("stripe_payment_intent_id", intentId)
+        .maybeSingle();
+      if (p) where = `${p.listing_table} ${p.listing_id}`;
+    }
+    await sendAdminEmail(
+      "Stripe dispute opened",
+      `A card dispute (chargeback) was opened for $${(dispute.amount / 100).toFixed(2)} ${dispute.currency.toUpperCase()}.\n\n` +
+        `Reason: ${dispute.reason}\nStatus: ${dispute.status}\nDispute: ${dispute.id}\nPayment: ${intentId ?? "unknown"}\nListing: ${where}\n\n` +
+        `Respond in the Stripe dashboard before the evidence deadline. Credits have NOT been reversed automatically.`
+    );
+    return NextResponse.json({ received: true });
   }
 
   if (event.type === "charge.refunded") {
@@ -86,7 +116,39 @@ export async function POST(req: NextRequest) {
 
     const now = new Date().toISOString();
 
+    // Partial refund: money went back but the purchase wasn't cancelled.
+    // Don't strip the customer's credits automatically — tell the admin.
+    if (charge.amount_refunded < charge.amount) {
+      await sendAdminEmail(
+        "Partial Stripe refund needs a manual decision",
+        `A partial refund of $${(charge.amount_refunded / 100).toFixed(2)} (of $${(charge.amount / 100).toFixed(2)}) was issued.\n\n` +
+          `Listing: ${payment.listing_table} ${payment.listing_id}\nPayment: ${paymentIntentId}\n\n` +
+          `Nothing was changed automatically. If credits or places should be reduced, adjust the listing by hand.`
+      );
+      return NextResponse.json({ received: true, note: "partial refund — admin notified" });
+    }
+
+    // Full refund of one payment. If the listing has OTHER paid payments (e.g. an earlier
+    // purchase and a later top-up), only this payment is reversed — don't cancel the whole listing.
+    const { count: otherPaid } = await supabase
+      .from("payments")
+      .select("id", { count: "exact", head: true })
+      .eq("listing_table", payment.listing_table)
+      .eq("listing_id", payment.listing_id)
+      .neq("id", payment.id)
+      .neq("status", "refunded");
+
     await supabase.from("payments").update({ status: "refunded", refunded_at: now }).eq("id", payment.id);
+
+    if ((otherPaid ?? 0) > 0) {
+      await sendAdminEmail(
+        "A top-up or earlier payment was fully refunded",
+        `A full refund was issued for one payment on a listing that has other paid payments.\n\n` +
+          `Listing: ${payment.listing_table} ${payment.listing_id}\nPayment: ${paymentIntentId}\n\n` +
+          `The listing was left active. If the credits or places from that payment should be removed, adjust the listing by hand.`
+      );
+      return NextResponse.json({ received: true, note: "one payment refunded; listing kept" });
+    }
 
     // A refund replaces any credit already returned to a club for that advert.
     if (payment.listing_table === "club2coach_club_vacancies") {

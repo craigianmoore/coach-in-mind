@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isRateLimited } from "@/lib/server/rateLimit";
 
 export async function POST(req: Request) {
   // Only signed-in users can trigger this email (the form itself already requires sign-in), and
   // each person is limited to a handful per hour so it can't be used to flood the support inbox.
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  if (await isRateLimited(supabase, "support-query", 5, 3600)) {
+    return NextResponse.json({ ok: false, error: "Too many messages — please try again later." }, { status: 429 });
+  }
   const { count } = await supabase
     .from("support_queries")
     .select("id", { count: "exact", head: true })

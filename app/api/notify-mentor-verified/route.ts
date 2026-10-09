@@ -6,7 +6,7 @@ import { APP_URL, sendEmail } from "@/lib/server/sendEmail";
 // Called by the admin page right after it verifies a mentor. Admin-only. The caller supplies only a
 // listing id; the recipient and the content come from our own database, never from the request.
 export async function POST(req: Request) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: isAdmin } = await supabase.rpc("is_admin_caller");
   if (isAdmin !== true) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
