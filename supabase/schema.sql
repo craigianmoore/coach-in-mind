@@ -681,8 +681,9 @@ create policy "club2coach share reveals contact record"
       select 1 from club2coach_shares s
       join club2coach_coach_listings cl on cl.id = s.coach_listing_id
       join club2coach_club_vacancies cv on cv.id = s.club_vacancy_id
-      where (cl.person_id = people.id and cv.person_id = my_person_id())
-         or (cv.person_id = people.id and cl.person_id = my_person_id())
+      where s.status = 'approved'
+        and ((cl.person_id = people.id and cv.person_id = my_person_id())
+          or (cv.person_id = people.id and cl.person_id = my_person_id()))
     )
   );
 
@@ -879,13 +880,18 @@ create policy "involved parties or admin can view request"
   on coach2mentor_requests for select
   using (
     is_admin_caller()
-    or exists (
-      select 1 from coach2mentor_coach_listings cl
-      where cl.id = coach_listing_id and cl.person_id = my_person_id()
-    )
-    or exists (
-      select 1 from coach2mentor_mentor_listings ml
-      where ml.id = mentor_listing_id and ml.person_id = my_person_id()
+    or (
+      status <> 'suggested'
+      and (
+        exists (
+          select 1 from coach2mentor_coach_listings cl
+          where cl.id = coach_listing_id and cl.person_id = my_person_id()
+        )
+        or exists (
+          select 1 from coach2mentor_mentor_listings ml
+          where ml.id = mentor_listing_id and ml.person_id = my_person_id()
+        )
+      )
     )
   );
 
