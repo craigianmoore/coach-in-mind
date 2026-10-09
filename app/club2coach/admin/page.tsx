@@ -669,8 +669,19 @@ function Club2CoachAdmin() {
   // paid listings are entirely unaffected either way.
   async function toggleStripePayments(value: boolean) {
     supabase.rpc("refresh_admin_session");
+    const previous = platformSettings;
     setPlatformSettings({ stripe_payments_enabled: value });
-    await supabase.from("platform_settings").update({ stripe_payments_enabled: value }).eq("id", true);
+    const { data, error } = await supabase
+      .from("platform_settings")
+      .update({ stripe_payments_enabled: value })
+      .eq("id", true)
+      .select("stripe_payments_enabled");
+    // The update only works from a master-PIN session. If nothing changed, put the
+    // toggle back so the screen never claims payments are off while checkout is live.
+    if (error || !data || data.length !== 1) {
+      setPlatformSettings(previous);
+      window.alert("Couldn't change the card payments switch. Check your master PIN session and try again.");
+    }
   }
 
   async function revokeShare(shareId: string) {

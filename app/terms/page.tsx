@@ -1,3 +1,5 @@
+export const metadata = { title: "Terms of Service", description: "Terms of service for Coach In Mind, Club 2 Coach and Coach 2 Mentor." };
+
 export default function TermsPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-16 text-sm leading-relaxed text-gray-700">
@@ -7,7 +9,7 @@ export default function TermsPage() {
       <p className="mt-6">
         These Terms of Service ("Terms") govern your use of Coach In Mind,
         including Club 2 Coach and Coach 2 Mentor (together, the
-        "Platform"), operated by Coach In Mind ("we", "us", "our"). By
+        "Platform"), operated by Coach In Mind (ABN 29 781 187 181) ("we", "us", "our"). By
         creating an account, you agree to these Terms and to our{" "}
         <a href="/privacy" className="text-brand-navy underline">
           Privacy Policy

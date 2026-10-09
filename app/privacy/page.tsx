@@ -1,3 +1,5 @@
+export const metadata = { title: "Privacy Policy", description: "How Coach In Mind collects, uses and protects your personal information." };
+
 export default function PrivacyPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-16 text-sm leading-relaxed text-gray-700">
@@ -104,21 +106,60 @@ export default function PrivacyPage() {
         players.)
       </p>
 
-      <h2 className="mt-8 text-lg font-semibold text-gray-900">7. Changes to this Policy</h2>
+      <h2 className="mt-8 text-lg font-semibold text-gray-900">7. Emails and opting out</h2>
+      <p className="mt-2">
+        We send you emails about your account, matches, payments and
+        when a listing is about to end. If we also contact clubs or
+        coaches about Coach In Mind, we only use contact details that
+        are publicly published for that purpose, we say who we are, and
+        you can opt out at any time by replying &ldquo;no thanks&rdquo;
+        or emailing{" "}
+        <a href="mailto:coachinmindcim@gmail.com" className="text-brand-navy underline">
+          coachinmindcim@gmail.com
+        </a>
+        . We will stop contacting you promptly.
+      </p>
+
+      <h2 className="mt-8 text-lg font-semibold text-gray-900">8. Where your information is stored</h2>
+      <p className="mt-2">
+        We use service providers to run the Platform, including
+        Supabase (database), Vercel (hosting), Stripe (payments) and
+        Resend (email). Some of these providers may store or process
+        information outside Australia. We take reasonable steps to make
+        sure they handle your information in line with the Australian
+        Privacy Principles.
+      </p>
+
+      <h2 className="mt-8 text-lg font-semibold text-gray-900">9. Complaints</h2>
+      <p className="mt-2">
+        If you have a privacy complaint, contact us first at{" "}
+        <a href="mailto:coachinmindcim@gmail.com" className="text-brand-navy underline">
+          coachinmindcim@gmail.com
+        </a>{" "}
+        and we will respond within a reasonable time. If you are not
+        satisfied, you can contact the Office of the Australian
+        Information Commissioner (oaic.gov.au).
+      </p>
+
+      <h2 className="mt-8 text-lg font-semibold text-gray-900">10. Changes to this Policy</h2>
       <p className="mt-2">
         We may update this Privacy Policy from time to time. Continued
         use of the Platform after an update means you accept the
         revised Policy.
       </p>
 
-      <h2 className="mt-8 text-lg font-semibold text-gray-900">8. Contact</h2>
+      <h2 className="mt-8 text-lg font-semibold text-gray-900">11. Contact</h2>
       <p className="mt-2">
         Questions about this Policy, or a request relating to your
         personal information, can be sent via the{" "}
         <a href="/support" className="text-brand-navy underline">
           Support
         </a>{" "}
-        page.
+        page or to{" "}
+        <a href="mailto:coachinmindcim@gmail.com" className="text-brand-navy underline">
+          coachinmindcim@gmail.com
+        </a>
+        . Coach In Mind, ABN 29 781 187 181.
       </p>
     </div>
   );

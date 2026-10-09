@@ -73,7 +73,11 @@ export async function POST(req: NextRequest) {
 
   // Global kill switch — checked before anything else. If off, don't
   // even reveal whether the listing exists.
-  const { data: settings } = await supabase.from("platform_settings").select("stripe_payments_enabled").maybeSingle();
+  const { data: settings, error: settingsError } = await supabase.from("platform_settings").select("stripe_payments_enabled").maybeSingle();
+  // Fail closed: if we can't read the switch, don't take payments.
+  if (settingsError) {
+    return NextResponse.json({ error: "Card payments are temporarily unavailable. Please try again shortly." }, { status: 503 });
+  }
   if (settings?.stripe_payments_enabled === false) {
     return NextResponse.json({ error: "Card payments are currently unavailable. Please contact Coach In Mind." }, { status: 503 });
   }
@@ -85,7 +89,7 @@ export async function POST(req: NextRequest) {
   // access, full stop.
   const { data: listing, error: listingError } = await supabase
     .from(listingTable)
-    .select("id, person_id, paid, status")
+    .select("id, person_id, paid, status, deleted_at")
     .eq("id", listingId)
     .maybeSingle();
 
@@ -108,6 +112,14 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       );
     }
+  }
+
+  // Never take payment for a listing that can no longer be matched.
+  if (listing.deleted_at || listing.status === "superseded") {
+    return NextResponse.json({ error: "This listing has been removed or replaced, so it can't be paid for." }, { status: 409 });
+  }
+  if (mode === "new" && (listing.status === "filled" || listing.status === "expired")) {
+    return NextResponse.json({ error: "This listing has ended. Please create a new one." }, { status: 409 });
   }
 
   // A first purchase on something already paid for would overwrite it — extra credits must go through top-up.

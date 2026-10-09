@@ -1,5 +1,7 @@
 "use client";
 
+import { safeHttpsUrl } from "@/lib/videoEmbed";
+
 import { useEffect, useState } from "react";
 import RequireProfile from "@/components/RequireProfile";
 import EmptyState from "@/components/EmptyState";
@@ -215,6 +217,11 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
         setError("Evidence file must be under 10MB.");
         return;
       }
+    }
+
+    if (introVideoUrl.trim() && !safeHttpsUrl(introVideoUrl)) {
+      setError("Intro video link must start with https:// (a YouTube, Vimeo or Loom link works best).");
+      return;
     }
 
     setSaving(true);

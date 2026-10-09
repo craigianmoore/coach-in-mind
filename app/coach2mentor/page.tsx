@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+export const metadata = { title: "Coach 2 Mentor", description: "Get matched with a verified mentor, or become a mentor." };
+
 // This used to embed its own full copy of the mentor sign-up form and
 // request-inbox UI — a second, older implementation living side by side
 // with the real one at /coach2mentor/mentor, written to the same table

@@ -31,7 +31,7 @@ import type {
 } from "@/types/database";
 import WordLimitedTextarea from "@/components/WordLimitedTextarea";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
-import { getEmbedUrl } from "@/lib/videoEmbed";
+import { getEmbedUrl, safeHttpsUrl } from "@/lib/videoEmbed";
 
 const WEIGHT_LABELS: Record<keyof Coach2MentorWeights, string> = {
   specialism_overlap: "Specialism overlap",
@@ -476,9 +476,9 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
                       />
                     </div>
                   )}
-                  {m.status !== "declined" && m.mentorIntroVideoUrl && !embedUrl && (
+                  {m.status !== "declined" && safeHttpsUrl(m.mentorIntroVideoUrl) && !embedUrl && (
                     <a
-                      href={m.mentorIntroVideoUrl}
+                      href={safeHttpsUrl(m.mentorIntroVideoUrl) ?? undefined}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-2 inline-block text-xs font-semibold underline"

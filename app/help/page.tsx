@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+export const metadata = { title: "Help and resources", description: "Guides, pricing, refunds and answers for coaches, clubs and mentors." };
+
 export default function HelpPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -92,7 +94,7 @@ export default function HelpPage() {
               <p className="font-medium text-gray-800">What am I actually paying for?</p>
               <p className="mt-1 text-gray-600">
                 A package of credits (1–3 for coaches, 1–5 for clubs; a coach credit = 30 days in front of clubs (up to 5 introductions), a club credit = one advert) or, for
-                mentors, mentee places (1, 2, 3, 5 or 10 at a time, from $100 each) that you can top up whenever you need more room. You're
+                mentors, mentee places (1, 2, 3, 5 or 10 at a time — $100 for one place, up to 10 places for $750) that you can top up whenever you need more room. You're
                 paying for a curated introduction, not a guaranteed outcome — what happens after
                 you're introduced is between you and the other party.
               </p>

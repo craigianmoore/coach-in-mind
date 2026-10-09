@@ -47,3 +47,16 @@ export function getEmbedUrl(rawUrl: string): string | null {
 
   return null;
 }
+
+// Returns the URL only if it is a well-formed https:// link, otherwise
+// null. Use this before putting any user-supplied URL into an href —
+// React does not block "javascript:" links.
+export function safeHttpsUrl(rawUrl: string | null | undefined): string | null {
+  if (!rawUrl) return null;
+  try {
+    const u = new URL(rawUrl.trim());
+    return u.protocol === "https:" ? u.href : null;
+  } catch {
+    return null;
+  }
+}

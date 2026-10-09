@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+export const metadata = { title: "Club 2 Coach", description: "Find a coach for your club, or find a coaching role near you." };
+
 export default function Club2CoachHomePage() {
   return (
     <div className="grid grid-cols-1 gap-6 py-8 sm:grid-cols-2">

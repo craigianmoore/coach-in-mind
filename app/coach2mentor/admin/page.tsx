@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { notifyMentoring } from "@/lib/notify";
 import { scoreCoach2MentorMatch } from "@/lib/scoring";
 import { copyShareBlurbToClipboard } from "@/lib/shareBlurb";
-import { getEmbedUrl } from "@/lib/videoEmbed";
+import { getEmbedUrl, safeHttpsUrl } from "@/lib/videoEmbed";
 import { CLUB2COACH_COACH_PACKAGES, COACH2MENTOR_MENTOR_CAPACITY_PACKAGES, ACCREDITATION_LEVELS } from "@/lib/constants";
 import type {
   Coach2MentorCoachListing,
@@ -134,8 +134,19 @@ function Coach2MentorAdmin() {
   // change on its next load.
   async function toggleStripePayments(value: boolean) {
     supabase.rpc("refresh_admin_session");
+    const previous = platformSettings;
     setPlatformSettings({ stripe_payments_enabled: value });
-    await supabase.from("platform_settings").update({ stripe_payments_enabled: value }).eq("id", true);
+    const { data, error } = await supabase
+      .from("platform_settings")
+      .update({ stripe_payments_enabled: value })
+      .eq("id", true)
+      .select("stripe_payments_enabled");
+    // The update only works from a master-PIN session. If nothing changed, put the
+    // toggle back so the screen never claims payments are off while checkout is live.
+    if (error || !data || data.length !== 1) {
+      setPlatformSettings(previous);
+      window.alert("Couldn't change the card payments switch. Check your master PIN session and try again.");
+    }
   }
 
   useEffect(() => {
@@ -820,9 +831,9 @@ function Coach2MentorAdmin() {
                             />
                           </div>
                         )}
-                        {requestRow.status === "suggested" && mentor.intro_video_url && !embedUrl && (
+                        {requestRow.status === "suggested" && safeHttpsUrl(mentor.intro_video_url) && !embedUrl && (
                           <a
-                            href={mentor.intro_video_url}
+                            href={safeHttpsUrl(mentor.intro_video_url) ?? undefined}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="mt-2 inline-block text-xs font-semibold underline"

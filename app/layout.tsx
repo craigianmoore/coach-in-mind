@@ -16,8 +16,29 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Coach In Mind",
-  description: "Shaping coaches minds on & off the pitch.",
+  metadataBase: new URL("https://www.coachinmind.com.au"),
+  title: {
+    default: "Coach In Mind",
+    template: "%s | Coach In Mind",
+  },
+  description:
+    "Coach In Mind matches football coaches with clubs, and coaches with mentors. Build a free profile and get matched.",
+  openGraph: {
+    type: "website",
+    url: "https://www.coachinmind.com.au",
+    siteName: "Coach In Mind",
+    title: "Coach In Mind",
+    description:
+      "Stop relying on group chats to fill a coaching role. Coach In Mind matches football coaches with clubs, and coaches with mentors.",
+    images: [{ url: "/coach-in-mind-logo.png" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Coach In Mind",
+    description:
+      "Matching football coaches with clubs, and coaches with mentors.",
+    images: ["/coach-in-mind-logo.png"],
+  },
 };
 
 export default function RootLayout({
