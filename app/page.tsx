@@ -60,6 +60,24 @@ const SOLUTIONS = [
   },
 ];
 
+function Pairs({ pairs }: { pairs: { pain: string; fix: string }[] }) {
+  return (
+    <div className="flex flex-col gap-4 border-t border-gray-200 pt-5 text-left">
+      {pairs.map((pr) => (
+        <div key={pr.pain}>
+          <p className="text-sm font-semibold text-gray-700 line-through decoration-red-500 decoration-2">
+            {pr.pain}
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-brand-navy">
+            <span className="font-bold text-emerald-700">The fix: </span>
+            {pr.fix}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function HomePage() {
   return (
     <div className="bg-white">
@@ -98,12 +116,15 @@ export default function HomePage() {
             <br />
             the same scramble
           </h2>
-          <p className="flex-grow text-sm leading-relaxed text-gray-600">
+          <p className="text-sm leading-relaxed text-gray-600">
             A coach decides not to coach the next season. Your committee
             spends weeks chasing word-of-mouth leads and posting in
             Facebook groups — and it&rsquo;s hard to know who&rsquo;s
             right for the level. Trials and the season creep closer.
           </p>
+          <div className="flex-grow">
+            <Pairs pairs={SOLUTIONS[0].pairs} />
+          </div>
           <span className="mt-1 self-center rounded-lg bg-brand-navy px-6 py-3 text-sm font-bold text-white">
             Find a coach for my club
           </span>
@@ -122,13 +143,16 @@ export default function HomePage() {
           <h2 className="text-center text-2xl font-bold leading-snug text-brand-navy">
             The roles are out there. You just can&rsquo;t see them
           </h2>
-          <p className="flex-grow text-sm leading-relaxed text-gray-600">
+          <p className="text-sm leading-relaxed text-gray-600">
             Many vacancies never get advertised publicly — they&rsquo;re
             filled through someone&rsquo;s mate, or a committee
             member&rsquo;s phone contacts. Meanwhile you&rsquo;re sitting
             on a licence and season after season of experience, ready to
             coach.
           </p>
+          <div className="flex-grow">
+            <Pairs pairs={SOLUTIONS[1].pairs} />
+          </div>
           <span className="mt-1 self-center rounded-lg bg-brand-navy px-6 py-3 text-sm font-bold text-white">
             Find a role near me
           </span>
@@ -226,83 +250,56 @@ export default function HomePage() {
         </h2>
 
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <div className="flex flex-col gap-3 rounded-2xl bg-navy-gradient p-8 text-left shadow-lg transition hover:-translate-y-1 hover:shadow-xl">
+          <Link href="/club2coach" className="flex flex-col gap-3 rounded-2xl bg-navy-gradient p-8 text-left shadow-lg transition hover:-translate-y-1 hover:shadow-xl">
             <h3 className="text-xl font-bold text-white">Clubs ↔ Coaches</h3>
             <span className="text-xs font-bold uppercase tracking-wider text-brand-goldLight underline decoration-brand-goldLight/70 underline-offset-4">
               Club2Coach
             </span>
-            <p className="flex-grow text-base italic leading-relaxed text-white/70">
+            <p className="text-base italic leading-relaxed text-white/70">
               Matching reviewed by our team for head coach, assistant and
               technical director vacancies — scored on accreditation,
               level, age group and region.
             </p>
-            <Link
-              href="/club2coach"
-              className="mt-1 inline-flex w-fit self-center items-center gap-1.5 rounded-lg bg-brand-goldLight px-5 py-2.5 text-base font-bold text-brand-navy transition hover:bg-white"
-            >
-              Explore Club2Coach →
             </Link>
-          </div>
 
-          <div className="flex flex-col gap-3 rounded-2xl bg-navy-gradient p-8 text-left shadow-lg transition hover:-translate-y-1 hover:shadow-xl">
+          <Link href="/coach2mentor" className="flex flex-col gap-3 rounded-2xl bg-navy-gradient p-8 text-left shadow-lg transition hover:-translate-y-1 hover:shadow-xl">
             <h3 className="text-xl font-bold text-white">Coaches ↔ Mentors</h3>
             <span className="text-xs font-bold uppercase tracking-wider text-brand-silverLight underline decoration-brand-silverLight/70 underline-offset-4">
               Coach2Mentor
             </span>
-            <p className="flex-grow text-base italic leading-relaxed text-white/70">
+            <p className="text-base italic leading-relaxed text-white/70">
               Coaches are matched with a verified mentor on specialism,
               career stage and availability. The mentor accepts or
               declines, then you connect.
             </p>
-            <Link
-              href="/coach2mentor"
-              className="mt-1 inline-flex w-fit self-center items-center gap-1.5 rounded-lg bg-brand-silverLight px-5 py-2.5 text-base font-bold text-brand-navy transition hover:bg-white"
-            >
-              Explore Coach2Mentor →
             </Link>
-          </div>
         </div>
       </div>
 
-      {/* SOLUTIONS — each pain paired with its fix, per audience; prices sit behind a button */}
+      {/* MENTORS + INVESTMENT */}
       <div className="mx-auto max-w-5xl px-4 pb-24 text-center">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
-          Solutions
-        </p>
-        <h2 className="mt-2 text-2xl font-bold text-brand-navy sm:text-3xl">
-          What is your time worth?
-        </h2>
-        <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-600">
-          Whether you&rsquo;re filling a role, finding one or giving back,
-          Coach In Mind does the legwork so you don&rsquo;t have to.
-        </p>
-        <div className="mt-8 grid grid-cols-1 gap-6 text-left lg:grid-cols-3">
-          {SOLUTIONS.map((col) => (
-            <div key={col.who} className="rounded-2xl bg-white p-6 shadow-lg ring-1 ring-black/5">
-              <h3 className={`text-sm font-extrabold uppercase tracking-wider ${col.tone}`}>
-                For {col.who.toLowerCase()}
-              </h3>
-              <div className="mt-4 flex flex-col gap-5">
-                {col.pairs.map((pr) => (
-                  <div key={pr.pain}>
-                    <p className="text-sm font-semibold text-gray-500 line-through decoration-gray-300">
-                      {pr.pain}
-                    </p>
-                    <p className="mt-1 text-sm leading-relaxed text-brand-navy">
-                      <span className="font-bold">The fix: </span>
-                      {pr.fix}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+        <div className="mx-auto max-w-xl rounded-2xl bg-white p-8 text-left shadow-lg ring-1 ring-black/5">
+          <p className="text-sm font-extrabold uppercase tracking-wider text-brand-navy">For mentors</p>
+          <h2 className="mt-2 text-xl font-bold text-brand-navy">Share what you know, on your terms</h2>
+          <div className="mt-4">
+            <Pairs pairs={SOLUTIONS[2].pairs} />
+          </div>
         </div>
         <p className="mx-auto mt-6 max-w-2xl text-xs text-gray-500">
           We make introductions &mdash; we can&rsquo;t guarantee a placement or a mentor match.
         </p>
 
-        <details className="group mt-8">
+        <p className="mt-16 text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
+          Investment
+        </p>
+        <h2 className="mt-2 text-2xl font-bold text-brand-navy sm:text-3xl">
+          What is your time worth?
+        </h2>
+        <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-600">
+          Coach In Mind does the legwork so you don&rsquo;t have to.
+        </p>
+
+        <details className="group mt-6">
           <summary className="mx-auto w-fit cursor-pointer list-none rounded-full border border-gray-300 bg-white px-5 py-2 text-sm font-semibold text-brand-navy shadow-sm hover:bg-gray-50">
             See the investment <span className="ml-1 text-gray-400 group-open:hidden">▾</span>
             <span className="ml-1 hidden text-gray-400 group-open:inline">▴</span>
