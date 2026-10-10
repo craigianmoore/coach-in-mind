@@ -210,12 +210,53 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* PRICING — collapsed by default so visitors understand how it works first; prices are one click away */}
+      {/* SOLUTIONS — leads with the problem; prices sit behind a button */}
       <div className="mx-auto max-w-5xl px-4 pb-24 text-center">
-        <details className="group">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
+          Solutions
+        </p>
+        <h2 className="mt-2 text-2xl font-bold text-brand-navy sm:text-3xl">
+          What is your time worth?
+        </h2>
+        <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-600">
+          Finding a coach shouldn&rsquo;t cost a club administrator weeks of
+          phone calls, social posts and sifting. Coach In Mind does the
+          legwork for you.
+        </p>
+        <div className="mt-8 grid grid-cols-1 gap-6 text-left sm:grid-cols-3">
+          <div className="rounded-2xl bg-white p-6 shadow-lg ring-1 ring-black/5">
+            <h3 className="text-lg font-bold text-brand-navy">The hunt</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Hours spent chasing names and waiting on replies. We match your
+              vacancy against coaches who are actively looking, so
+              introductions come to you.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-white p-6 shadow-lg ring-1 ring-black/5">
+            <h3 className="text-lg font-bold text-brand-navy">The compromise</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Settling for someone who isn&rsquo;t quite what you hoped. Every
+              match is scored against your criteria and reviewed by our team
+              before you see it.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-white p-6 shadow-lg ring-1 ring-black/5">
+            <h3 className="text-lg font-bold text-brand-navy">The re-advertise</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Starting again from scratch. If no coach is introduced in 90
+              days, your credit is returned automatically.
+            </p>
+          </div>
+        </div>
+        <p className="mx-auto mt-6 max-w-2xl text-xs text-gray-500">
+          We make introductions &mdash; we can&rsquo;t guarantee a placement.
+          Coaches and mentors get the same time-saving, curated approach.
+        </p>
+
+        <details className="group mt-8">
           <summary className="mx-auto w-fit cursor-pointer list-none rounded-full border border-gray-300 bg-white px-5 py-2 text-sm font-semibold text-brand-navy shadow-sm hover:bg-gray-50">
-            Prices <span className="ml-1 text-gray-400 group-open:hidden">(tap to view)</span>
-            <span className="ml-1 hidden text-gray-400 group-open:inline">(tap to hide)</span>
+            See what it costs <span className="ml-1 text-gray-400 group-open:hidden">▾</span>
+            <span className="ml-1 hidden text-gray-400 group-open:inline">▴</span>
           </summary>
           <p className="mx-auto mt-4 max-w-xl text-sm text-gray-500">
             Creating an account and building your profile is free. You only
