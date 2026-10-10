@@ -6,6 +6,60 @@ import CoachInMindLogo from "@/components/CoachInMindLogo";
 // section markup further down is kept ready to go.
 const SHOW_SUCCESS_STORIES = false;
 
+// Solutions section: each pain is paired with its fix, per audience.
+const SOLUTIONS = [
+  {
+    who: "Clubs",
+    tone: "text-[#7A5420]",
+    pairs: [
+      {
+        pain: "Weeks of chasing names and waiting on replies",
+        fix: "We match your vacancy against coaches who are actively looking, so introductions come to you.",
+      },
+      {
+        pain: "Settling for someone who isn\u2019t quite what you hoped",
+        fix: "Every match is scored on accreditation, level, age group and region, and reviewed by our team before you see it.",
+      },
+      {
+        pain: "Starting again from scratch",
+        fix: "If no coach is introduced in 90 days, your credit is returned automatically.",
+      },
+    ],
+  },
+  {
+    who: "Coaches",
+    tone: "text-[#3F4753]",
+    pairs: [
+      {
+        pain: "Roles filled through someone\u2019s mate before you ever see them",
+        fix: "Clubs bring their vacancies to us. We introduce you to the best fits for your accreditation, level and region.",
+      },
+      {
+        pain: "Sending applications into the void",
+        fix: "Your accreditation is up front, and contact details are only shared once a match is approved \u2014 you\u2019re introduced as a fit, not another name in a pile.",
+      },
+      {
+        pain: "Working it out on your own",
+        fix: "Coach2Mentor pairs you with a verified mentor on specialism and career stage. They accept, then you connect.",
+      },
+    ],
+  },
+  {
+    who: "Mentors",
+    tone: "text-brand-navy",
+    pairs: [
+      {
+        pain: "Good coaches who never think to ask",
+        fix: "Coaches who want a mentor are matched to you on specialism and availability \u2014 requests land on your own dashboard.",
+      },
+      {
+        pain: "Giving more time than you meant to",
+        fix: "You set the number of mentee places and accept or decline each request. You stay in control.",
+      },
+    ],
+  },
+];
+
 export default function HomePage() {
   return (
     <div className="bg-white">
@@ -210,7 +264,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* SOLUTIONS — leads with the problem; prices sit behind a button */}
+      {/* SOLUTIONS — each pain paired with its fix, per audience; prices sit behind a button */}
       <div className="mx-auto max-w-5xl px-4 pb-24 text-center">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
           Solutions
@@ -219,38 +273,33 @@ export default function HomePage() {
           What is your time worth?
         </h2>
         <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-600">
-          Finding a coach shouldn&rsquo;t cost a club administrator weeks of
-          phone calls, social posts and sifting. Coach In Mind does the
-          legwork for you.
+          Whether you&rsquo;re filling a role, finding one or giving back,
+          Coach In Mind does the legwork so you don&rsquo;t have to.
         </p>
-        <div className="mt-8 grid grid-cols-1 gap-6 text-left sm:grid-cols-3">
-          <div className="rounded-2xl bg-white p-6 shadow-lg ring-1 ring-black/5">
-            <h3 className="text-lg font-bold text-brand-navy">The hunt</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Hours spent chasing names and waiting on replies. We match your
-              vacancy against coaches who are actively looking, so
-              introductions come to you.
-            </p>
-          </div>
-          <div className="rounded-2xl bg-white p-6 shadow-lg ring-1 ring-black/5">
-            <h3 className="text-lg font-bold text-brand-navy">The compromise</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Settling for someone who isn&rsquo;t quite what you hoped. Every
-              match is scored against your criteria and reviewed by our team
-              before you see it.
-            </p>
-          </div>
-          <div className="rounded-2xl bg-white p-6 shadow-lg ring-1 ring-black/5">
-            <h3 className="text-lg font-bold text-brand-navy">The re-advertise</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Starting again from scratch. If no coach is introduced in 90
-              days, your credit is returned automatically.
-            </p>
-          </div>
+        <div className="mt-8 grid grid-cols-1 gap-6 text-left lg:grid-cols-3">
+          {SOLUTIONS.map((col) => (
+            <div key={col.who} className="rounded-2xl bg-white p-6 shadow-lg ring-1 ring-black/5">
+              <h3 className={`text-sm font-extrabold uppercase tracking-wider ${col.tone}`}>
+                For {col.who.toLowerCase()}
+              </h3>
+              <div className="mt-4 flex flex-col gap-5">
+                {col.pairs.map((pr) => (
+                  <div key={pr.pain}>
+                    <p className="text-sm font-semibold text-gray-500 line-through decoration-gray-300">
+                      {pr.pain}
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-brand-navy">
+                      <span className="font-bold">The fix: </span>
+                      {pr.fix}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
         <p className="mx-auto mt-6 max-w-2xl text-xs text-gray-500">
-          We make introductions &mdash; we can&rsquo;t guarantee a placement.
-          Coaches and mentors get the same time-saving, curated approach.
+          We make introductions &mdash; we can&rsquo;t guarantee a placement or a mentor match.
         </p>
 
         <details className="group mt-8">
