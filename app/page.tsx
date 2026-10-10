@@ -40,7 +40,7 @@ const SOLUTIONS = [
       },
       {
         pain: "Working it out on your own",
-        fix: "Coach2Mentor pairs you with a verified mentor on specialism and career stage. They accept, then you connect.",
+        fix: "Coach2Mentor offers a chance to pair you with a verified mentor on specialism and career stage. They accept, then you connect.",
       },
     ],
   },
