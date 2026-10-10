@@ -65,7 +65,7 @@ function Pairs({ pairs }: { pairs: { pain: string; fix: string }[] }) {
     <div className="flex flex-col gap-4 border-t border-gray-200 pt-5 text-left">
       {pairs.map((pr) => (
         <div key={pr.pain}>
-          <p className="text-sm font-semibold text-gray-700 line-through decoration-red-500 decoration-2">
+          <p className="text-sm font-semibold text-gray-700 line-through decoration-red-500 decoration-1">
             {pr.pain}
           </p>
           <p className="mt-1 text-sm leading-relaxed text-brand-navy">
@@ -240,50 +240,25 @@ export default function HomePage() {
         </span>
       </div>
 
-      {/* TWO PRODUCTS */}
-      <div className="mx-auto max-w-5xl px-4 py-24 text-center">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
-          Two products, one platform
-        </p>
-        <h2 className="mt-2 text-2xl font-bold text-brand-navy sm:text-3xl">
-          Whatever the role, one login
-        </h2>
-
-        <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <Link href="/club2coach" className="flex flex-col gap-3 rounded-2xl bg-navy-gradient p-8 text-left shadow-lg transition hover:-translate-y-1 hover:shadow-xl">
-            <h3 className="text-xl font-bold text-white">Clubs ↔ Coaches</h3>
-            <span className="text-xs font-bold uppercase tracking-wider text-brand-goldLight underline decoration-brand-goldLight/70 underline-offset-4">
-              Club2Coach
-            </span>
-            <p className="text-base italic leading-relaxed text-white/70">
-              Matching reviewed by our team for head coach, assistant and
-              technical director vacancies — scored on accreditation,
-              level, age group and region.
-            </p>
-            </Link>
-
-          <Link href="/coach2mentor" className="flex flex-col gap-3 rounded-2xl bg-navy-gradient p-8 text-left shadow-lg transition hover:-translate-y-1 hover:shadow-xl">
-            <h3 className="text-xl font-bold text-white">Coaches ↔ Mentors</h3>
-            <span className="text-xs font-bold uppercase tracking-wider text-brand-silverLight underline decoration-brand-silverLight/70 underline-offset-4">
-              Coach2Mentor
-            </span>
-            <p className="text-base italic leading-relaxed text-white/70">
-              Coaches are matched with a verified mentor on specialism,
-              career stage and availability. The mentor accepts or
-              declines, then you connect.
-            </p>
-            </Link>
-        </div>
-      </div>
-
       {/* MENTORS + INVESTMENT */}
       <div className="mx-auto max-w-5xl px-4 pb-24 text-center">
-        <div className="mx-auto max-w-xl rounded-2xl bg-white p-8 text-left shadow-lg ring-1 ring-black/5">
-          <p className="text-sm font-extrabold uppercase tracking-wider text-brand-navy">For mentors</p>
-          <h2 className="mt-2 text-xl font-bold text-brand-navy">Share what you know, on your terms</h2>
-          <div className="mt-4">
-            <Pairs pairs={SOLUTIONS[2].pairs} />
-          </div>
+        <div className="mx-auto flex max-w-xl flex-col gap-4 rounded-2xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+          <span className="flex h-[88px] w-[88px] self-center items-center justify-center rounded-2xl border-[3px] border-[#2B3358] bg-[#C9CDE6] shadow-md">
+            <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#191B41" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z" /><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5" /><path d="M22 10v6" /></svg>
+          </span>
+          <span className="self-center text-xl font-extrabold uppercase tracking-wider text-brand-navy">
+            For mentors
+          </span>
+          <h2 className="text-center text-2xl font-bold leading-snug text-brand-navy">
+            Share what you know, on your terms
+          </h2>
+          <Pairs pairs={SOLUTIONS[2].pairs} />
+          <Link
+            href="/coach2mentor/mentor"
+            className="mt-1 self-center rounded-lg bg-brand-navy px-6 py-3 text-sm font-bold text-white hover:bg-brand-navyLight"
+          >
+            Become a mentor
+          </Link>
         </div>
         <p className="mx-auto mt-6 max-w-2xl text-xs text-gray-500">
           We make introductions &mdash; we can&rsquo;t guarantee a placement or a mentor match.
