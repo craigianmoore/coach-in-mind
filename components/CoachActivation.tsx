@@ -91,7 +91,11 @@ export default function CoachActivation({
   return (
     <div className="h-full rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
       <p>
-        <strong>{expired ? "Your listing isn't in matching any more." : "Your listing isn't in matching yet."}</strong>{" "}
+        <strong>
+          {product === "club2coach"
+            ? expired ? "Clubs can't see you any more." : "Clubs can't see you yet."
+            : expired ? "Mentors can't see you any more." : "Mentors can't see you yet."}
+        </strong>{" "}
         {product === "club2coach"
           ? `One credit shows you to clubs for ${days} days once you press Activate, with up to 5 club introductions in that time.`
           : `One credit puts it in front of mentors for ${days} days from the day you press Activate.`}

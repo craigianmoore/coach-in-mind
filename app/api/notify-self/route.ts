@@ -7,7 +7,7 @@ import { isRateLimited } from "@/lib/server/rateLimit";
 // (read from their own people row — the client never supplies a recipient).
 const TEMPLATES: Record<string, { subject: string; body: (d: string) => string }> = {
   signup: {
-    subject: "Welcome to Coach In Mind",
+    subject: "Welcome — now let clubs know you're looking",
     body: () =>
       `Thanks for signing up. Your account is ready — sign in any time to let clubs know you are looking for a role, or to advertise a coaching vacancy for your club:\n${APP_URL}`,
   },

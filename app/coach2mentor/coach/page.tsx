@@ -82,7 +82,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
 
   const [matches, setMatches] = useState<(Coach2MentorRequest & { mentorName?: string; mentorBio?: string; mentorIntroVideoUrl?: string })[]>([]);
   const [bank, setBank] = useState(0);
-  const [justSaved, setJustSaved] = useState(false);
+  const [dirty, setDirty] = useState(false); // true once a detail has been changed since the last save
   const [topupPackage, setTopupPackage] = useState(1);
   const [requestingTopup, setRequestingTopup] = useState(false);
 
@@ -292,8 +292,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
 
     await load();
     setSaving(false);
-    setJustSaved(true);
-    setTimeout(() => setJustSaved(false), 6000);
+    setDirty(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (isNew) {
@@ -512,7 +511,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
+      <form onSubmit={handleSubmit} onChange={() => setDirty(true)} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Preferred mentor gender</label>
@@ -759,7 +758,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
           disabled={saving || !agreedToTerms}
           className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
         >
-          {saving ? "Saving…" : justSaved ? "✓ Details saved" : existing ? "Save changes" : "Save profile"}
+          {saving ? "Saving…" : existing ? (dirty ? "Save details" : "✓ Details saved") : "Save profile"}
         </button>
       </form>
 

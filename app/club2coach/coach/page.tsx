@@ -65,7 +65,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(1);
   const [bank, setBank] = useState(0);
-  const [justSaved, setJustSaved] = useState(false);
+  const [dirty, setDirty] = useState(false); // true once a detail has been changed since the last save
   const [topupPackage, setTopupPackage] = useState(1);
   const [requestingTopup, setRequestingTopup] = useState(false);
 
@@ -380,8 +380,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
 
     await load();
     setSaving(false);
-    setJustSaved(true);
-    setTimeout(() => setJustSaved(false), 6000);
+    setDirty(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (!existing) {
@@ -436,7 +435,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
 
   return (
     <div className="py-8">
-      <h1 className="text-xl font-bold">Find a Coaching Role</h1>
+      <h1 className="text-xl font-bold">Let clubs know you&apos;re looking</h1>
 
       {!existing?.paid && bank < 1 && <FoundingBanner className="mt-4" />}
 
@@ -579,7 +578,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
+      <form onSubmit={handleSubmit} onChange={() => setDirty(true)} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
         <div>
           <label className="text-xs font-semibold uppercase text-gray-500">Coaching role sought</label>
           <select
@@ -919,7 +918,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
             disabled={saving || !agreedToTerms}
             className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
           >
-            {saving ? "Saving…" : justSaved ? "✓ Details saved" : existing ? "Save changes" : "Add coach listing"}
+            {saving ? "Saving…" : existing ? (dirty ? "Save details" : "✓ Details saved") : "Let clubs know I'm looking"}
           </button>
           {existing && (
             <button

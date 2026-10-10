@@ -179,6 +179,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   const stripeEnabled = useStripePaymentsEnabled();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false); // true once a detail has been changed since the last save/open
   const [error, setError] = useState<string | null>(null);
 
   const [vacancies, setVacancies] = useState<Club2CoachClubVacancy[]>([]);
@@ -203,6 +204,10 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   // (status -> "superseded") once the new one is saved, so the two
   // never both sit active and contest the same coaches.
   const [repostingFromId, setRepostingFromId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDirty(false);
+  }, [editingId]);
 
   useEffect(() => {
     load();
@@ -482,6 +487,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
     await load();
     setSaving(false);
+    setDirty(false);
 
     if (isNew) {
       notifyAdmin(
@@ -885,7 +891,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
+      <form onSubmit={handleSubmit} onChange={() => setDirty(true)} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
         <div>
           <label className="text-xs font-semibold uppercase text-gray-500">Member Federation *</label>
           <select
@@ -1253,7 +1259,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             disabled={saving || !form.agreedToTerms}
             className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
           >
-            {saving ? "Saving…" : existing ? "Save changes" : "Advertise Coaching Role"}
+            {saving ? "Saving…" : existing ? (dirty ? "Save details" : "✓ Details saved") : "Advertise Coaching Role"}
           </button>
           <button
             type="button"

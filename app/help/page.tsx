@@ -200,7 +200,7 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">Finding a role or mentor (coaches)</p>
               <p className="mt-1 text-gray-600">
-                Set up your profile with what you're looking for, choose a package, and once
+                Sign up, then press "Let clubs know I'm looking" and describe what you're looking for. Choose a package, and once
                 payment's confirmed, Coach In Mind will introduce you to your best-fitting matches.
                 On Coach 2 Mentor, you can also set your own personal priorities to shape how
                 you're matched.

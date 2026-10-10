@@ -21,6 +21,7 @@ function ProfileForm() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false); // true once a detail has been changed since the last save
   const [existing, setExisting] = useState<Person | null>(null);
 
   const [fullName, setFullName] = useState("");
@@ -161,6 +162,7 @@ function ProfileForm() {
 
     setExisting(saved as Person);
     setSavedMessage("Profile saved.");
+    setDirty(false);
     setTimeout(() => setSavedMessage(null), 3000);
     window.scrollTo({ top: 0, behavior: "smooth" });
 
@@ -201,7 +203,7 @@ function ProfileForm() {
         for) separately.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4 rounded-xl border bg-white p-6">
+      <form onSubmit={handleSubmit} onChange={() => setDirty(true)} className="mt-6 flex flex-col gap-4 rounded-xl border bg-white p-6">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Full name *</label>
@@ -337,7 +339,7 @@ function ProfileForm() {
           disabled={saving}
           className="rounded-lg bg-brand-navy px-4 py-2 font-semibold text-white hover:bg-brand-navyLight disabled:opacity-50"
         >
-          {saving ? "Saving…" : existing ? "Save changes" : "Create profile"}
+          {saving ? "Saving…" : existing ? (dirty ? "Save details" : "✓ Details saved") : "Create profile"}
         </button>
       </form>
 

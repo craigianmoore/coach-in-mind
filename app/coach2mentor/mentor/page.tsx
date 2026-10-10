@@ -40,6 +40,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
   const stripeEnabled = useStripePaymentsEnabled();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false); // true once a detail has been changed since the last save
   const [error, setError] = useState<string | null>(null);
   const [existing, setExisting] = useState<Coach2MentorMentorListing | null>(null);
 
@@ -292,6 +293,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
 
     await load();
     setSaving(false);
+    setDirty(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (!existing) {
@@ -423,7 +425,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
+      <form onSubmit={handleSubmit} onChange={() => setDirty(true)} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Preferred coach gender</label>
@@ -892,7 +894,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
             disabled={saving || !agreedToTerms}
             className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
           >
-            {uploadingEvidence ? "Uploading evidence…" : saving ? "Saving…" : existing ? "Save changes" : "Save profile"}
+            {uploadingEvidence ? "Uploading evidence…" : saving ? "Saving…" : existing ? (dirty ? "Save details" : "✓ Details saved") : "Save profile"}
           </button>
           {existing && (
             <button
