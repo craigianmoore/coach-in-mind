@@ -17,7 +17,7 @@ export async function notifyAdmin(subject: string, text: string) {
 // Best-effort confirmation email to the signed-in user themselves.
 // The server decides the recipient (their own address) and the wording;
 // the client only says which kind of confirmation and a short detail.
-export async function notifySelf(type: "signup" | "coach_listing" | "vacancy" | "coach_profile" | "mentor_profile", detail = "") {
+export async function notifySelf(type: "signup" | "signup_coach" | "signup_club" | "signup_mentor" | "coach_listing" | "vacancy" | "coach_profile" | "mentor_profile", detail = "") {
   try {
     await fetch("/api/notify-self", {
       method: "POST",

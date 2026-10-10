@@ -181,7 +181,17 @@ function ProfileForm() {
         `New signup: ${fullName}`,
         `Someone has just signed up to Coach In Mind.\n\nName: ${fullName}\nEmail: ${email}\nMobile: ${mobile}\nRegion: ${region || "not set"} · Accreditation: ${currentLicence}`
       );
-      notifySelf("signup");
+      // Pick the welcome email from the page they signed up from (generic if unknown).
+      const from = next ?? "";
+      notifySelf(
+        from.startsWith("/club2coach/club")
+          ? "signup_club"
+          : from.startsWith("/club2coach/coach") || from.startsWith("/coach2mentor/coach")
+            ? "signup_coach"
+            : from.startsWith("/coach2mentor/mentor")
+              ? "signup_mentor"
+              : "signup"
+      );
     }
 
     if (next) {

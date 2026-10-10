@@ -6,10 +6,27 @@ import { isRateLimited } from "@/lib/server/rateLimit";
 // Confirmation email to the signed-in user, at THEIR OWN address only
 // (read from their own people row — the client never supplies a recipient).
 const TEMPLATES: Record<string, { subject: string; body: (d: string) => string }> = {
+  // Generic welcome (we don't know which role they came for).
   signup: {
+    subject: "Welcome to Coach In Mind",
+    body: () =>
+      `Thanks for signing up. Your account is ready — sign in any time to let clubs know you are looking for a role, or to advertise a coaching role for your club:\n${APP_URL}`,
+  },
+  // Role-specific welcomes, chosen from the page the person signed up from.
+  signup_coach: {
     subject: "Welcome — now let clubs know you're looking",
     body: () =>
-      `Thanks for signing up. Your account is ready — sign in any time to let clubs know you are looking for a role, or to advertise a coaching vacancy for your club:\n${APP_URL}`,
+      `Thanks for signing up. Your account is ready — sign in any time to let clubs know you are looking for a role:\n${APP_URL}/club2coach/coach`,
+  },
+  signup_club: {
+    subject: "Welcome — now advertise your coaching role",
+    body: () =>
+      `Thanks for signing up. Your account is ready — sign in any time to advertise a coaching role for your club:\n${APP_URL}/club2coach/club`,
+  },
+  signup_mentor: {
+    subject: "Welcome — now set up your mentor profile",
+    body: () =>
+      `Thanks for signing up. Your account is ready — sign in any time to set up your mentor profile:\n${APP_URL}/coach2mentor/mentor`,
   },
   coach_listing: {
     subject: "Your coaching listing is saved — one step left to activate it",
