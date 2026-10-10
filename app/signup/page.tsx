@@ -11,7 +11,7 @@ function SignupForm() {
   const router = useRouter();
   const supabase = createClient();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/profile";
+  const explicitNext = searchParams.get("next");
 
   // Remember a referral code from /signup?ref=CODE so the profile step
   // (which may happen after an email-confirmation round trip) can apply it.
@@ -33,6 +33,10 @@ function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [confirmEmailSent, setConfirmEmailSent] = useState(false);
+  // Optional: what they are here for. Only asked when they didn't arrive from a specific page.
+  const [role, setRole] = useState<"" | "coach" | "club" | "mentor">("");
+  const ROLE_PATHS = { coach: "/club2coach/coach", club: "/club2coach/club", mentor: "/coach2mentor/mentor" } as const;
+  const next = explicitNext || (role ? ROLE_PATHS[role] : "/profile");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -96,6 +100,29 @@ function SignupForm() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+        {!explicitNext && (
+          <fieldset className="flex flex-col gap-2 text-sm text-gray-700">
+            <legend className="mb-1 font-semibold text-brand-navy">I&apos;m signing up as a…</legend>
+            {(
+              [
+                ["coach", "Coach looking for a role"],
+                ["club", "Club with a coaching role to fill"],
+                ["mentor", "Mentor"],
+                ["", "Not sure yet"],
+              ] as const
+            ).map(([value, label]) => (
+              <label key={value || "none"} className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="role"
+                  checked={role === value}
+                  onChange={() => setRole(value)}
+                />
+                {label}
+              </label>
+            ))}
+          </fieldset>
+        )}
         <input
           type="email"
           required
