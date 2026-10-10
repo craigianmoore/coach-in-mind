@@ -43,14 +43,14 @@ export default function FoundingBanner({
           First 60 coaches get a FREE credit
         </p>
         <p className="mt-2 text-lg font-semibold">
-          Use it for Club 2 Coach or Coach 2 Mentor — you choose. Only {left} spot{left === 1 ? "" : "s"} left. It buys 30 days in front of clubs, or 60 days of mentor matching if you use it to find a mentor, and the clock only starts when you press Activate.
+          Sign up free and save your listing now, then press Activate whenever you&apos;re ready. Use your credit for Club 2 Coach (30 days in front of clubs) or Coach 2 Mentor (60 days of mentor matching) — you choose, and the clock only starts when you press Activate. Only {left} spot{left === 1 ? "" : "s"} left; the free credit is given when you press Activate, first come first served.
         </p>
         {bar}
         <Link
           href="/signup"
           className="mt-4 inline-block rounded-xl bg-[#1a1530] px-8 py-3 text-lg font-bold text-white shadow-lg hover:bg-black"
         >
-          Claim your free credit →
+          Sign up free →
         </Link>
       </div>
     );
@@ -65,7 +65,7 @@ export default function FoundingBanner({
         First {s.lim} coaches get a FREE credit
       </p>
       <p className="mt-1 text-sm font-semibold">
-        Only {left} of {s.lim} left — save your listing (Club 2 Coach or Coach 2 Mentor), then press Activate when you're ready — it buys 30 days in front of clubs, or 60 days of mentor matching.
+        Only {left} of {s.lim} left — save your listing (Club 2 Coach or Coach 2 Mentor) now, then press Activate when you&apos;re ready. The free credit is given when you press Activate (first come first served) and buys 30 days in front of clubs, or 60 days of mentor matching.
       </p>
       {bar}
     </div>
