@@ -14,7 +14,7 @@ export default function Coach2MentorLayout({ children }: { children: React.React
             <p className="text-sm font-medium tracking-wide text-white/70">
               Coach &amp; Mentor Matching
             </p>
-            <nav className="mt-4 flex gap-3 text-sm font-semibold text-white/90">
+            <nav className="mt-4 flex flex-wrap gap-3 text-sm font-semibold text-white/90">
               <Link
                 href="/coach2mentor/coach"
                 className="rounded-lg bg-white/10 px-4 py-2 shadow-sm transition hover:-translate-y-0.5 hover:bg-white/20 hover:shadow"
