@@ -111,6 +111,14 @@ story.append(Paragraph(
     "choose which service to use, and each is paid for separately.",
     body_style,
 ))
+story.append(Paragraph(
+    "<b>Getting started.</b> Sign up with your email and a password, and tell us what you're signing up as — "
+    "a coach looking for a role, a club with a coaching role to fill, or a mentor (or \"not sure yet\"). Confirm your "
+    "email from the message we send, then log in and complete your profile. Signing up only creates your account: "
+    "coaches then press <b>Let clubs know I'm looking</b>, clubs press <b>Advertise Coaching Role</b>, and mentors set up "
+    "their mentor profile, to go further.",
+    body_style,
+))
 
 story.append(Paragraph("Club 2 Coach", h2_style))
 story.append(Paragraph(

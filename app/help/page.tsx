@@ -176,9 +176,12 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">Setting up your profile</p>
               <p className="mt-1 text-gray-600">
-                After creating your account, fill in your profile on the "My Profile" page — this
-                shared identity is used whether you're a coach, club, or mentor. Then choose which
-                service you want from the options shown: Club 2 Coach or Coach 2 Mentor.
+                When you sign up, tell us whether you're a coach looking for a role, a club with a
+                coaching role to fill, or a mentor (or "not sure yet"). Signing up only creates your
+                account. Confirm your email, log in, and fill in your profile on the "My Profile" page —
+                this shared identity is used whether you're a coach, club, or mentor. Then take the next
+                step: coaches press "Let clubs know I'm looking", clubs press "Advertise Coaching Role", and
+                mentors set up their mentor profile.
               </p>
             </div>
             <div>
