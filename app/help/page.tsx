@@ -184,7 +184,7 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">Advertising a vacancy (clubs)</p>
               <p className="mt-1 text-gray-600">
-                From Club 2 Coach, click "Advertise a Vacancy," fill in your requirements, and
+                From Club 2 Coach, click "Advertise a Coaching Role," fill in your requirements, and
                 choose a package. Coach In Mind will be in touch about payment — once confirmed,
                 your vacancy activates and matching begins automatically.
               </p>

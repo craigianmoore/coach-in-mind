@@ -759,9 +759,8 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
           disabled={saving || !agreedToTerms}
           className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
         >
-          {saving ? "Saving…" : existing ? "Save changes" : "Save profile"}
+          {saving ? "Saving…" : justSaved ? "✓ Details saved" : existing ? "Save changes" : "Save profile"}
         </button>
-        {justSaved && <p className="mt-2 text-sm font-semibold text-green-700">✓ Changes saved</p>}
       </form>
 
       <TermsModal

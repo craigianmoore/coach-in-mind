@@ -544,7 +544,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             onClick={openNewForm}
             className="btn-accent rounded-lg px-5 py-2 font-semibold"
           >
-            Advertise a Vacancy
+            Advertise a Coaching Role
           </button>
         </div>
 
@@ -556,7 +556,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
         {vacancies.length === 0 ? (
           <div className="mt-6">
-            <EmptyState message='No vacancies advertised yet — click "Advertise a Vacancy" to add your first one.' />
+            <EmptyState message='No vacancies advertised yet — click "Advertise a Coaching Role" to add your first one.' />
           </div>
         ) : (
           <div className="mt-6 flex flex-col gap-3">
@@ -641,7 +641,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     <div className="py-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">
-          {existing ? "Edit Coaching Vacancy" : "Advertise a Coaching Vacancy"}
+          {existing ? "Edit Coaching Vacancy" : "Advertise a Coaching Role"}
         </h1>
         <button type="button" onClick={closeForm} className="text-sm font-medium text-gray-500 hover:text-gray-700">
           ← Back to your vacancies
@@ -1253,7 +1253,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             disabled={saving || !form.agreedToTerms}
             className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
           >
-            {saving ? "Saving…" : existing ? "Save changes" : "Add vacancy"}
+            {saving ? "Saving…" : existing ? "Save changes" : "Advertise Coaching Role"}
           </button>
           <button
             type="button"

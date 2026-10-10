@@ -25,7 +25,7 @@ export default function Club2CoachLayout({ children }: { children: React.ReactNo
                 href="/club2coach/club"
                 className="rounded-lg bg-black/10 px-4 py-2 shadow-sm transition hover:-translate-y-0.5 hover:bg-black/20 hover:shadow"
               >
-                Advertise a Coaching Vacancy
+                Advertise a Coaching Role
               </Link>
             </nav>
           </div>

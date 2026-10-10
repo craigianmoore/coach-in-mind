@@ -919,9 +919,8 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
             disabled={saving || !agreedToTerms}
             className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
           >
-            {saving ? "Saving…" : existing ? "Save changes" : "Add coach listing"}
+            {saving ? "Saving…" : justSaved ? "✓ Details saved" : existing ? "Save changes" : "Add coach listing"}
           </button>
-          {justSaved && <span className="self-center text-sm font-semibold text-green-700">✓ Changes saved</span>}
           {existing && (
             <button
               type="button"

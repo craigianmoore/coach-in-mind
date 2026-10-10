@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 // "Founding member" offer: the first N coaches get a free introduction.
@@ -46,12 +45,7 @@ export default function FoundingBanner({
           Sign up as a coach and your free credit is added to your account straight away — press Activate whenever you&apos;re ready. Use your credit for Club 2 Coach (30 days in front of clubs) or Coach 2 Mentor (60 days of mentor matching) — you choose, and the clock only starts when you press Activate. Only {left} spot{left === 1 ? "" : "s"} left.
         </p>
         {bar}
-        <Link
-          href="/signup"
-          className="mt-4 inline-block rounded-xl bg-[#1a1530] px-8 py-3 text-lg font-bold text-white shadow-lg hover:bg-black"
-        >
-          Sign up free →
-        </Link>
+        <p className="mt-4 text-lg font-extrabold">Sign up free below ↓</p>
       </div>
     );
   }
