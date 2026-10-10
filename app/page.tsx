@@ -255,7 +255,7 @@ export default function HomePage() {
 
         <details className="group mt-8">
           <summary className="mx-auto w-fit cursor-pointer list-none rounded-full border border-gray-300 bg-white px-5 py-2 text-sm font-semibold text-brand-navy shadow-sm hover:bg-gray-50">
-            See what it costs <span className="ml-1 text-gray-400 group-open:hidden">▾</span>
+            See the investment <span className="ml-1 text-gray-400 group-open:hidden">▾</span>
             <span className="ml-1 hidden text-gray-400 group-open:inline">▴</span>
           </summary>
           <p className="mx-auto mt-4 max-w-xl text-sm text-gray-500">
