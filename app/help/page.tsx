@@ -122,8 +122,8 @@ export default function HelpPage() {
               <p className="mt-1 text-gray-600">
                 The first 60 coaches to sign up get one free credit, to use on either
                 Club 2 Coach or Coach 2 Mentor (you choose — one per coach, and not for mentor
-                profiles). When you save your coach listing, the credit is added to your credit
-                balance straight away, and you press Activate on your coach page whenever you're ready.
+                profiles). The credit is added to your credit balance as soon as you open your coach page
+                (Club 2 Coach or Coach 2 Mentor), and you press Activate there whenever you're ready.
                 The clock starts when you press Activate (30 days on Club 2 Coach, 60 on Coach 2
                 Mentor); we email you a week before it ends. Once all 60 places are taken the offer
                 ends. Clubs have their own free first introduction.

@@ -119,6 +119,11 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
   }
 
   async function load() {
+    // Founding offer: coaches get their free credit as soon as they open this page (before saving a
+    // listing). The database decides eligibility, so a "no" here is fine and silent.
+    await supabase.rpc("claim_founding_credit");
+    setBank(await loadCoachBank(supabase, person.id));
+
     const { data: settingsData } = await supabase
       .from("admin_settings")
       .select("*")
@@ -285,15 +290,6 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
       return;
     }
 
-    // Founding offer: saving a listing claims one of the free credits straight away (it waits in the
-    // coach's credit balance until they press Activate). The database decides eligibility; ignore "no".
-    if (!existing?.paid) {
-      const listingId = existing?.id ?? newListingId;
-      if (listingId) {
-        await supabase.rpc("claim_founding_credit", { target_table: "coach2mentor_coach_listings", target_listing_id: listingId });
-      }
-    }
-
     await load();
     setSaving(false);
     setJustSaved(true);
@@ -330,7 +326,14 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
         there's no browsing required.
       </p>
 
-      {!existing?.paid && <FoundingBanner className="mt-4" />}
+      {!existing?.paid && bank < 1 && <FoundingBanner className="mt-4" />}
+
+      {!existing && bank >= 1 && (
+        <div className="mt-4 rounded-xl border-2 border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">
+          <strong>🎉 Your free founding credit is in your account.</strong> Fill in your details below and save your listing, then press
+          Activate whenever you&apos;re ready — the clock only starts then.
+        </div>
+      )}
 
       {existing && (
         <div className="mt-4">
@@ -338,7 +341,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
         </div>
       )}
 
-      {existing && !existing.paid && (
+      {existing && !existing.paid && bank < 1 && (
         <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <strong>Need a credit? (${CLUB2COACH_COACH_PACKAGES[selectedPackage]} AUD for your chosen package):</strong> save
           your listing, then Coach In Mind will be in touch about how to pay, or pay now by card. Credits are added to your credit balance — you
