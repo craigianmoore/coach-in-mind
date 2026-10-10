@@ -373,6 +373,15 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       return;
     }
 
+    // Founding offer: saving a listing claims one of the free credits straight away (it waits in the
+    // coach's credit balance until they press Activate). The database decides eligibility; ignore "no".
+    if (!existing?.paid) {
+      const listingId = existing?.id ?? newListingId;
+      if (listingId) {
+        await supabase.rpc("claim_founding_credit", { target_table: "club2coach_coach_listings", target_listing_id: listingId });
+      }
+    }
+
     await load();
     setSaving(false);
     setJustSaved(true);

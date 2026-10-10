@@ -120,13 +120,13 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">What's the founding member offer?</p>
               <p className="mt-1 text-gray-600">
-                The first 60 coaches to use it get one free credit, to use on either
+                The first 60 coaches to sign up get one free credit, to use on either
                 Club 2 Coach or Coach 2 Mentor (you choose — one per coach, and not for mentor
-                profiles). You can sign up and save your listing now and press Activate on your coach
-                page whenever you're ready. The free credit is given at the moment you press Activate
-                (first come first served), and the clock starts then (30 days on Club 2 Coach, 60 on
-                Coach 2 Mentor); we email you a week before it ends. Once all 60 places are taken the
-                offer ends. Clubs have their own free first introduction.
+                profiles). When you save your coach listing, the credit is added to your credit
+                balance straight away, and you press Activate on your coach page whenever you're ready.
+                The clock starts when you press Activate (30 days on Club 2 Coach, 60 on Coach 2
+                Mentor); we email you a week before it ends. Once all 60 places are taken the offer
+                ends. Clubs have their own free first introduction.
               </p>
             </div>
             <div>
