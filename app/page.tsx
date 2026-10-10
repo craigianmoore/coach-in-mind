@@ -210,18 +210,17 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* PRICING */}
+      {/* PRICING — collapsed by default so visitors understand how it works first; prices are one click away */}
       <div className="mx-auto max-w-5xl px-4 pb-24 text-center">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
-          Simple pricing
-        </p>
-        <h2 className="mt-2 text-2xl font-bold text-brand-navy sm:text-3xl">
-          Pay only when you&rsquo;re ready
-        </h2>
-        <p className="mx-auto mt-3 max-w-xl text-sm text-gray-500">
-          Creating an account and building your profile is free. You only
-          pay to activate. All prices are in AUD and include GST.
-        </p>
+        <details className="group">
+          <summary className="mx-auto w-fit cursor-pointer list-none rounded-full border border-gray-300 bg-white px-5 py-2 text-sm font-semibold text-brand-navy shadow-sm hover:bg-gray-50">
+            Prices <span className="ml-1 text-gray-400 group-open:hidden">(tap to view)</span>
+            <span className="ml-1 hidden text-gray-400 group-open:inline">(tap to hide)</span>
+          </summary>
+          <p className="mx-auto mt-4 max-w-xl text-sm text-gray-500">
+            Creating an account and building your profile is free. You only
+            pay to activate. All prices are in AUD and include GST.
+          </p>
         <div className="mt-8 grid grid-cols-1 gap-6 text-left sm:grid-cols-3">
           <div className="rounded-2xl bg-white p-6 shadow-lg ring-1 ring-black/5">
             <h3 className="text-lg font-bold text-brand-navy">Coaches</h3>
@@ -269,6 +268,7 @@ export default function HomePage() {
             </p>
           </div>
         </div>
+        </details>
       </div>
 
       {/* SUCCESS STORIES — hidden until there is a real story to show.
