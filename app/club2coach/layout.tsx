@@ -14,16 +14,16 @@ export default function Club2CoachLayout({ children }: { children: React.ReactNo
             <p className="text-sm font-medium tracking-wide" style={{ color: "var(--header-text)" }}>
               Club &amp; Coach Matching
             </p>
-            <nav className="mt-4 flex gap-3 text-sm font-semibold" style={{ color: "var(--header-text)" }}>
+            <nav className="mt-4 flex flex-wrap gap-3 text-sm font-semibold" style={{ color: "var(--header-text)" }}>
               <Link
                 href="/club2coach/coach"
-                className="rounded-full bg-black/10 px-4 py-2 shadow-sm transition hover:-translate-y-0.5 hover:bg-black/20 hover:shadow"
+                className="rounded-lg bg-black/10 px-4 py-2 shadow-sm transition hover:-translate-y-0.5 hover:bg-black/20 hover:shadow"
               >
                 Find a Coaching Role
               </Link>
               <Link
                 href="/club2coach/club"
-                className="rounded-full bg-black/10 px-4 py-2 shadow-sm transition hover:-translate-y-0.5 hover:bg-black/20 hover:shadow"
+                className="rounded-lg bg-black/10 px-4 py-2 shadow-sm transition hover:-translate-y-0.5 hover:bg-black/20 hover:shadow"
               >
                 Advertise a Coaching Vacancy
               </Link>

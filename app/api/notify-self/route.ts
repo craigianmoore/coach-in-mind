@@ -9,7 +9,7 @@ const TEMPLATES: Record<string, { subject: string; body: (d: string) => string }
   signup: {
     subject: "Welcome to Coach In Mind",
     body: () =>
-      `Thanks for signing up. Your account is ready — sign in any time to create a coaching listing or advertise a vacancy:\n${APP_URL}`,
+      `Thanks for signing up. Your account is ready — sign in any time to let clubs know you are looking for a role, or to advertise a coaching vacancy for your club:\n${APP_URL}`,
   },
   coach_listing: {
     subject: "Your coaching listing is saved — one step left to activate it",
