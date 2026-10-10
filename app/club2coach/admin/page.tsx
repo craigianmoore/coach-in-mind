@@ -9,7 +9,7 @@ import AdminOverview from "@/components/AdminOverview";
 import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
 import { scoreClub2CoachMatch } from "@/lib/scoring";
-import { copyShareBlurbToClipboard } from "@/lib/shareBlurb";
+import { copyShareBlurbToClipboard, shareJoinByText } from "@/lib/shareBlurb";
 import { CLUB2COACH_COACH_PACKAGES, CLUB2COACH_CLUB_PACKAGES, STATE_LABELS } from "@/lib/constants";
 import type {
   Club2CoachCoachListing,
@@ -131,6 +131,14 @@ function Club2CoachAdmin() {
   // a short overview, the homepage link, and a sign-off — for passing on
   // to a club, coach, or mentor who's asked about the service. Not tied
   // to any specific listing; see lib/shareBlurb.ts for the actual copy.
+  async function shareByText() {
+    const r = await shareJoinByText(window.location.origin);
+    if (r === "copied") {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
+  }
+
   async function copyShareLink() {
     await copyShareBlurbToClipboard(window.location.origin);
     setShareCopied(true);
@@ -1177,6 +1185,7 @@ function Club2CoachAdmin() {
         <p className="text-sm text-gray-600">
           {coachListings.length} coach listings · {vacancies.length} vacancies
         </p>
+        <div className="flex gap-2">
         <button
           type="button"
           onClick={copyShareLink}
@@ -1185,6 +1194,15 @@ function Club2CoachAdmin() {
         >
           {shareCopied ? "Copied!" : "Share"}
         </button>
+        <button
+          type="button"
+          onClick={shareByText}
+          title="Send the sign-up link by text message or any app on your phone"
+          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+        >
+          Text sign-up link
+        </button>
+        </div>
       </div>
 
       <div className="mt-4 flex flex-nowrap overflow-x-auto whitespace-nowrap border-b">

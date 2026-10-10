@@ -8,7 +8,7 @@ import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
 import { notifyMentoring } from "@/lib/notify";
 import { scoreCoach2MentorMatch } from "@/lib/scoring";
-import { copyShareBlurbToClipboard } from "@/lib/shareBlurb";
+import { copyShareBlurbToClipboard, shareJoinByText } from "@/lib/shareBlurb";
 import { getEmbedUrl, safeHttpsUrl } from "@/lib/videoEmbed";
 import { CLUB2COACH_COACH_PACKAGES, COACH2MENTOR_MENTOR_CAPACITY_PACKAGES, ACCREDITATION_LEVELS } from "@/lib/constants";
 import type {
@@ -74,6 +74,14 @@ function Coach2MentorAdmin() {
   // a short overview, the homepage link, and a sign-off — for passing on
   // to a coach or mentor who's asked about the service. Not tied to any
   // specific listing; see lib/shareBlurb.ts for the actual copy.
+  async function shareByText() {
+    const r = await shareJoinByText(window.location.origin);
+    if (r === "copied") {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
+  }
+
   async function copyShareLink() {
     await copyShareBlurbToClipboard(window.location.origin);
     setShareCopied(true);
@@ -453,6 +461,7 @@ function Coach2MentorAdmin() {
           {coachListings.length} coach profiles · {mentorListings.length} mentor profiles ·{" "}
           {requests.length} requests
         </p>
+        <div className="flex gap-2">
         <button
           type="button"
           onClick={copyShareLink}
@@ -461,6 +470,15 @@ function Coach2MentorAdmin() {
         >
           {shareCopied ? "Copied!" : "Share"}
         </button>
+        <button
+          type="button"
+          onClick={shareByText}
+          title="Send the sign-up link by text message or any app on your phone"
+          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+        >
+          Text sign-up link
+        </button>
+        </div>
       </div>
 
       <div className="mt-4 flex flex-nowrap overflow-x-auto whitespace-nowrap border-b border-white/20">

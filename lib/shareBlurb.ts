@@ -64,3 +64,30 @@ export async function copyShareBlurbToClipboard(origin: string) {
     window.prompt("Copy this to share:", text);
   }
 }
+
+// Short text-message version with the sign-up link. On a phone this opens
+// the native share sheet (Messages, WhatsApp, etc.); where that isn't
+// available it falls back to a pre-filled SMS, then to copying the text.
+export async function shareJoinByText(origin: string): Promise<"shared" | "sms" | "copied" | "cancelled"> {
+  const url = `${origin}/signup`;
+  const text = `Hi, have a look at Coach In Mind, which matches football clubs, coaches and mentors. The first 60 coaches get a free founding credit, so it costs nothing to try. Sign up free here: ${url}`;
+  try {
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      await navigator.share({ text });
+      return "shared";
+    }
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") return "cancelled";
+  }
+  if (typeof navigator !== "undefined" && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+    window.location.href = `sms:?&body=${encodeURIComponent(text)}`;
+    return "sms";
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    return "copied";
+  } catch {
+    window.prompt("Copy this to share:", text);
+    return "copied";
+  }
+}
