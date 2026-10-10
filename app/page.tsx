@@ -69,7 +69,7 @@ function Pairs({ pairs }: { pairs: { pain: string; fix: string }[] }) {
             {pr.pain}
           </p>
           <p className="mt-1 text-sm leading-relaxed text-brand-navy">
-            <span className="mr-1 text-xs font-extrabold uppercase tracking-wider text-emerald-700">The fix:</span>
+            <span className="mr-2 inline-block rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider text-white">The fix</span>
             {pr.fix}
           </p>
         </div>
