@@ -169,8 +169,8 @@ story.append(CondPageBreak(40 * mm))
 story.append(Paragraph("If you're a coach", h3_style))
 story.append(bullets([
     "Set up a profile describing the kind of role you're looking for.",
-    "Buy a package of 1–3 credits, or — if you're one of the first 60 coaches — use your free "
-    "founding credit (see below). Credits are added to your credit balance and never expire until you use them.",
+    "Buy a package of 1–3 credits — or, if you're one of the first 60 coaches to sign up, your free "
+    "founding credit is already in your credit balance (see below). Credits never expire until you use them.",
     "<b>You decide when you're looking.</b> On Club 2 Coach, one credit = <b>30 days</b> in front of clubs. Press <b>Activate</b> on "
     "your coach page to spend a credit and start the clock: you can be introduced to up to <b>5 clubs</b> in those 30 days, "
     "and the credit ends after 30 days or at the fifth introduction, whichever comes first. "
@@ -189,9 +189,11 @@ story.append(bullets([
 story.append(callout(
     "Founding member offer",
     [
-        "The first 60 coaches to save a listing get one free credit — to use on either Club 2 "
-        "Coach or Coach 2 Mentor (you choose; it can't be used on a mentor profile). Press "
-        "<b>Activate</b> on your coach page when you're ready to start looking; the clock (30 days on Club 2 Coach, up to 5 introductions) starts then. It's one free credit per coach, and it "
+        "The first 60 coaches to sign up get one free credit. It is added to your credit balance as soon as you "
+        "open your coach page (Club 2 Coach or Coach 2 Mentor) — you don't need to save a listing first. Use it on "
+        "either service (you choose); it can't be used on a mentor profile, and mentors and clubs don't take up one of "
+        "the 60 places. Press <b>Activate</b> whenever you're ready; the clock (30 days on Club 2 Coach, up to 5 "
+        "introductions, or 60 days on Coach 2 Mentor) only starts then. It's one free credit per coach, and it "
         "ends once all 60 places are taken. Clubs keep their own free first introduction.",
     ],
 ))
@@ -224,8 +226,8 @@ story.append(Paragraph("If you're a coach seeking a mentor", h3_style))
 story.append(bullets([
     "Set up a profile describing what you're looking for from mentoring, and set your own personal "
     "priorities (e.g. how much specialism overlap or availability matters to you).",
-    "Buy credits (1–3), or use your free founding credit if you are one of the first 60 coaches "
-    "(one per coach, across both services). Press <b>Activate</b> to spend one credit: your "
+    "Buy credits (1–3), or use your free founding credit if you are one of the first 60 coaches to sign up "
+    "(one per coach, across both services; it's already in your credit balance). Press <b>Activate</b> to spend one credit: your "
     "listing is then in matching for 60 days.",
     "Coach In Mind reviews and suggests mentors matched to your profile and priorities.",
     "Once a suggested mentor is approved, they'll be asked to accept or decline — contact details "
