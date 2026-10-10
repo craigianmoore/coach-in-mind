@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import CoachInMindLogo from "@/components/CoachInMindLogo";
@@ -9,6 +10,17 @@ export default function TopNav() {
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
+  // null = not yet known, so neither Log in nor Log out flashes on load.
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setLoggedIn(!!data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setLoggedIn(!!session);
+    });
+    return () => sub.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isLandingPage = pathname === "/";
 
@@ -49,15 +61,24 @@ export default function TopNav() {
               </Link>
             </>
           )}
-          <Link href="/profile" className="hover:text-brand-goldLight">
-            My Profile
-          </Link>
+          {loggedIn && (
+            <Link href="/profile" className="hover:text-brand-goldLight">
+              My Profile
+            </Link>
+          )}
           <Link href="/support" className="hover:text-brand-goldLight">
             Report an Issue
           </Link>
-          <button onClick={handleLogout} className="hover:text-brand-goldLight">
-            Log out
-          </button>
+          {loggedIn === true && (
+            <button onClick={handleLogout} className="hover:text-brand-goldLight">
+              Log out
+            </button>
+          )}
+          {loggedIn === false && (
+            <Link href="/login" className="hover:text-brand-goldLight">
+              Log in
+            </Link>
+          )}
         </nav>
       </div>
     </div>
