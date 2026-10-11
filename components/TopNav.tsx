@@ -40,14 +40,6 @@ export default function TopNav() {
           COACH IN MIND (Resources)
         </Link>
         <nav className="flex items-center gap-4">
-          <a
-            href="/how-to-use.pdf"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-brand-goldLight"
-          >
-            How To Use
-          </a>
           {!isLandingPage && (
             <>
               <Link href="/" className="hover:text-brand-goldLight">
@@ -66,6 +58,14 @@ export default function TopNav() {
               My Profile
             </Link>
           )}
+          <a
+            href="/how-to-use.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-brand-goldLight"
+          >
+            How To Use
+          </a>
           <Link href="/support" className="hover:text-brand-goldLight">
             Report an Issue
           </Link>
