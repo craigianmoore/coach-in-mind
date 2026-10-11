@@ -8,7 +8,7 @@ import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
 import { notifyMentoring } from "@/lib/notify";
 import { scoreCoach2MentorMatch } from "@/lib/scoring";
-import { copyShareBlurbToClipboard, shareJoinByText } from "@/lib/shareBlurb";
+import { copyShareBlurbToClipboard, shareJoinByText, shareFlyer } from "@/lib/shareBlurb";
 import { getEmbedUrl, safeHttpsUrl } from "@/lib/videoEmbed";
 import { CLUB2COACH_COACH_PACKAGES, COACH2MENTOR_MENTOR_CAPACITY_PACKAGES, ACCREDITATION_LEVELS } from "@/lib/constants";
 import type {
@@ -74,6 +74,14 @@ function Coach2MentorAdmin() {
   // a short overview, the homepage link, and a sign-off — for passing on
   // to a coach or mentor who's asked about the service. Not tied to any
   // specific listing; see lib/shareBlurb.ts for the actual copy.
+  async function shareFlyerLink() {
+    const r = await shareFlyer(window.location.origin);
+    if (r === "copied") {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
+  }
+
   async function shareByText() {
     const r = await shareJoinByText(window.location.origin);
     if (r === "copied") {
@@ -461,7 +469,7 @@ function Coach2MentorAdmin() {
           {coachListings.length} coach profiles · {mentorListings.length} mentor profiles ·{" "}
           {requests.length} requests
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
         <button
           type="button"
           onClick={copyShareLink}
@@ -477,6 +485,14 @@ function Coach2MentorAdmin() {
           className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
         >
           Text sign-up link
+        </button>
+        <button
+          type="button"
+          onClick={shareFlyerLink}
+          title="Share the printable flyer with the sign-up QR code"
+          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+        >
+          Share flyer
         </button>
         </div>
       </div>
@@ -995,7 +1011,7 @@ function Coach2MentorAdmin() {
                     <p className="text-xs text-gray-500">{l.paid ? "Paid" : "Unpaid"} · {l.status}</p>
                   </div>
                   {l.deleted_at ? (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap justify-end gap-2">
                       <button
                         onClick={() => restoreListing("coach2mentor_coach_listings", l.id)}
                         className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
@@ -1043,7 +1059,7 @@ function Coach2MentorAdmin() {
                     </p>
                   </div>
                   {m.deleted_at ? (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap justify-end gap-2">
                       <button
                         onClick={() => restoreListing("coach2mentor_mentor_listings", m.id)}
                         className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"

@@ -91,3 +91,23 @@ export async function shareJoinByText(origin: string): Promise<"shared" | "sms" 
     return "copied";
   }
 }
+
+// Shares the printable A4 flyer (with the sign-up QR code) as a link: the
+// phone's share sheet where available, otherwise copies the link.
+export async function shareFlyer(origin: string): Promise<"shared" | "copied" | "cancelled"> {
+  const url = `${origin}/coach-in-mind-flyer.pdf`;
+  try {
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      await navigator.share({ title: "Coach In Mind flyer", url });
+      return "shared";
+    }
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") return "cancelled";
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+  } catch {
+    window.prompt("Copy this link to the flyer:", url);
+  }
+  return "copied";
+}

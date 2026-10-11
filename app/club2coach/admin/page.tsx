@@ -9,7 +9,7 @@ import AdminOverview from "@/components/AdminOverview";
 import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
 import { scoreClub2CoachMatch } from "@/lib/scoring";
-import { copyShareBlurbToClipboard, shareJoinByText } from "@/lib/shareBlurb";
+import { copyShareBlurbToClipboard, shareJoinByText, shareFlyer } from "@/lib/shareBlurb";
 import { CLUB2COACH_COACH_PACKAGES, CLUB2COACH_CLUB_PACKAGES, STATE_LABELS } from "@/lib/constants";
 import type {
   Club2CoachCoachListing,
@@ -22,9 +22,10 @@ import type {
   Coach2MentorCoachListing,
   Coach2MentorMentorListing,
   Coach2MentorRequest,
+  Payment,
 } from "@/types/database";
 
-type Tab = "unpaid" | "overview" | "matches" | "weighting" | "listings" | "clubs" | "promos" | "admins" | "support" | "people";
+type Tab = "unpaid" | "overview" | "matches" | "weighting" | "listings" | "clubs" | "promos" | "admins" | "support" | "people" | "payments";
 
 interface ClubContactRow {
   id: string;
@@ -82,6 +83,7 @@ function Club2CoachAdmin() {
   const [coachListings, setCoachListings] = useState<Club2CoachCoachListing[]>([]);
   const [vacancies, setVacancies] = useState<Club2CoachClubVacancy[]>([]);
   const [people, setPeople] = useState<Record<string, Person>>({});
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [shares, setShares] = useState<Club2CoachShare[]>([]);
   // Coach2Mentor's own listings/requests — loaded here too (read-only,
   // this page never writes them) purely so the People tab below can
@@ -131,6 +133,14 @@ function Club2CoachAdmin() {
   // a short overview, the homepage link, and a sign-off — for passing on
   // to a club, coach, or mentor who's asked about the service. Not tied
   // to any specific listing; see lib/shareBlurb.ts for the actual copy.
+  async function shareFlyerLink() {
+    const r = await shareFlyer(window.location.origin);
+    if (r === "copied") {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
+  }
+
   async function shareByText() {
     const r = await shareJoinByText(window.location.origin);
     if (r === "copied") {
@@ -199,6 +209,7 @@ function Club2CoachAdmin() {
       { data: c2mcl },
       { data: c2mml },
       { data: c2mrq },
+      { data: pay },
     ] = await Promise.all([
       supabase.from("club2coach_coach_listings").select("*"),
       supabase.from("club2coach_club_vacancies").select("*"),
@@ -210,7 +221,9 @@ function Club2CoachAdmin() {
       supabase.from("coach2mentor_coach_listings").select("*"),
       supabase.from("coach2mentor_mentor_listings").select("*"),
       supabase.from("coach2mentor_requests").select("*"),
+      supabase.from("payments").select("*").order("created_at", { ascending: false }),
     ]);
+    setPayments((pay as Payment[]) ?? []);
 
     setCoachListings((cl as Club2CoachCoachListing[]) ?? []);
     setVacancies((cv as Club2CoachClubVacancy[]) ?? []);
@@ -1161,7 +1174,7 @@ function Club2CoachAdmin() {
     options: { value: T; label: string }[];
   }) {
     return (
-      <div className="flex gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
         {options.map((opt) => (
           <button
             key={opt.value}
@@ -1185,7 +1198,7 @@ function Club2CoachAdmin() {
         <p className="text-sm text-gray-600">
           {coachListings.length} coach listings · {vacancies.length} vacancies
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
         <button
           type="button"
           onClick={copyShareLink}
@@ -1202,11 +1215,19 @@ function Club2CoachAdmin() {
         >
           Text sign-up link
         </button>
+        <button
+          type="button"
+          onClick={shareFlyerLink}
+          title="Share the printable flyer with the sign-up QR code"
+          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+        >
+          Share flyer
+        </button>
         </div>
       </div>
 
       <div className="mt-4 flex flex-nowrap overflow-x-auto whitespace-nowrap border-b">
-        {(["unpaid", "overview", "matches", "weighting", "listings", "clubs", "promos", "admins", "support", "people"] as Tab[]).map((t) => (
+        {(["unpaid", "overview", "matches", "weighting", "listings", "clubs", "promos", "admins", "support", "people", "payments"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1782,7 +1803,7 @@ function Club2CoachAdmin() {
                     </p>
                   </div>
                   {l.deleted_at ? (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap justify-end gap-2">
                       <button
                         onClick={() => restoreListing("club2coach_coach_listings", l.id)}
                         className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
@@ -1797,7 +1818,7 @@ function Club2CoachAdmin() {
                       </button>
                     </div>
                   ) : (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap justify-end gap-2">
                     <button
                       onClick={() => giftIntroductions("club2coach_coach_listings", l.id, people[l.person_id]?.full_name ?? "this coach")}
                       className="rounded-lg border border-purple-200 px-3 py-1.5 text-sm font-semibold text-purple-700 hover:bg-purple-50"
@@ -1838,7 +1859,7 @@ function Club2CoachAdmin() {
                     </p>
                   </div>
                   {v.deleted_at ? (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap justify-end gap-2">
                       <button
                         onClick={() => restoreListing("club2coach_club_vacancies", v.id)}
                         className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
@@ -1853,7 +1874,7 @@ function Club2CoachAdmin() {
                       </button>
                     </div>
                   ) : (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap justify-end gap-2">
                       <button
                         onClick={() => giftIntroductions("club2coach_club_vacancies", v.id, v.club_name)}
                         className="rounded-lg border border-purple-200 px-3 py-1.5 text-sm font-semibold text-purple-700 hover:bg-purple-50"
@@ -2364,6 +2385,50 @@ function Club2CoachAdmin() {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {tab === "payments" && (
+        <div className="mt-6 flex flex-col gap-3">
+          {(() => {
+            const paid = payments.filter((p) => p.status !== "refunded");
+            const refunded = payments.filter((p) => p.status === "refunded");
+            const total = paid.reduce((n, p) => n + Number(p.amount_aud), 0);
+            const refundedTotal = refunded.reduce((n, p) => n + Number(p.amount_aud), 0);
+            const money = (n: number) => `$${n.toFixed(2)}`;
+            return (
+              <>
+                <p className="text-sm text-gray-600">
+                  {paid.length} payment{paid.length === 1 ? "" : "s"} · <strong>{money(total)} AUD</strong> received
+                  {refunded.length > 0 && ` · ${refunded.length} refunded (${money(refundedTotal)})`}
+                  {" · both products"}
+                </p>
+                {payments.length === 0 && <p className="text-sm text-gray-500">No payments yet.</p>}
+                {payments.map((p) => {
+                  const who = people[p.person_id];
+                  return (
+                    <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-white p-3">
+                      <div>
+                        <p className="text-sm font-medium">{who?.full_name ?? "Unknown person"}</p>
+                        <p className="text-xs text-gray-500">
+                          {who?.email} · {p.product === "club2coach" ? "Club 2 Coach" : "Coach 2 Mentor"} {p.role} ·{" "}
+                          {p.stripe_session_id ? "Card (Stripe)" : "Marked paid by admin"} ·{" "}
+                          {new Date(p.created_at).toLocaleDateString("en-GB")}
+                        </p>
+                        {p.notes && <p className="text-xs text-gray-400">{p.notes}</p>}
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-sm font-semibold ${p.status === "refunded" ? "text-gray-400 line-through" : ""}`}>
+                          {money(Number(p.amount_aud))}
+                        </p>
+                        {p.status === "refunded" && <p className="text-xs text-red-600">Refunded</p>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            );
+          })()}
         </div>
       )}
 
