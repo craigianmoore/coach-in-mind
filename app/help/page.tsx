@@ -78,6 +78,13 @@ export default function HelpPage() {
               </p>
             </div>
             <div>
+              <p className="font-medium text-gray-800">What if more than one mentor accepts me?</p>
+              <p className="mt-1 text-gray-600">
+                They all show on your Coach 2 Mentor page. Press &quot;Choose this mentor&quot; on the one you want.
+                Your other mentors are then released, so only your chosen mentor keeps a place with you.
+              </p>
+            </div>
+            <div>
               <p className="font-medium text-gray-800">What does a match percentage actually mean?</p>
               <p className="mt-1 text-gray-600">
                 It's not a school grade — very few matches hit the high 90s, because it takes

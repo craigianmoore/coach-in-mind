@@ -240,6 +240,9 @@ story.append(bullets([
     "Coach In Mind reviews and suggests mentors matched to your profile and priorities.",
     "Once a suggested mentor is approved, they'll be asked to accept or decline — contact details "
     "are only shared once they accept.",
+    "If more than one mentor accepts, they all appear on your Coach 2 Mentor page. Press <b>Choose this mentor</b> "
+    "on the one you want. Your other pending or accepted mentors are then released, so only your chosen mentor "
+    "keeps a place with you.",
 ]))
 
 story.append(CondPageBreak(40 * mm))
