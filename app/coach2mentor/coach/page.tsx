@@ -304,6 +304,22 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
     }
   }
 
+  async function chooseMentor(requestId: string) {
+    if (
+      !window.confirm(
+        "Choose this mentor? Your other mentor matches will be released, which frees their places for other coaches. You can't undo this."
+      )
+    ) {
+      return;
+    }
+    const { error } = await supabase.rpc("choose_coach2mentor_mentor", { target_request_id: requestId });
+    if (error) {
+      window.alert(`Sorry, that didn't save. Please try again. (${error.message})`);
+      return;
+    }
+    await load();
+  }
+
   async function requestTopup() {
     if (!existing) return;
     setRequestingTopup(true);
@@ -482,6 +498,22 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
                       </span>
                     )}
                   </div>
+                  {m.status === "accepted" && "chosen_at" in m && (
+                    m.chosen_at ? (
+                      <p className="mt-2 text-xs font-semibold text-green-700">✓ Your chosen mentor</p>
+                    ) : (
+                      matches.some((x) => x.chosen_at == null && (x.status === "accepted" || x.status === "pending") && x.id !== m.id) && (
+                        <button
+                          type="button"
+                          onClick={() => chooseMentor(m.id)}
+                          className="mt-2 rounded-lg border px-3 py-1.5 text-xs font-semibold"
+                          style={{ borderColor: "var(--accent-dark)", color: "var(--accent-dark)" }}
+                        >
+                          Choose this mentor
+                        </button>
+                      )
+                    )
+                  )}
                   {m.status !== "declined" && embedUrl && (
                     <div className="mt-2 aspect-video w-full overflow-hidden rounded-lg">
                       <iframe

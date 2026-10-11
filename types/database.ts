@@ -217,6 +217,7 @@ export interface Coach2MentorRequest {
   admin_notes: string | null; // e.g. "Auto-matched (top score)" vs a manual admin pick
   created_at: string;
   responded_at: string | null;
+  chosen_at?: string | null; // set when the coach chooses this mentor from their accepted matches
 }
 
 export interface Payment {
