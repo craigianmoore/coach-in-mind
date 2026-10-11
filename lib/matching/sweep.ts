@@ -12,6 +12,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { CLUB_INTRO_CAP, isActivated } from "@/lib/coachPool";
 import { scoreClub2CoachMatch, scoreCoach2MentorMatch } from "@/lib/scoring";
+import { APP_URL } from "@/lib/server/sendEmail";
+import { sendAdminEmail } from "@/lib/server/sendAdminEmail";
 import type {
   Club2CoachCoachListing,
   Club2CoachClubVacancy,
@@ -24,6 +26,52 @@ import type {
   Person,
   AdminSettings,
 } from "@/types/database";
+
+// One suggestion waiting for an admin decision, used to build the "match to decide" email.
+type NewSuggestion = { target: string; candidate: string; score: number; strengths: string[] };
+
+const STRENGTH_LABELS: Record<string, string> = {
+  accreditation: "accreditation", ability: "ability", competition_level: "competition level", age_group: "age group",
+  geography: "location", salary: "pay", gender: "gender preference", specialism_overlap: "specialisms",
+  career_stage: "career stage", availability: "availability", budget_fit: "budget",
+};
+
+// The two or three components this pair scores best on, in plain words.
+function topStrengths(b: object): string[] {
+  return Object.entries(b as Record<string, unknown>)
+    .filter(([k, v]) => k in STRENGTH_LABELS && typeof v === "number" && v > 0)
+    .sort((x, y) => (y[1] as number) - (x[1] as number))
+    .slice(0, 3)
+    .map(([k]) => STRENGTH_LABELS[k]);
+}
+
+// Emails the admin inbox once per sweep that produced new suggestions needing a decision: each coach or vacancy
+// with its candidates ranked best first and the top one flagged as the recommendation. Best-effort — never throws.
+async function emailAdminSuggestions(product: "club2coach" | "coach2mentor", items: NewSuggestion[]) {
+  if (items.length === 0) return;
+  try {
+    const groups = new Map<string, NewSuggestion[]>();
+    for (const it of items) groups.set(it.target, [...(groups.get(it.target) ?? []), it]);
+    const blocks: string[] = [];
+    for (const [target, list] of Array.from(groups.entries())) {
+      const ranked = [...list].sort((a, b) => b.score - a.score);
+      const lines = ranked.map((c, i) => {
+        const why = c.strengths.length ? ` — strongest on ${c.strengths.join(", ")}` : "";
+        const tag = i === 0 ? (ranked.length > 1 ? "RECOMMENDED: " : "Suggested: ") : `${i + 1}. `;
+        return `${tag}${c.candidate} (score ${Math.round(c.score)})${why}`;
+      });
+      blocks.push(`${target}\n${lines.join("\n")}`);
+    }
+    const label = product === "club2coach" ? "Club 2 Coach" : "Coach 2 Mentor";
+    const n = items.length;
+    await sendAdminEmail(
+      `${label}: ${n} match${n === 1 ? "" : "es"} to decide`,
+      `${n} new suggested ${n === 1 ? "match is" : "matches are"} waiting for your approval. Candidates are ranked by score, and the first one listed is my pick. It's a starting point for your judgement, not a decision.\n\n${blocks.join("\n\n")}\n\nReview and approve here:\n${APP_URL}/${product}/admin`
+    );
+  } catch (err) {
+    console.error("Admin suggestion email failed", err);
+  }
+}
 
 export async function runClub2CoachMatchSweep(
   supabase: SupabaseClient,
@@ -86,6 +134,7 @@ export async function runClub2CoachMatchSweep(
   // Counts approvals made in this run, so a coach can't go past the cap between database reads.
   const runIntros = new Map<string, number>();
   let totalNew = 0;
+  const fresh: NewSuggestion[] = [];
   for (const vacancy of targets) {
     const usedSlots = shares.filter((s) => s.club_vacancy_id === vacancy.id).length;
     const remaining = (vacancy.included_introductions ?? 0) - usedSlots;
@@ -113,6 +162,14 @@ export async function runClub2CoachMatchSweep(
       });
       if (!error) {
         totalNew += 1;
+        if (!autoApprove) {
+          fresh.push({
+            target: `${vacancy.role_being_recruited} at ${vacancy.club_name}`,
+            candidate: people[coach.person_id]?.full_name ?? "A coach",
+            score: breakdown.total,
+            strengths: topStrengths(breakdown),
+          });
+        }
         if (autoApprove) runIntros.set(coach.id, (runIntros.get(coach.id) ?? 0) + 1);
         if (autoApprove && !vacancy.shared_at) {
           await supabase
@@ -123,6 +180,7 @@ export async function runClub2CoachMatchSweep(
       }
     }
   }
+  await emailAdminSuggestions("club2coach", fresh);
   return { totalNew };
 }
 
@@ -161,6 +219,7 @@ export async function runCoach2MentorMatchSweep(supabase: SupabaseClient): Promi
   });
 
   let totalNew = 0;
+  const fresh: NewSuggestion[] = [];
   for (const coach of activeCoaches) {
     const rows = requests.filter((r) => r.coach_listing_id === coach.id);
     // The activation window (not an introduction count) limits a coach, so
@@ -195,8 +254,19 @@ export async function runCoach2MentorMatchSweep(supabase: SupabaseClient): Promi
         admin_notes: "Auto-matched (top score)",
         status: autoApprove ? "pending" : "suggested",
       });
-      if (!error) totalNew += 1;
+      if (!error) {
+        totalNew += 1;
+        if (!autoApprove) {
+          fresh.push({
+            target: `${coachPerson?.full_name ?? "A coach"} (seeking a mentor)`,
+            candidate: people[mentor.person_id]?.full_name ?? "A mentor",
+            score: breakdown.total,
+            strengths: topStrengths(breakdown),
+          });
+        }
+      }
     }
   }
+  await emailAdminSuggestions("coach2mentor", fresh);
   return { totalNew };
 }
