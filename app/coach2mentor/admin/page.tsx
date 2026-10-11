@@ -18,9 +18,10 @@ import type {
   Coach2MentorWeights,
   Person,
   AdminSettings,
+  Payment,
 } from "@/types/database";
 
-type Tab = "unpaid" | "overview" | "matches" | "requests" | "weighting" | "listings" | "admins";
+type Tab = "unpaid" | "overview" | "matches" | "requests" | "weighting" | "listings" | "admins" | "payments";
 type RequestStatus = "pending" | "accepted" | "declined";
 
 // Mirrors the same row club2coach/admin/page.tsx reads and writes —
@@ -66,6 +67,7 @@ function Coach2MentorAdmin() {
   const [mentorListings, setMentorListings] = useState<Coach2MentorMentorListing[]>([]);
   const [requests, setRequests] = useState<Coach2MentorRequest[]>([]);
   const [people, setPeople] = useState<Record<string, Person>>({});
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [settings, setSettings] = useState<AdminSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [shareCopied, setShareCopied] = useState(false);
@@ -118,14 +120,16 @@ function Coach2MentorAdmin() {
 
   async function loadAll() {
     setLoading(true);
-    const [{ data: cl }, { data: ml }, { data: rq }, { data: ppl }, { data: st }, { data: ps }] = await Promise.all([
+    const [{ data: cl }, { data: ml }, { data: rq }, { data: ppl }, { data: st }, { data: ps }, { data: pay }] = await Promise.all([
       supabase.from("coach2mentor_coach_listings").select("*"),
       supabase.from("coach2mentor_mentor_listings").select("*"),
       supabase.from("coach2mentor_requests").select("*"),
       supabase.from("people").select("*"),
       supabase.from("admin_settings").select("*").eq("product", "coach2mentor").maybeSingle(),
       supabase.from("platform_settings").select("*").maybeSingle(),
+      supabase.from("payments").select("*").order("created_at", { ascending: false }),
     ]);
+    setPayments((pay as Payment[]) ?? []);
 
     setCoachListings((cl as Coach2MentorCoachListing[]) ?? []);
     setMentorListings((ml as Coach2MentorMentorListing[]) ?? []);
@@ -498,7 +502,7 @@ function Coach2MentorAdmin() {
       </div>
 
       <div className="mt-4 flex flex-nowrap overflow-x-auto whitespace-nowrap border-b border-white/20">
-        {(["unpaid", "overview", "matches", "requests", "weighting", "listings", "admins"] as Tab[]).map((t) => (
+        {(["unpaid", "overview", "matches", "requests", "weighting", "listings", "admins", "payments"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1085,6 +1089,50 @@ function Coach2MentorAdmin() {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {tab === "payments" && (
+        <div className="mt-6 flex flex-col gap-3">
+          {(() => {
+            const paid = payments.filter((p) => p.status !== "refunded");
+            const refunded = payments.filter((p) => p.status === "refunded");
+            const total = paid.reduce((n, p) => n + Number(p.amount_aud), 0);
+            const refundedTotal = refunded.reduce((n, p) => n + Number(p.amount_aud), 0);
+            const money = (n: number) => `$${n.toFixed(2)}`;
+            return (
+              <>
+                <p className="text-sm text-gray-600">
+                  {paid.length} payment{paid.length === 1 ? "" : "s"} · <strong>{money(total)} AUD</strong> received
+                  {refunded.length > 0 && ` · ${refunded.length} refunded (${money(refundedTotal)})`}
+                  {" · both products"}
+                </p>
+                {payments.length === 0 && <p className="text-sm text-gray-500">No payments yet.</p>}
+                {payments.map((p) => {
+                  const who = people[p.person_id];
+                  return (
+                    <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-white p-3">
+                      <div>
+                        <p className="text-sm font-medium">{who?.full_name ?? "Unknown person"}</p>
+                        <p className="text-xs text-gray-500">
+                          {who?.email} · {p.product === "club2coach" ? "Club 2 Coach" : "Coach 2 Mentor"} {p.role} ·{" "}
+                          {p.stripe_session_id ? "Card (Stripe)" : "Marked paid by admin"} ·{" "}
+                          {new Date(p.created_at).toLocaleDateString("en-GB")}
+                        </p>
+                        {p.notes && <p className="text-xs text-gray-400">{p.notes}</p>}
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-sm font-semibold ${p.status === "refunded" ? "text-gray-400 line-through" : ""}`}>
+                          {money(Number(p.amount_aud))}
+                        </p>
+                        {p.status === "refunded" && <p className="text-xs text-red-600">Refunded</p>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            );
+          })()}
         </div>
       )}
 
