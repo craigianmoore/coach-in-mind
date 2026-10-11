@@ -912,9 +912,19 @@ create policy "mentor or admin can respond to request"
   on coach2mentor_requests for update
   using (
     is_admin_caller()
+    or (
+      status = 'pending'
+      and exists (
+        select 1 from coach2mentor_mentor_listings ml
+        where ml.id = coach2mentor_requests.mentor_listing_id and ml.person_id = my_person_id()
+      )
+    )
+  )
+  with check (
+    is_admin_caller()
     or exists (
       select 1 from coach2mentor_mentor_listings ml
-      where ml.id = mentor_listing_id and ml.person_id = my_person_id()
+      where ml.id = coach2mentor_requests.mentor_listing_id and ml.person_id = my_person_id()
     )
   );
 
