@@ -50,3 +50,5 @@ $$;
 
 revoke all on function choose_coach2mentor_mentor(uuid) from public;
 grant execute on function choose_coach2mentor_mentor(uuid) to authenticated;
+
+revoke execute on function choose_coach2mentor_mentor(uuid) from anon;
