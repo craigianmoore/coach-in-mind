@@ -1,6 +1,7 @@
 "use client";
 
 import EmailFailureBanner from "@/components/EmailFailureBanner";
+import InvitationsPanel from "@/components/InvitationsPanel";
 import { fetchAll } from "@/lib/fetchAll";
 import { CLUB_INTRO_CAP, COACH_ACTIVE_DAYS, isActivated } from "@/lib/coachPool";
 import { notifyMatches } from "@/lib/notify";
@@ -26,7 +27,7 @@ import type {
   Payment,
 } from "@/types/database";
 
-type Tab = "unpaid" | "overview" | "matches" | "weighting" | "listings" | "clubs" | "promos" | "admins" | "support" | "people" | "payments";
+type Tab = "unpaid" | "overview" | "matches" | "weighting" | "listings" | "clubs" | "promos" | "admins" | "support" | "people" | "payments" | "invites";
 
 interface ClubContactRow {
   id: string;
@@ -1230,7 +1231,7 @@ function Club2CoachAdmin() {
       <EmailFailureBanner />
 
       <div className="mt-4 flex flex-nowrap overflow-x-auto whitespace-nowrap border-b">
-        {(["unpaid", "overview", "matches", "weighting", "listings", "clubs", "promos", "admins", "support", "people", "payments"] as Tab[]).map((t) => (
+        {(["unpaid", "overview", "matches", "weighting", "listings", "clubs", "promos", "admins", "support", "people", "payments", "invites"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -2390,6 +2391,8 @@ function Club2CoachAdmin() {
           )}
         </div>
       )}
+
+      {tab === "invites" && <InvitationsPanel />}
 
       {tab === "payments" && (
         <div className="mt-6 flex flex-col gap-3">

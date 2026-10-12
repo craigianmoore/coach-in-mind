@@ -1,0 +1,140 @@
+// Admin-only tool for the one-off coach invitation mail-out (master admin session required).
+//   GET                                   -> counts
+//   POST { action: "import", csv }        -> load a list (ticket_name,email_address), skipping duplicates,
+//                                            Football Victoria staff, people already signed up, and anyone already listed
+//   POST { action: "test" }               -> send the invitation to the signed-in admin only
+//   POST { action: "send", count }        -> send to the next `count` pending people (capped; daily ceiling applies)
+//   POST { action: "optout", email }      -> mark someone as "no thanks" so they are never emailed
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import { sendEmail } from "@/lib/server/sendEmail";
+import { INVITE_DAILY_CAP, INVITE_SUBJECT, firstNameOf, inviteText, parseCsv } from "@/lib/server/invitations";
+
+export const maxDuration = 60;
+
+async function requireMaster() {
+  const supabase = await createClient();
+  const { data: isMaster } = await supabase.rpc("am_i_master_admin");
+  if (isMaster !== true) return { error: NextResponse.json({ ok: false, error: "Master admin session required." }, { status: 403 }) };
+  const { data } = await supabase.auth.getUser();
+  return { email: data.user?.email ?? null };
+}
+
+async function counts() {
+  const service = createServiceClient();
+  const { data } = await service.from("invite_recipients").select("status, sent_at");
+  const c = { pending: 0, sent: 0, failed: 0, optout: 0, sending: 0, sentLast24h: 0 };
+  const since = Date.now() - 24 * 3600_000;
+  for (const r of data ?? []) {
+    c[r.status as "pending" | "sent" | "failed" | "optout" | "sending"] += 1;
+    if (r.status === "sent" && r.sent_at && new Date(r.sent_at).getTime() > since) c.sentLast24h += 1;
+  }
+  return { ...c, dailyCap: INVITE_DAILY_CAP };
+}
+
+export async function GET() {
+  const auth = await requireMaster();
+  if ("error" in auth) return auth.error;
+  return NextResponse.json({ ok: true, ...(await counts()) });
+}
+
+export async function POST(req: Request) {
+  const auth = await requireMaster();
+  if ("error" in auth) return auth.error;
+  const body = (await req.json().catch(() => ({}))) as { action?: string; csv?: string; count?: number; email?: string };
+  const service = createServiceClient();
+
+  if (body.action === "import") {
+    const rows = parseCsv(body.csv ?? "");
+    const header = (rows.shift() ?? []).map((h) => h.trim().toLowerCase());
+    const ni = header.indexOf("ticket_name");
+    const ei = header.indexOf("email_address");
+    if (ei < 0) return NextResponse.json({ ok: false, error: "The CSV needs an email_address column." }, { status: 400 });
+    const names = new Map<string, string[]>();
+    for (const r of rows) {
+      const e = (r[ei] ?? "").trim().toLowerCase();
+      if (!e) continue;
+      names.set(e, [...(names.get(e) ?? []), ni >= 0 ? (r[ni] ?? "").trim() : ""]);
+    }
+    const valid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    const [{ data: ppl }, { data: have }] = await Promise.all([
+      service.from("people").select("email"),
+      service.from("invite_recipients").select("email"),
+    ]);
+    const skipPeople = new Set((ppl ?? []).map((p) => (p.email ?? "").toLowerCase()));
+    const skipHave = new Set((have ?? []).map((p) => p.email));
+    const out = { added: 0, invalid: 0, footballVictoria: 0, alreadySignedUp: 0, alreadyListed: 0 };
+    const toAdd: { email: string; first_name: string }[] = [];
+    for (const [e, ns] of Array.from(names.entries())) {
+      if (!valid.test(e)) { out.invalid++; continue; }
+      if (e.endsWith("@footballvictoria.com.au")) { out.footballVictoria++; continue; }
+      if (skipPeople.has(e)) { out.alreadySignedUp++; continue; }
+      if (skipHave.has(e)) { out.alreadyListed++; continue; }
+      toAdd.push({ email: e, first_name: ns.length === 1 ? firstNameOf(ns[0]) : "" });
+    }
+    for (let i = 0; i < toAdd.length; i += 100) {
+      const { error } = await service.from("invite_recipients").insert(toAdd.slice(i, i + 100));
+      if (error) return NextResponse.json({ ok: false, error: error.message, ...out }, { status: 500 });
+      out.added += Math.min(100, toAdd.length - i);
+    }
+    return NextResponse.json({ ok: true, ...out, ...(await counts()) });
+  }
+
+  if (body.action === "test") {
+    if (!auth.email) return NextResponse.json({ ok: false, error: "No admin email on this session." }, { status: 400 });
+    const ok = await sendEmail({ to: auth.email, subject: `TEST: ${INVITE_SUBJECT}`, text: inviteText("Aaron") });
+    return NextResponse.json({ ok, to: auth.email });
+  }
+
+  if (body.action === "optout") {
+    const e = (body.email ?? "").trim().toLowerCase();
+    if (!e) return NextResponse.json({ ok: false, error: "Missing email." }, { status: 400 });
+    const { error } = await service
+      .from("invite_recipients")
+      .upsert({ email: e, status: "optout" }, { onConflict: "email" });
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, ...(await counts()) });
+  }
+
+  if (body.action === "send") {
+    const want = Math.max(1, Math.min(50, Math.floor(Number(body.count) || 0)));
+    const c = await counts();
+    const room = INVITE_DAILY_CAP - c.sentLast24h;
+    if (room <= 0) {
+      return NextResponse.json({ ok: false, error: `Daily ceiling reached (${c.sentLast24h} sent in the last 24 hours, ceiling ${INVITE_DAILY_CAP}). Try again later.`, ...c }, { status: 429 });
+    }
+    const n = Math.min(want, room);
+    const { data: next } = await service
+      .from("invite_recipients")
+      .select("email, first_name")
+      .eq("status", "pending")
+      .order("created_at", { ascending: true })
+      .order("email", { ascending: true })
+      .limit(n);
+    let sent = 0;
+    let failed = 0;
+    for (const r of next ?? []) {
+      // Claim before sending so two clicks can never email the same person twice.
+      const { data: claimed } = await service
+        .from("invite_recipients")
+        .update({ status: "sending" })
+        .eq("email", r.email)
+        .eq("status", "pending")
+        .select("email");
+      if (!claimed || claimed.length === 0) continue;
+      const ok = await sendEmail({ to: r.email, subject: INVITE_SUBJECT, text: inviteText(r.first_name ?? "") });
+      if (ok) {
+        sent++;
+        await service.from("invite_recipients").update({ status: "sent", sent_at: new Date().toISOString(), error: null }).eq("email", r.email);
+      } else {
+        failed++;
+        await service.from("invite_recipients").update({ status: "failed", error: "Resend refused or errored" }).eq("email", r.email);
+      }
+      await new Promise((res) => setTimeout(res, 600)); // stay under Resend's request rate limit
+    }
+    return NextResponse.json({ ok: true, sentNow: sent, failedNow: failed, cappedByDailyCeiling: n < want, ...(await counts()) });
+  }
+
+  return NextResponse.json({ ok: false, error: "Unknown action." }, { status: 400 });
+}
