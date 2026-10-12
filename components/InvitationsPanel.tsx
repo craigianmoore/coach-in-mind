@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type Counts = { pending: number; sent: number; failed: number; optout: number; sending: number; sentLast24h: number; dailyCap: number };
+type Counts = { autoSend?: boolean; pending: number; sent: number; failed: number; optout: number; sending: number; sentLast24h: number; dailyCap: number };
 
 // Admin tool for the one-off coach invitation mail-out. Needs a master-admin session; all sending happens
 // on the server (/api/admin/invitations), which keeps the daily ceiling and never emails anyone twice.
@@ -99,6 +99,20 @@ export default function InvitationsPanel() {
           </button>
         </div>
         <span className="text-xs text-gray-500">Up to 50 at a time.</span>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <span className="font-semibold text-gray-700">4. Or send automatically</span>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            disabled={busy || !counts}
+            checked={counts?.autoSend === true}
+            onChange={(e) => run({ action: "auto", on: e.target.checked }, () => (e.target.checked ? "Automatic sending is on." : "Automatic sending is off."))}
+          />
+          <span>Send automatically, about 80 a day between 9am and 5pm Melbourne time, until the list is finished</span>
+        </label>
+        <span className="text-xs text-gray-500">You get a summary email each day at 5pm, an alert if anything fails, and it switches itself off when done.</span>
       </div>
 
       <div className="flex flex-col gap-1">

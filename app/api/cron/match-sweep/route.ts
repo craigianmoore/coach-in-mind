@@ -5,6 +5,7 @@ import { closeUsedActivations, notifyApprovedShares } from "@/lib/server/notifyM
 import { notifyMentoringRequests } from "@/lib/server/notifyMentoring";
 import { APP_URL, sendEmail } from "@/lib/server/sendEmail";
 import { sendAdminEmail } from "@/lib/server/sendAdminEmail";
+import { runInviteAutoSend } from "@/lib/server/invitations";
 
 // Safety-net sweep: runs the same matching logic admin triggers by hand
 // (opening the Matches tab, clicking "Re-run auto-match now") on a
@@ -117,6 +118,12 @@ export async function GET(req: Request) {
 
   await notifyApprovedShares(supabase);
   await notifyMentoringRequests(supabase);
+
+  try {
+    await runInviteAutoSend(supabase, sendAdminEmail);
+  } catch (err) {
+    console.error("cron match-sweep: invitation auto-send failed", err);
+  }
 
   return NextResponse.json({
     ok: true,

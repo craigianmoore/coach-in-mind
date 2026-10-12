@@ -4,12 +4,13 @@
 //                                            Football Victoria staff, people already signed up, and anyone already listed
 //   POST { action: "test" }               -> send the invitation to the signed-in admin only
 //   POST { action: "send", count }        -> send to the next `count` pending people (capped; daily ceiling applies)
+//   POST { action: "auto", on }           -> switch automatic sending on or off
 //   POST { action: "optout", email }      -> mark someone as "no thanks" so they are never emailed
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/server/sendEmail";
-import { INVITE_DAILY_CAP, INVITE_SUBJECT, firstNameOf, inviteText, parseCsv } from "@/lib/server/invitations";
+import { INVITE_SUBJECT, firstNameOf, inviteCounts, inviteText, parseCsv, sendInviteBatch } from "@/lib/server/invitations";
 
 export const maxDuration = 60;
 
@@ -22,15 +23,7 @@ async function requireMaster() {
 }
 
 async function counts() {
-  const service = createServiceClient();
-  const { data } = await service.from("invite_recipients").select("status, sent_at");
-  const c = { pending: 0, sent: 0, failed: 0, optout: 0, sending: 0, sentLast24h: 0 };
-  const since = Date.now() - 24 * 3600_000;
-  for (const r of data ?? []) {
-    c[r.status as "pending" | "sent" | "failed" | "optout" | "sending"] += 1;
-    if (r.status === "sent" && r.sent_at && new Date(r.sent_at).getTime() > since) c.sentLast24h += 1;
-  }
-  return { ...c, dailyCap: INVITE_DAILY_CAP };
+  return inviteCounts(createServiceClient());
 }
 
 export async function GET() {
@@ -42,7 +35,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const auth = await requireMaster();
   if ("error" in auth) return auth.error;
-  const body = (await req.json().catch(() => ({}))) as { action?: string; csv?: string; count?: number; email?: string };
+  const body = (await req.json().catch(() => ({}))) as { action?: string; csv?: string; count?: number; email?: string; on?: boolean };
   const service = createServiceClient();
 
   if (body.action === "import") {
@@ -97,43 +90,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, ...(await counts()) });
   }
 
+  if (body.action === "auto") {
+    const on = body.on === true;
+    const { error } = await service.from("platform_settings").update({ invite_auto_send: on }).not("id", "is", null);
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, ...(await counts()) });
+  }
+
   if (body.action === "send") {
     const want = Math.max(1, Math.min(50, Math.floor(Number(body.count) || 0)));
-    const c = await counts();
-    const room = INVITE_DAILY_CAP - c.sentLast24h;
-    if (room <= 0) {
-      return NextResponse.json({ ok: false, error: `Daily ceiling reached (${c.sentLast24h} sent in the last 24 hours, ceiling ${INVITE_DAILY_CAP}). Try again later.`, ...c }, { status: 429 });
+    const r = await sendInviteBatch(service, want);
+    if (r.atCeiling) {
+      return NextResponse.json({ ok: false, error: `Daily ceiling reached (${r.counts.sentLast24h} sent in the last 24 hours, ceiling ${r.counts.dailyCap}). Try again later.`, ...r.counts }, { status: 429 });
     }
-    const n = Math.min(want, room);
-    const { data: next } = await service
-      .from("invite_recipients")
-      .select("email, first_name")
-      .eq("status", "pending")
-      .order("created_at", { ascending: true })
-      .order("email", { ascending: true })
-      .limit(n);
-    let sent = 0;
-    let failed = 0;
-    for (const r of next ?? []) {
-      // Claim before sending so two clicks can never email the same person twice.
-      const { data: claimed } = await service
-        .from("invite_recipients")
-        .update({ status: "sending" })
-        .eq("email", r.email)
-        .eq("status", "pending")
-        .select("email");
-      if (!claimed || claimed.length === 0) continue;
-      const ok = await sendEmail({ to: r.email, subject: INVITE_SUBJECT, text: inviteText(r.first_name ?? "") });
-      if (ok) {
-        sent++;
-        await service.from("invite_recipients").update({ status: "sent", sent_at: new Date().toISOString(), error: null }).eq("email", r.email);
-      } else {
-        failed++;
-        await service.from("invite_recipients").update({ status: "failed", error: "Resend refused or errored" }).eq("email", r.email);
-      }
-      await new Promise((res) => setTimeout(res, 600)); // stay under Resend's request rate limit
-    }
-    return NextResponse.json({ ok: true, sentNow: sent, failedNow: failed, cappedByDailyCeiling: n < want, ...(await counts()) });
+    return NextResponse.json({ ok: true, sentNow: r.sent, failedNow: r.failed, cappedByDailyCeiling: r.cappedByDailyCeiling, ...r.counts });
   }
 
   return NextResponse.json({ ok: false, error: "Unknown action." }, { status: 400 });

@@ -3258,3 +3258,5 @@ alter table invite_recipients enable row level security;
 drop policy if exists "admin can read invite recipients" on invite_recipients;
 create policy "admin can read invite recipients" on invite_recipients
   for select using (is_admin_caller());
+-- Switch for automatic sending of the one-off coach invitations (off by default).
+alter table platform_settings add column if not exists invite_auto_send boolean not null default false;
