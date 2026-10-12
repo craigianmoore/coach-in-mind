@@ -1,5 +1,6 @@
 "use client";
 
+import EmailFailureBanner from "@/components/EmailFailureBanner";
 import { fetchAll } from "@/lib/fetchAll";
 import { CLUB_INTRO_CAP, COACH_ACTIVE_DAYS, isActivated } from "@/lib/coachPool";
 import { notifyMatches } from "@/lib/notify";
@@ -1225,6 +1226,8 @@ function Club2CoachAdmin() {
         </button>
         </div>
       </div>
+
+      <EmailFailureBanner />
 
       <div className="mt-4 flex flex-nowrap overflow-x-auto whitespace-nowrap border-b">
         {(["unpaid", "overview", "matches", "weighting", "listings", "clubs", "promos", "admins", "support", "people", "payments"] as Tab[]).map((t) => (

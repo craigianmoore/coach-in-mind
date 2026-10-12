@@ -3,6 +3,7 @@
 // Sender is the verified coachinmind.com.au address; replies go to the
 // Coach In Mind inbox. Never throws.
 import { renderEmailHtml } from "./emailHtml";
+import { recordEmailFailure } from "./emailFailures";
 
 export const APP_URL = "https://www.coachinmind.com.au";
 
@@ -27,12 +28,15 @@ export async function sendEmail(opts: { to: string; subject: string; text: strin
       }),
     });
     if (!res.ok) {
-      console.error("Resend API error:", await res.text());
+      const detail = await res.text();
+      console.error("Resend API error:", detail);
+      await recordEmailFailure(res.status, detail);
       return false;
     }
     return true;
   } catch (err) {
     console.error("sendEmail error:", err);
+    await recordEmailFailure(null, String(err));
     return false;
   }
 }

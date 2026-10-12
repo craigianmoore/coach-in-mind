@@ -4,6 +4,7 @@
 // self-referential HTTP call to /api/notify; that route now delegates
 // to this same function for the client-triggered notifications.
 import { renderEmailHtml } from "./emailHtml";
+import { recordEmailFailure } from "./emailFailures";
 
 export async function sendAdminEmail(subject: string, text: string): Promise<{ ok: boolean; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
@@ -32,12 +33,14 @@ export async function sendAdminEmail(subject: string, text: string): Promise<{ o
     if (!res.ok) {
       const detail = await res.text();
       console.error("Resend API error:", detail);
+      await recordEmailFailure(res.status, detail);
       return { ok: false, error: "Email send failed" };
     }
 
     return { ok: true };
   } catch (err) {
     console.error("Admin email error:", err);
+    await recordEmailFailure(null, String(err));
     return { ok: false, error: "Email send failed" };
   }
 }

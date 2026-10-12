@@ -1,5 +1,6 @@
 "use client";
 
+import EmailFailureBanner from "@/components/EmailFailureBanner";
 import { isActivated } from "@/lib/coachPool";
 import { useEffect, useState } from "react";
 import PinGate from "@/components/PinGate";
@@ -500,6 +501,8 @@ function Coach2MentorAdmin() {
         </button>
         </div>
       </div>
+
+      <EmailFailureBanner />
 
       <div className="mt-4 flex flex-nowrap overflow-x-auto whitespace-nowrap border-b border-white/20">
         {(["unpaid", "overview", "matches", "requests", "weighting", "listings", "admins", "payments"] as Tab[]).map((t) => (
