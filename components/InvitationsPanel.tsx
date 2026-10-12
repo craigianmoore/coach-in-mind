@@ -125,7 +125,7 @@ export default function InvitationsPanel() {
             type="checkbox"
             disabled={busy || !counts}
             checked={counts?.autoSend === true}
-            onChange={(e) => run({ action: "auto", on: e.target.checked }, () => (e.target.checked ? "Automatic sending is on." : "Automatic sending is off."))}
+            onChange={(e) => run({ action: "auto", on: e.target.checked }, (j) => (j.autoSend ? "Automatic sending is on." : "Automatic sending is off."))}
           />
           <span>Send automatically, about 80 a day between 9am and 5pm Melbourne time, until the list is finished</span>
         </label>
