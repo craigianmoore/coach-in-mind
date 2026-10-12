@@ -5,6 +5,8 @@
 //   POST { action: "test" }               -> send the invitation to the signed-in admin only
 //   POST { action: "send", count }        -> send to the next `count` pending people (capped; daily ceiling applies)
 //   POST { action: "auto", on }           -> switch automatic sending on or off
+//   POST { action: "list" }               -> everyone on the list (for the No thanks list)
+//   POST { action: "restore", email }     -> undo a "no thanks"
 //   POST { action: "optout", email }      -> mark someone as "no thanks" so they are never emailed
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -78,6 +80,28 @@ export async function POST(req: Request) {
     if (!auth.email) return NextResponse.json({ ok: false, error: "No admin email on this session." }, { status: 400 });
     const ok = await sendEmail({ to: auth.email, subject: `TEST: ${INVITE_SUBJECT}`, text: inviteText("Aaron") });
     return NextResponse.json({ ok, to: auth.email });
+  }
+
+  if (body.action === "list") {
+    const { data } = await service
+      .from("invite_recipients")
+      .select("email, first_name, status, sent_at")
+      .order("email", { ascending: true })
+      .limit(1000);
+    return NextResponse.json({ ok: true, rows: data ?? [] });
+  }
+
+  if (body.action === "restore") {
+    const e = (body.email ?? "").trim().toLowerCase();
+    const { data: row } = await service.from("invite_recipients").select("sent_at").eq("email", e).maybeSingle();
+    if (!row) return NextResponse.json({ ok: false, error: "Not on the list." }, { status: 404 });
+    const { error } = await service
+      .from("invite_recipients")
+      .update({ status: row.sent_at ? "sent" : "pending" })
+      .eq("email", e)
+      .eq("status", "optout");
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, ...(await counts()) });
   }
 
   if (body.action === "optout") {

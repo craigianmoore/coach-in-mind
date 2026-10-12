@@ -12,6 +12,8 @@ export default function InvitationsPanel() {
   const [busy, setBusy] = useState(false);
   const [batch, setBatch] = useState(25);
   const [optout, setOptout] = useState("");
+  const [rows, setRows] = useState<{ email: string; first_name: string | null; status: string; sent_at: string | null }[] | null>(null);
+  const [q, setQ] = useState("");
 
   async function call(body?: object) {
     const res = await fetch("/api/admin/invitations", body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : undefined);
@@ -34,6 +36,21 @@ export default function InvitationsPanel() {
     const j = await call(body);
     setMsg(j.ok ? done(j) : j.error ?? "Failed");
     if (j.pending !== undefined) setCounts(j);
+    setBusy(false);
+  }
+
+  async function loadRows() {
+    const j = await call({ action: "list" });
+    if (j.ok) setRows(j.rows);
+  }
+
+  async function mark(email: string, action: "optout" | "restore") {
+    setBusy(true);
+    const j = await call({ action, email });
+    if (j.ok) {
+      if (j.pending !== undefined) setCounts(j);
+      setRows((rs) => rs && rs.map((r) => (r.email === email ? { ...r, status: action === "optout" ? "optout" : r.sent_at ? "sent" : "pending" } : r)));
+    } else setMsg(j.error ?? "Failed");
     setBusy(false);
   }
 
@@ -133,6 +150,52 @@ export default function InvitationsPanel() {
             Never email
           </button>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-gray-700">Invited people</span>
+          <button onClick={loadRows} className="rounded-lg border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50">
+            {rows ? "Refresh" : "Show list"}
+          </button>
+        </div>
+        {rows && (
+          <>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by name or email"
+              className="w-64 rounded border border-gray-300 px-2 py-1"
+            />
+            <div className="max-h-96 overflow-y-auto rounded-lg border border-gray-200 bg-white">
+              {rows
+                .filter((r) => !q || r.email.includes(q.toLowerCase()) || (r.first_name ?? "").toLowerCase().includes(q.toLowerCase()))
+                .map((r) => (
+                  <div key={r.email} className="flex items-center justify-between gap-2 border-b border-gray-100 px-3 py-1.5 last:border-b-0">
+                    <div className="min-w-0">
+                      <div className="truncate">{r.email}</div>
+                      <div className="text-xs text-gray-500">
+                        {r.first_name || "no first name"} · {r.status === "optout" ? "no thanks" : r.status === "sent" ? "invited" : r.status}
+                      </div>
+                    </div>
+                    {r.status === "optout" ? (
+                      <button disabled={busy} onClick={() => mark(r.email, "restore")} className="shrink-0 text-xs font-semibold text-gray-500 underline disabled:opacity-50">
+                        Undo
+                      </button>
+                    ) : (
+                      <button
+                        disabled={busy}
+                        onClick={() => mark(r.email, "optout")}
+                        className="shrink-0 rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        No thanks
+                      </button>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </>
+        )}
       </div>
 
       {msg && <div className="rounded-lg bg-gray-50 p-3 text-gray-800">{msg}</div>}
