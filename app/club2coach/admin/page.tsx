@@ -1246,6 +1246,8 @@ function Club2CoachAdmin() {
               ? `Support (${supportQueries.filter((q) => q.status === "open").length})`
               : t === "people"
               ? `People${newSignupsCount > 0 ? ` (${newSignupsCount} new)` : ""}`
+              : t === "weighting"
+              ? "loading"
               : t}
           </button>
         ))}
@@ -1582,11 +1584,11 @@ function Club2CoachAdmin() {
                       }
                       className="text-xs font-semibold text-gray-500 hover:underline"
                     >
-                      {expandedWeighting.has(vacancy.id) ? "Hide weighting" : "Customise weighting"}
+                      {expandedWeighting.has(vacancy.id) ? "Hide loading" : "Customise loading"}
                     </button>
                     {vacancy.personal_weights && (
                       <span className="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">
-                        Custom weighting active
+                        Custom loading active
                       </span>
                     )}
                   </div>
@@ -1595,7 +1597,7 @@ function Club2CoachAdmin() {
                     <div className="mt-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
                       <div className="flex items-center justify-between">
                         <p className="text-xs text-gray-500">
-                          Overrides the global weighting for this vacancy only. Not shown to the club.
+                          Overrides the global loading for this vacancy only. Not shown to the club.
                         </p>
                         {vacancy.personal_weights && (
                           <button
@@ -1741,7 +1743,7 @@ function Club2CoachAdmin() {
 
       {tab === "weighting" && weights && (
         <div className="mt-6 max-w-xl rounded-xl border bg-white p-6">
-          <h2 className="font-semibold">Matching weighting</h2>
+          <h2 className="font-semibold">Matching loading</h2>
           <p className="mt-1 text-sm text-gray-600">
             Rate how much each criterion counts toward the overall match
             score, from 1 (least important) to 10 (most important).

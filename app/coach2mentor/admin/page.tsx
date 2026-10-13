@@ -518,6 +518,8 @@ function Coach2MentorAdmin() {
           >
             {t === "unpaid"
               ? `Unpaid (${unpaidCoaches.length + unpaidMentors.length + topupRequests.length})`
+              : t === "weighting"
+              ? "loading"
               : t}
           </button>
         ))}
@@ -766,7 +768,7 @@ function Coach2MentorAdmin() {
                         {new Date(coach.created_at).toLocaleDateString("en-GB")}
                         {coach.personal_weights && (
                           <span className="ml-2 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
-                            Personal weighting
+                            Personal loading
                           </span>
                         )}
                       </p>
@@ -954,9 +956,9 @@ function Coach2MentorAdmin() {
 
       {tab === "weighting" && weights && (
         <div className="mt-6 max-w-xl rounded-xl border bg-white p-6">
-          <h2 className="font-semibold">Matching weighting (global default)</h2>
+          <h2 className="font-semibold">Matching loading (global default)</h2>
           <p className="mt-1 text-sm text-gray-600">
-            Used for any coach who hasn't set their own personal weighting. From 1 (least
+            Used for any coach who hasn't set their own personal loading. From 1 (least
             important) to 10 (most important).
           </p>
           {(Object.keys(weights) as (keyof Coach2MentorWeights)[]).map((key) => (
