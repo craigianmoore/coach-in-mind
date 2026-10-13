@@ -192,7 +192,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   // Which package tier this club has picked for self-serve card
   // payment — previously this grid was purely informational (admin
   // decided the tier manually), so this is new state, not a rename.
-  const [selectedVacancyPackage, setSelectedVacancyPackage] = useState(1);
+  const [selectedVacancyPackage, setSelectedVacancyPackage] = useState(3);
   const [openCountMessage, setOpenCountMessage] = useState<string | null>(null);
   const [activity, setActivity] = useState<Club2CoachShare[] | null>(null);
   // Coach name for each introduced share, keyed by coach_listing_id —
@@ -214,10 +214,6 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     loadClubs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (!stripeEnabled) setSelectedVacancyPackage(1);
-  }, [stripeEnabled]);
 
   async function loadClubs() {
     const data = await fetchAll<Club>((a, b) =>
@@ -704,7 +700,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             <>✓ Your vacancy is active and included in matching{existing.paid_at ? ` until ${formatDate(advertEndsAt(existing)!.toISOString())}` : ""}. If no coach is introduced in 90 days, your credit is returned.</>
           ) : (
             <>
-              <strong>Payment required (from ${CLUB2COACH_CLUB_PACKAGES[1]} AUD):</strong> your
+              <strong>Payment required (${CLUB2COACH_CLUB_PACKAGES[3]} AUD for 3 introductions):</strong> your
               vacancy is saved but won't be included in matching until
               payment is confirmed. Coach In Mind will be in touch about
               how to pay, or pick a package below and pay now to activate immediately.
@@ -717,11 +713,10 @@ function Club2CoachClubForm({ person }: { person: Person }) {
         (!existing.paid && existing.status !== "filled" && existing.status !== "superseded")) && (
         <div className="mt-4 rounded-xl border bg-white p-4">
           <p className="text-xs font-semibold uppercase text-gray-500">
-            How many coach introductions do you want?
+            Your pack
           </p>
-          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:max-w-xs">
             {Object.entries(CLUB2COACH_CLUB_PACKAGES)
-              .filter(([count]) => stripeEnabled || Number(count) === 1)
               .map(([count, price]) => (
                 <label
                   key={count}
@@ -739,9 +734,9 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                     onChange={() => setSelectedVacancyPackage(Number(count))}
                   />
                   <p className="font-semibold">
-                    {count} intro{count === "1" ? "" : "s"}
+                    {count} coach introductions
                   </p>
-                  <p className="text-sm text-gray-500">${price} AUD</p>
+                  <p className="text-sm text-gray-500">${price} AUD · advert runs 90 days</p>
                 </label>
               ))}
           </div>
@@ -756,16 +751,11 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 mode="new"
               />
             </div>
-          ) : !stripeEnabled ? (
-            <p className="mt-2 text-xs text-gray-500">
-              Coach In Mind is running a trial at the moment, so vacancies are capped at 1
-              introduction each — larger packages return once full pricing is live.
-            </p>
           ) : (
             <p className="mt-2 text-xs text-gray-500">
-              We'll match you with your top-scoring coaches, up to this many, based on your
-              criteria below. Pick a package now — you'll be able to pay by card as soon as the
-              vacancy is saved.
+              We'll match you with your top-scoring coaches, up to 3, based on your
+              criteria below. Save the vacancy, then pay to put it live — by card if card payments are on,
+              otherwise we'll be in touch about how to pay.
             </p>
           )}
         </div>

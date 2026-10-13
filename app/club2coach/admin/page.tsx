@@ -547,8 +547,8 @@ function Club2CoachAdmin() {
   async function markVacancyPaid(id: string) {
     supabase.rpc("refresh_admin_session"); // keep the idle-timeout session alive
     setStatus(null);
-    const introductions = vacancyPackage[id] ?? 1;
-    const amount = Number(vacancyAmount[id] ?? CLUB2COACH_CLUB_PACKAGES[introductions]);
+    const introductions = vacancyPackage[id] ?? 3;
+    const amount = Number(vacancyAmount[id] ?? CLUB2COACH_CLUB_PACKAGES[introductions] ?? 0);
     const { error } = await supabase.rpc("mark_club2coach_club_paid", {
       target_listing_id: id,
       amount,
@@ -568,7 +568,7 @@ function Club2CoachAdmin() {
     }
     supabase.rpc("refresh_admin_session");
     setStatus(null);
-    const introductions = vacancyPackage[id] ?? 1;
+    const introductions = vacancyPackage[id] ?? 3;
     const { error } = await supabase.rpc("gift_club2coach_vacancy", {
       target_listing_id: id,
       introductions,
@@ -1406,15 +1406,15 @@ function Club2CoachAdmin() {
                     </div>
                     <div className="flex items-center gap-2">
                       <select
-                        value={vacancyPackage[v.id] ?? 1}
+                        value={vacancyPackage[v.id] ?? 3}
                         onChange={(e) => {
                           const n = Number(e.target.value);
                           setVacancyPackage((prev) => ({ ...prev, [v.id]: n }));
-                          setVacancyAmount((prev) => ({ ...prev, [v.id]: String(CLUB2COACH_CLUB_PACKAGES[n]) }));
+                          setVacancyAmount((prev) => ({ ...prev, [v.id]: String(CLUB2COACH_CLUB_PACKAGES[n] ?? "") }));
                         }}
                         className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
                       >
-                        {Object.keys(CLUB2COACH_CLUB_PACKAGES).map((n) => (
+                        {["1", "2", "3"].map((n) => (
                           <option key={n} value={n}>
                             {n} intro{n === "1" ? "" : "s"}
                           </option>
@@ -1422,7 +1422,7 @@ function Club2CoachAdmin() {
                       </select>
                       <input
                         type="number"
-                        placeholder={`$${CLUB2COACH_CLUB_PACKAGES[vacancyPackage[v.id] ?? 1]}`}
+                        placeholder={CLUB2COACH_CLUB_PACKAGES[vacancyPackage[v.id] ?? 3] ? `$${CLUB2COACH_CLUB_PACKAGES[vacancyPackage[v.id] ?? 3]}` : "$"}
                         value={vacancyAmount[v.id] ?? ""}
                         onChange={(e) => setVacancyAmount((prev) => ({ ...prev, [v.id]: e.target.value }))}
                         className="w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-sm"

@@ -303,11 +303,8 @@ export default function HomePage() {
             <h3 className="text-lg font-bold text-brand-navy">Clubs</h3>
             <p className="mt-1 text-sm text-gray-600">Coaching vacancy adverts</p>
             <ul className="mt-3 space-y-1 text-sm text-gray-700">
-              <li>1 introduction — $75</li>
-              <li>2 introductions — $150</li>
-              <li>3 introductions — $225</li>
-              <li>4 introductions — $300</li>
-              <li>5 introductions — $350</li>
+              <li>3 coach introductions — $100</li>
+              <li>Your first introduction is free</li>
             </ul>
             <p className="mt-3 text-xs text-gray-500">
               Your advert runs for 90 days. If no coach is introduced in

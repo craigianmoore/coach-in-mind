@@ -132,7 +132,7 @@ story.append(Paragraph("If you're a club", h3_style))
 story.append(bullets([
     "Press <b>Advertise a Coaching Role</b> and enter your requirements — competition level, age group, region, and "
     "accreditation needed.",
-    "Choose a package of 1–5 coach introductions. Your club's first introduction is free — just "
+    "Buy a pack of 3 coach introductions for $100 (your advert runs 90 days). Your club's first introduction is free — just "
     "tap \"Claim free introduction\" on your vacancy; anything after that is charged as normal.",
     "You'll get an email as soon as your vacancy is saved. It isn't live yet — it only joins matching "
     "once payment is confirmed (or a free or gifted introduction is applied).",

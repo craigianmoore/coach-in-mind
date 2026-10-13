@@ -332,7 +332,7 @@ export const RATE_UNITS = ["per session", "per hour", "per month"] as const;
 // Coach2Mentor mentor).
 export const ROLE_PRICES_AUD = {
   club2coach_coach: 20, // starting tier — see CLUB2COACH_COACH_PACKAGES for the full ladder
-  club2coach_club: 75, // starting tier — see CLUB2COACH_CLUB_PACKAGES for the full ladder
+  club2coach_club: 100, // one pack: 3 introductions — see CLUB2COACH_CLUB_PACKAGES
   coach2mentor_coach: 20,
   coach2mentor_mentor: 100,
 } as const;
@@ -347,13 +347,12 @@ export const CLUB2COACH_COACH_PACKAGES: Record<number, number> = {
   3: 50,
 };
 
+// Clubs buy one pack: 3 coach introductions for $100 (13 Oct 2026; replaced a 1-5 ladder at $75 each, $70 at 5).
+// Flat pack pricing keeps every introduction from looking like a separate charge. Admin can still gift 1-3.
 export const CLUB2COACH_CLUB_PACKAGES: Record<number, number> = {
-  1: 75,
-  2: 150,
-  3: 225,
-  4: 300,
-  5: 350,
+  3: 100,
 };
+export const CLUB_PACK_SIZE = 3;
 
 // Coach2Mentor mentor capacity — how many mentees a mentor can take on
 // determines what they pay, since more capacity unlocks more potential
