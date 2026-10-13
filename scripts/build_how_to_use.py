@@ -180,8 +180,8 @@ story.append(bullets([
     "Buy a package of 1–3 credits — or, if you're one of the first 100 coaches to sign up, your free "
     "founding credit is already in your credit balance (see below). Credits never expire until you use them.",
     "<b>You decide when you're looking.</b> On Club 2 Coach, one credit = <b>30 days</b> in front of clubs. Press <b>Activate</b> on "
-    "your coach page to spend a credit and start the clock: you can be introduced to up to <b>5 clubs</b> in those 30 days, "
-    "and the credit ends after 30 days or at the fifth introduction, whichever comes first. "
+    "your coach page to spend a credit and start the clock: you can be introduced to up to <b>3 clubs</b> in those 30 days, "
+    "and the credit ends after 30 days or at the third introduction, whichever comes first. "
     "To be shown to clubs again you activate with another credit. On Coach 2 Mentor a credit covers 60 days.",
     "To look for a club AND a mentor you activate both listings — one credit each. Your credits are "
     "one balance shared across both services.",
@@ -191,7 +191,7 @@ story.append(bullets([
     "you to your best-fitting clubs.",
     "When you're matched you'll get an email, and the club contact's name, email and mobile appear "
     "under \"Your introductions\" on your coach page — you can get in touch with them directly.",
-    "When your 30 days end (or you reach 5 introductions), buy or use another credit and activate again to be shown to clubs again.",
+    "When your 30 days end (or you reach 3 introductions), buy or use another credit and activate again to be shown to clubs again.",
 ]))
 
 story.append(callout(
@@ -200,9 +200,9 @@ story.append(callout(
         "The first 100 coaches to sign up get one free credit. It is added to your credit balance as soon as you "
         "open your coach page (Club 2 Coach or Coach 2 Mentor) — you don't need to save a listing first. Use it on "
         "either service (you choose); it can't be used on a mentor profile, and mentors and clubs don't take up one of "
-        "the 60 places. Press <b>Activate</b> whenever you're ready; the clock (30 days on Club 2 Coach, up to 5 "
+        "the 100 places. Press <b>Activate</b> whenever you're ready; the clock (30 days on Club 2 Coach, up to 3 "
         "introductions, or 60 days on Coach 2 Mentor) only starts then. It's one free credit per coach, and it "
-        "ends once all 60 places are taken. Clubs keep their own free first introduction.",
+        "ends once all 100 places are taken. Clubs keep their own free first introduction.",
     ],
 ))
 story.append(Spacer(1, 4))
@@ -262,8 +262,8 @@ story.append(bullets([
 story.append(Paragraph("Credits, expiry and refunds", h2_style))
 story.append(bullets([
     "<b>Unused coach credits never expire, but a used credit does.</b> On Club 2 Coach, one credit = "
-    "30 days in front of clubs (up to 5 introductions). When a coach presses Activate, that credit is spent and the listing is live "
-    "for 30 days; it ends after 30 days or at the fifth introduction, whichever comes first. "
+    "30 days in front of clubs (up to 3 introductions). When a coach presses Activate, that credit is spent and the listing is live "
+    "for 30 days; it ends after 30 days or at the third introduction, whichever comes first. "
     "To be shown to clubs again, use or buy another credit. Mentors have no clock — they buy credits to advertise "
     "themselves to any coach who wants a mentor.",
     "<b>Club credits belong to the advert.</b> An advert runs 90 days, then ends unless it's filled "

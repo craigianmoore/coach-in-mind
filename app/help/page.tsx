@@ -100,7 +100,7 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">What am I actually paying for?</p>
               <p className="mt-1 text-gray-600">
-                A package of credits (1–3 for coaches, 1–5 for clubs; a coach credit = 30 days in front of clubs (up to 5 introductions), a club credit = one advert) or, for
+                A package of credits (1–3 for coaches, 1–5 for clubs; a coach credit = 30 days in front of clubs (up to 3 introductions), a club credit = one advert) or, for
                 mentors, mentee places (1, 2, 3, 5 or 10 at a time — $100 for one place, up to 10 places for $750) that you can top up whenever you need more room. You're
                 paying for a curated introduction, not a guaranteed outcome — what happens after
                 you're introduced is between you and the other party.
@@ -132,14 +132,14 @@ export default function HelpPage() {
                 profiles). The credit is added to your credit balance as soon as you open your coach page
                 (Club 2 Coach or Coach 2 Mentor), and you press Activate there whenever you're ready.
                 The clock starts when you press Activate (30 days on Club 2 Coach, 60 on Coach 2
-                Mentor); we email you a week before it ends. Once all 60 places are taken the offer
+                Mentor); we email you a week before it ends. Once all 100 places are taken the offer
                 ends. Clubs have their own free first introduction.
               </p>
             </div>
             <div>
               <p className="font-medium text-gray-800">Do my credits expire?</p>
               <p className="mt-1 text-gray-600">
-                Unused credits never expire, but a used credit does. On Club 2 Coach, one credit = 30 days of being shown to clubs, with up to 5 club introductions in that time: press Activate and your listing is in matching; the credit ends after 30 days or at the fifth introduction, whichever comes first — to be shown to clubs again you use or buy another. On Coach 2 Mentor, one credit = 60 days in matching. To look for both a club and a mentor you activate
+                Unused credits never expire, but a used credit does. On Club 2 Coach, one credit = 30 days of being shown to clubs, with up to 3 club introductions in that time (activations made before 13 October 2026 include up to 5): press Activate and your listing is in matching; the credit ends after 30 days or at the third introduction, whichever comes first — to be shown to clubs again you use or buy another. On Coach 2 Mentor, one credit = 60 days in matching. To look for both a club and a mentor you activate
                 both, one credit each; your credit balance is shared across the two. Club credits belong to the advert: it runs 90 days, then ends. With no
                 introduction the credit comes back automatically; if coaches were introduced it is used up
                 and unused introductions don't carry over — to re-advertise, you use a new credit.

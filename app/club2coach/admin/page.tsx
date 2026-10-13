@@ -3,7 +3,7 @@
 import EmailFailureBanner from "@/components/EmailFailureBanner";
 import InvitationsPanel from "@/components/InvitationsPanel";
 import { fetchAll } from "@/lib/fetchAll";
-import { CLUB_INTRO_CAP, COACH_ACTIVE_DAYS, isActivated } from "@/lib/coachPool";
+import { introCapFor, COACH_ACTIVE_DAYS, isActivated } from "@/lib/coachPool";
 import { notifyMatches } from "@/lib/notify";
 import { useEffect, useState } from "react";
 import PinGate from "@/components/PinGate";
@@ -614,7 +614,7 @@ function Club2CoachAdmin() {
       if (remaining <= 0) continue;
 
       const candidates = activeCoaches
-        .filter((c) => introsThisActivation(c) + (runIntros.get(c.id) ?? 0) < CLUB_INTRO_CAP && !sharedPairs.has(`${c.id}:${vacancy.id}`))
+        .filter((c) => introsThisActivation(c) + (runIntros.get(c.id) ?? 0) < introCapFor(c.activated_at) && !sharedPairs.has(`${c.id}:${vacancy.id}`))
         .map((coach) => {
           const coachPerson = people[coach.person_id];
           const vacancyWeights = vacancy.personal_weights ?? weights;
@@ -962,10 +962,10 @@ function Club2CoachAdmin() {
     return shares.filter((s) => s.coach_listing_id === coachListingId).length;
   }
   // A coach is matchable only while their activation window is open (Activate button).
-  // One credit = up to CLUB_INTRO_CAP club introductions in the 30 days: a coach at the cap is done.
+  // One credit = up to 3 club introductions (5 for activations before 13 Oct 2026) in the 30 days: a coach at the cap is done.
   const introsThisActivation = (l: Club2CoachCoachListing) =>
     shares.filter((s) => s.coach_listing_id === l.id && s.status === "approved" && !!l.activated_at && s.shared_at >= l.activated_at).length;
-  const activeCoaches = coachListings.filter((l) => isActivated(l) && introsThisActivation(l) < CLUB_INTRO_CAP);
+  const activeCoaches = coachListings.filter((l) => isActivated(l) && introsThisActivation(l) < introCapFor(l.activated_at));
   const activeVacancies = vacancies.filter(
     (v) =>
       v.paid &&

@@ -1,8 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { APP_URL, sendEmail } from "./sendEmail";
-import { CLUB_INTRO_CAP } from "@/lib/coachPool";
+import { introCapFor } from "@/lib/coachPool";
 
-// One coach credit = 30 days of being shown to clubs, up to CLUB_INTRO_CAP introductions: once a coach has
+// One coach credit = 30 days of being shown to clubs, up to 3 introductions (5 for activations before 13 Oct 2026): once a coach has
 // reached the cap in their current activation, close it (listing leaves matching) and withdraw their other pending
 // suggestions. Runs after every approval and at the start of each cron sweep. Service-role client only.
 export async function closeUsedActivations(supabase: SupabaseClient): Promise<number> {
@@ -22,8 +22,8 @@ export async function closeUsedActivations(supabase: SupabaseClient): Promise<nu
       .eq("coach_listing_id", l.id)
       .eq("status", "approved")
       .gte("shared_at", l.activated_at)
-      .limit(CLUB_INTRO_CAP);
-    if (!used || used.length < CLUB_INTRO_CAP) continue;
+      .limit(introCapFor(l.activated_at));
+    if (!used || used.length < introCapFor(l.activated_at)) continue;
     const { data: upd, error: updErr } = await supabase
       .from("club2coach_coach_listings")
       .update({ status: "expired", active_until: new Date().toISOString() })

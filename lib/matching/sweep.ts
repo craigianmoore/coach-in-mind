@@ -10,7 +10,7 @@
 // app/club2coach/admin/page.tsx and app/coach2mentor/admin/page.tsx if
 // the matching rules ever change there.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { CLUB_INTRO_CAP, isActivated } from "@/lib/coachPool";
+import { introCapFor, isActivated } from "@/lib/coachPool";
 import { scoreClub2CoachMatch, scoreCoach2MentorMatch } from "@/lib/scoring";
 import { APP_URL } from "@/lib/server/sendEmail";
 import { sendAdminEmail } from "@/lib/server/sendAdminEmail";
@@ -99,10 +99,10 @@ export async function runClub2CoachMatchSweep(
   // excluded from "active" explicitly — it isn't caught by the
   // placed/filled/expired checks alone.
   // A coach is matchable only while their activation window is open (Activate button).
-  // One credit = up to CLUB_INTRO_CAP club introductions in the 30 days: a coach at the cap is done.
+  // One credit = up to 3 club introductions (5 for activations before 13 Oct 2026) in the 30 days: a coach at the cap is done.
   const introsThisActivation = (l: Club2CoachCoachListing) =>
     shares.filter((s) => s.coach_listing_id === l.id && s.status === "approved" && !!l.activated_at && s.shared_at >= l.activated_at).length;
-  const activeCoaches = coachListings.filter((l) => isActivated(l) && introsThisActivation(l) < CLUB_INTRO_CAP);
+  const activeCoaches = coachListings.filter((l) => isActivated(l) && introsThisActivation(l) < introCapFor(l.activated_at));
   const activeVacancies = vacancies.filter(
     (v) =>
       v.paid &&
@@ -141,7 +141,7 @@ export async function runClub2CoachMatchSweep(
     if (remaining <= 0) continue;
 
     const candidates = activeCoaches
-      .filter((c) => introsThisActivation(c) + (runIntros.get(c.id) ?? 0) < CLUB_INTRO_CAP && !sharedPairs.has(`${c.id}:${vacancy.id}`))
+      .filter((c) => introsThisActivation(c) + (runIntros.get(c.id) ?? 0) < introCapFor(c.activated_at) && !sharedPairs.has(`${c.id}:${vacancy.id}`))
       .map((coach) => {
         const coachPerson = people[coach.person_id];
         const vacancyWeights = vacancy.personal_weights ?? weights;

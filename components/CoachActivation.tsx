@@ -1,13 +1,13 @@
 "use client";
 
-// The coach's Activate panel. On Club 2 Coach one credit = 30 days in front of clubs (up to 5 introductions);
+// The coach's Activate panel. On Club 2 Coach one credit = 30 days in front of clubs (up to 3 introductions);
 // on Coach 2 Mentor one credit = 60 days. Credits sit in a
 // shared bank and never expire until they are spent here. If the bank is empty
 // and the founding offer is still open, the free founding credit can be used.
 // All rules (ownership, balance, founding limits) are enforced in the database.
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { COACH_ACTIVE_DAYS, daysLeft, isActivated } from "@/lib/coachPool";
+import { COACH_ACTIVE_DAYS, daysLeft, introCapFor, isActivated } from "@/lib/coachPool";
 
 type Table = "club2coach_coach_listings" | "coach2mentor_coach_listings";
 type Dry = { eligible?: boolean; bank?: number; founding_available?: boolean; days?: number };
@@ -73,7 +73,7 @@ export default function CoachActivation({
         </p>
         <p className="mt-2 text-sm">
           {product === "club2coach"
-            ? "Coach In Mind is looking for your match. Your credit covers these 30 days and up to 5 club introductions; you'll see each club's details on this page as you're introduced. When it ends, activate with another credit to be shown to clubs again."
+            ? "Coach In Mind is looking for your match. Your credit covers these 30 days and up to " + introCapFor((listing as { activated_at?: string | null }).activated_at) + " club introductions; you'll see each club's details on this page as you're introduced. When it ends, activate with another credit to be shown to clubs again."
             : "Coach In Mind is looking for your match. Your credit covers these 60 days. When it ends, activate with another credit to be shown to mentors again."}
         </p>
         {typeof bankProp === "number" && (
@@ -97,7 +97,7 @@ export default function CoachActivation({
             : expired ? "Mentors can't see you any more." : "Mentors can't see you yet."}
         </strong>{" "}
         {product === "club2coach"
-          ? `One credit shows you to clubs for ${days} days once you press Activate, with up to 5 club introductions in that time.`
+          ? `One credit shows you to clubs for ${days} days once you press Activate, with up to 3 club introductions in that time.`
           : `One credit puts it in front of mentors for ${days} days from the day you press Activate.`}
         {" "}You have <strong>{bank}</strong> credit{bank === 1 ? "" : "s"} in your credit balance.
       </p>

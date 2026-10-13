@@ -6,8 +6,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const COACH_ACTIVE_DAYS = { club2coach: 30, coach2mentor: 60 } as const;
-// Club 2 Coach: one credit = 30 days of being shown to clubs, up to 5 club introductions in that time.
-export const CLUB_INTRO_CAP = 5;
+// Club 2 Coach: one credit = 30 days of being shown to clubs, up to 3 club introductions in that time.
+export const CLUB_INTRO_CAP = 3;
+// Activations made before this moment were sold as "up to 5 club introductions" and keep that promise.
+export const LEGACY_INTRO_CAP = 5;
+export const INTRO_CAP_CHANGE_AT = "2026-10-13T04:00:00Z";
+export const introCapFor = (activatedAt?: string | null) =>
+  activatedAt && new Date(activatedAt).getTime() < new Date(INTRO_CAP_CHANGE_AT).getTime() ? LEGACY_INTRO_CAP : CLUB_INTRO_CAP;
 // Refund window (days after pressing Activate) when no introduction was made: opens 5 days after the window ends, open for 45 days.
 export const REFUND_OPENS_DAY = { club2coach: 35, coach2mentor: 90 } as const;
 

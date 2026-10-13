@@ -571,7 +571,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
             </p>
           ) : (
             <p className="mt-2 text-xs text-gray-500">
-              Each credit shows you to clubs for 30 days once you press Activate, with up to 5 club introductions in that time. Credits
+              Each credit shows you to clubs for 30 days once you press Activate, with up to 3 club introductions in that time. Credits
               in your balance never expire; once a credit is used you need another to be shown to clubs again.
             </p>
           )}

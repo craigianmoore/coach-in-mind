@@ -294,7 +294,7 @@ export default function HomePage() {
             </ul>
             <p className="mt-3 text-xs text-gray-500">
               A credit keeps your profile in front of clubs for 30 days or
-              up to 5 introductions, whichever comes first. Unused credits
+              up to 3 introductions, whichever comes first. Unused credits
               don&rsquo;t expire. Looking for a mentor? A Coach2Mentor
               credit is $20 for 60 days.
             </p>
