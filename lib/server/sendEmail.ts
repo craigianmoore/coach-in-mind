@@ -12,12 +12,20 @@ export async function sendEmail(opts: { to: string; subject: string; text: strin
 }
 
 // Same as sendEmail but also says whether a failure was temporary (quota, rate limit, Resend down,
-// network) so callers such as the invitation sender can pause and retry later instead of giving up.
-export async function sendEmailDetailed(opts: { to: string; subject: string; text: string }): Promise<{ ok: boolean; transient: boolean }> {
+// network) so callers can pause and retry later. By default a failure is saved to the retry queue
+// (record: false for callers that manage their own retries, such as the invitation sender, and
+// for the retry job itself).
+export async function sendEmailDetailed(
+  opts: { to: string; subject: string; text: string },
+  o: { record?: boolean } = {}
+): Promise<{ ok: boolean; transient: boolean }> {
+  const record = o.record !== false;
+  const mail = (transient: boolean) => ({ to: opts.to, subject: opts.subject, text: opts.text, kind: "user" as const, transient });
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.error("RESEND_API_KEY is not set — email not sent.");
-    return { ok: false, transient: false };
+    if (record) await recordEmailFailure(null, "RESEND_API_KEY is not set", mail(true));
+    return { ok: false, transient: true };
   }
   const full = `${opts.text}\n\n—\nThe Coach In Mind team\n${APP_URL}\nQuestions? Just reply to this email.`;
   try {
@@ -36,13 +44,14 @@ export async function sendEmailDetailed(opts: { to: string; subject: string; tex
     if (!res.ok) {
       const detail = await res.text();
       console.error("Resend API error:", detail);
-      await recordEmailFailure(res.status, detail);
-      return { ok: false, transient: res.status === 429 || res.status >= 500 };
+      const transient = res.status === 429 || res.status >= 500;
+      if (record) await recordEmailFailure(res.status, detail, mail(transient));
+      return { ok: false, transient };
     }
     return { ok: true, transient: false };
   } catch (err) {
     console.error("sendEmail error:", err);
-    await recordEmailFailure(null, String(err));
+    if (record) await recordEmailFailure(null, String(err), mail(true));
     return { ok: false, transient: true };
   }
 }

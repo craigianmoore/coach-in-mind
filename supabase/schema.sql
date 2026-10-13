@@ -3260,3 +3260,5 @@ create policy "admin can read invite recipients" on invite_recipients
   for select using (is_admin_caller());
 -- Switch for automatic sending of the one-off coach invitations (off by default).
 alter table platform_settings add column if not exists invite_auto_send boolean not null default false;
+
+-- Email retry queue (2026-10-13): see supabase/migration_email_retry_2026-10-13.sql

@@ -6,6 +6,7 @@ import { notifyMentoringRequests } from "@/lib/server/notifyMentoring";
 import { APP_URL, sendEmail } from "@/lib/server/sendEmail";
 import { sendAdminEmail } from "@/lib/server/sendAdminEmail";
 import { runInviteAutoSend } from "@/lib/server/invitations";
+import { retryQueuedEmails } from "@/lib/server/emailRetry";
 
 // Safety-net sweep: runs the same matching logic admin triggers by hand
 // (opening the Matches tab, clicking "Re-run auto-match now") on a
@@ -28,6 +29,13 @@ export async function GET(req: Request) {
   }
 
   const supabase = createServiceClient();
+
+  // Emails Resend refused earlier go first, before anything new is sent this hour.
+  try {
+    await retryQueuedEmails(supabase);
+  } catch (err) {
+    console.error("cron match-sweep: email retry failed", err);
+  }
 
   // Coach activations: remind a week before the window ends, then expire ended
   // ones (BEFORE matching, so an expired listing isn't matched).

@@ -96,7 +96,7 @@ export async function sendInviteBatch(service: SupabaseClient, want: number) {
       .eq("status", "pending")
       .select("email");
     if (!claimed || claimed.length === 0) continue;
-    const res = await sendEmailDetailed({ to: r.email, subject: INVITE_SUBJECT, text: inviteText(r.first_name ?? "") });
+    const res = await sendEmailDetailed({ to: r.email, subject: INVITE_SUBJECT, text: inviteText(r.first_name ?? "") }, { record: false });
     if (res.ok) {
       sent++;
       await service.from("invite_recipients").update({ status: "sent", sent_at: new Date().toISOString(), error: null }).eq("email", r.email);

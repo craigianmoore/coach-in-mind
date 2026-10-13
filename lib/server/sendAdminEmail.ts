@@ -6,11 +6,23 @@
 import { renderEmailHtml } from "./emailHtml";
 import { recordEmailFailure } from "./emailFailures";
 
-export async function sendAdminEmail(subject: string, text: string): Promise<{ ok: boolean; error?: string }> {
+const ADMIN_INBOX = "coachinmindcim@gmail.com";
+
+// opts.record: false for the retry job (it manages the queue itself). opts.rawSubject: the subject
+// is already complete (used when retrying). opts.replyTo: e.g. the person who submitted a query.
+export async function sendAdminEmail(
+  subject: string,
+  text: string,
+  opts: { record?: boolean; rawSubject?: boolean; replyTo?: string } = {}
+): Promise<{ ok: boolean; error?: string; transient?: boolean }> {
+  const record = opts.record !== false;
+  const fullSubject = opts.rawSubject ? subject : `Coach In Mind — ${subject}`;
+  const mail = (transient: boolean) => ({ to: ADMIN_INBOX, subject: fullSubject, text, replyTo: opts.replyTo, kind: "admin" as const, transient });
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.error("RESEND_API_KEY is not set — admin email not sent.");
-    return { ok: false, error: "Email not configured" };
+    if (record) await recordEmailFailure(null, "RESEND_API_KEY is not set", mail(true));
+    return { ok: false, error: "Email not configured", transient: true };
   }
 
   try {
@@ -22,9 +34,9 @@ export async function sendAdminEmail(subject: string, text: string): Promise<{ o
       },
       body: JSON.stringify({
         from: "Coach In Mind <hello@coachinmind.com.au>",
-        to: "coachinmindcim@gmail.com",
-        reply_to: "coachinmindcim@gmail.com",
-        subject: `Coach In Mind — ${subject}`,
+        to: ADMIN_INBOX,
+        reply_to: opts.replyTo || ADMIN_INBOX,
+        subject: fullSubject,
         text,
         html: renderEmailHtml(text),
       }),
@@ -33,14 +45,15 @@ export async function sendAdminEmail(subject: string, text: string): Promise<{ o
     if (!res.ok) {
       const detail = await res.text();
       console.error("Resend API error:", detail);
-      await recordEmailFailure(res.status, detail);
-      return { ok: false, error: "Email send failed" };
+      const transient = res.status === 429 || res.status >= 500;
+      if (record) await recordEmailFailure(res.status, detail, mail(transient));
+      return { ok: false, error: "Email send failed", transient };
     }
 
     return { ok: true };
   } catch (err) {
     console.error("Admin email error:", err);
-    await recordEmailFailure(null, String(err));
-    return { ok: false, error: "Email send failed" };
+    if (record) await recordEmailFailure(null, String(err), mail(true));
+    return { ok: false, error: "Email send failed", transient: true };
   }
 }
