@@ -57,7 +57,7 @@ export function firstNameOf(full: string) {
 
 // ---- Sending (shared by the admin tool and the hourly cron) ----
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { sendEmail } from "./sendEmail";
+import { sendEmailDetailed } from "./sendEmail";
 
 export async function inviteCounts(service: SupabaseClient) {
   const { data } = await service.from("invite_recipients").select("status, sent_at");
@@ -75,7 +75,7 @@ export async function inviteCounts(service: SupabaseClient) {
 export async function sendInviteBatch(service: SupabaseClient, want: number) {
   const c = await inviteCounts(service);
   const room = INVITE_DAILY_CAP - c.sentLast24h;
-  if (room <= 0) return { sent: 0, failed: 0, atCeiling: true, cappedByDailyCeiling: true, counts: c };
+  if (room <= 0) return { sent: 0, failed: 0, paused: false, atCeiling: true, cappedByDailyCeiling: true, counts: c };
   const n = Math.min(want, room);
   const { data: next } = await service
     .from("invite_recipients")
@@ -86,6 +86,7 @@ export async function sendInviteBatch(service: SupabaseClient, want: number) {
     .limit(n);
   let sent = 0;
   let failed = 0;
+  let paused = false;
   for (const r of next ?? []) {
     // Claim before sending so two runs can never email the same person twice.
     const { data: claimed } = await service
@@ -95,17 +96,22 @@ export async function sendInviteBatch(service: SupabaseClient, want: number) {
       .eq("status", "pending")
       .select("email");
     if (!claimed || claimed.length === 0) continue;
-    const ok = await sendEmail({ to: r.email, subject: INVITE_SUBJECT, text: inviteText(r.first_name ?? "") });
-    if (ok) {
+    const res = await sendEmailDetailed({ to: r.email, subject: INVITE_SUBJECT, text: inviteText(r.first_name ?? "") });
+    if (res.ok) {
       sent++;
       await service.from("invite_recipients").update({ status: "sent", sent_at: new Date().toISOString(), error: null }).eq("email", r.email);
+    } else if (res.transient) {
+      // Quota, rate limit or Resend trouble: put them back in the queue and stop this run. Nobody is lost.
+      paused = true;
+      await service.from("invite_recipients").update({ status: "pending", error: "Paused: Resend temporarily refused, will retry" }).eq("email", r.email);
+      break;
     } else {
       failed++;
       await service.from("invite_recipients").update({ status: "failed", error: "Resend refused or errored" }).eq("email", r.email);
     }
     await new Promise((res) => setTimeout(res, 600)); // stay under Resend's request rate limit
   }
-  return { sent, failed, atCeiling: false, cappedByDailyCeiling: n < want, counts: await inviteCounts(service) };
+  return { sent, failed, paused, atCeiling: false, cappedByDailyCeiling: n < want, counts: await inviteCounts(service) };
 }
 
 export function melbourneHour(d = new Date()) {
@@ -130,6 +136,9 @@ export async function runInviteAutoSend(
     const r = await sendInviteBatch(service, INVITE_AUTO_PER_RUN);
     failed = r.failed;
     counts = r.counts;
+    if (r.paused) {
+      await notify("Invitation sending paused", `Resend temporarily refused an email (most likely the daily limit). Nobody was lost: ${counts.pending} are still waiting and automatic sending will retry on the next hourly run.`);
+    }
     if (failed > 0) {
       await notify("Invitation sending: some emails failed", `${failed} invitation${failed === 1 ? "" : "s"} failed to send in the latest run. Check your Resend plan and logs. ${counts.pending} still waiting; automatic sending is still on.`);
     }

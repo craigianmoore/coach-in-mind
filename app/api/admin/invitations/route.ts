@@ -127,7 +127,7 @@ export async function POST(req: Request) {
     if (r.atCeiling) {
       return NextResponse.json({ ok: false, error: `Daily ceiling reached (${r.counts.sentLast24h} sent in the last 24 hours, ceiling ${r.counts.dailyCap}). Try again later.`, ...r.counts }, { status: 429 });
     }
-    return NextResponse.json({ ok: true, sentNow: r.sent, failedNow: r.failed, cappedByDailyCeiling: r.cappedByDailyCeiling, ...r.counts });
+    return NextResponse.json({ ok: true, sentNow: r.sent, failedNow: r.failed, paused: r.paused, cappedByDailyCeiling: r.cappedByDailyCeiling, ...r.counts });
   }
 
   return NextResponse.json({ ok: false, error: "Unknown action." }, { status: 400 });

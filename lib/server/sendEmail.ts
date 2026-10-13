@@ -8,10 +8,16 @@ import { recordEmailFailure } from "./emailFailures";
 export const APP_URL = "https://www.coachinmind.com.au";
 
 export async function sendEmail(opts: { to: string; subject: string; text: string }): Promise<boolean> {
+  return (await sendEmailDetailed(opts)).ok;
+}
+
+// Same as sendEmail but also says whether a failure was temporary (quota, rate limit, Resend down,
+// network) so callers such as the invitation sender can pause and retry later instead of giving up.
+export async function sendEmailDetailed(opts: { to: string; subject: string; text: string }): Promise<{ ok: boolean; transient: boolean }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.error("RESEND_API_KEY is not set — email not sent.");
-    return false;
+    return { ok: false, transient: false };
   }
   const full = `${opts.text}\n\n—\nThe Coach In Mind team\n${APP_URL}\nQuestions? Just reply to this email.`;
   try {
@@ -31,12 +37,12 @@ export async function sendEmail(opts: { to: string; subject: string; text: strin
       const detail = await res.text();
       console.error("Resend API error:", detail);
       await recordEmailFailure(res.status, detail);
-      return false;
+      return { ok: false, transient: res.status === 429 || res.status >= 500 };
     }
-    return true;
+    return { ok: true, transient: false };
   } catch (err) {
     console.error("sendEmail error:", err);
     await recordEmailFailure(null, String(err));
-    return false;
+    return { ok: false, transient: true };
   }
 }
