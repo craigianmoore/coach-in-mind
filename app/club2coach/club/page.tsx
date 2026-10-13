@@ -9,6 +9,7 @@ import RegionMap from "@/components/RegionMap";
 import { createClient } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
 import PayWithCardButton from "@/components/PayWithCardButton";
+import PayAllVacanciesButton from "@/components/PayAllVacanciesButton";
 import FreeFirstCredit from "@/components/FreeFirstCredit";
 import ClubRecredit from "@/components/ClubRecredit";
 import { useStripePaymentsEnabled } from "@/lib/useStripePaymentsEnabled";
@@ -555,6 +556,13 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             {openCountMessage}
           </div>
         )}
+
+        {(() => {
+          const payable = vacancies.filter((v) => !v.paid && v.status !== "filled" && v.status !== "expired" && v.status !== "superseded" && v.status !== "refunded");
+          return stripeEnabled && payable.length >= 2 ? (
+            <PayAllVacanciesButton listingIds={payable.map((v) => v.id)} pricePer={CLUB2COACH_CLUB_PACKAGES[3]} />
+          ) : null;
+        })()}
 
         {vacancies.length === 0 ? (
           <div className="mt-6">

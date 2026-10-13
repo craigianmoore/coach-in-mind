@@ -103,11 +103,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true, note: "no payment_intent on charge" });
     }
 
-    const { data: payment, error: paymentLookupError } = await supabase
+    // A bulk club payment writes one row per advert under the same payment intent, so expect several.
+    const { data: paymentRows, error: paymentLookupError } = await supabase
       .from("payments")
       .select("id, listing_table, listing_id")
-      .eq("stripe_payment_intent_id", paymentIntentId)
-      .maybeSingle();
+      .eq("stripe_payment_intent_id", paymentIntentId);
+    const payment = paymentRows?.[0];
 
     if (paymentLookupError || !payment) {
       // Nothing in our ledger matches this payment_intent — most likely
@@ -125,56 +126,108 @@ export async function POST(req: NextRequest) {
       await sendAdminEmail(
         "Partial Stripe refund needs a manual decision",
         `A partial refund of $${(charge.amount_refunded / 100).toFixed(2)} (of $${(charge.amount / 100).toFixed(2)}) was issued.\n\n` +
-          `Listing: ${payment.listing_table} ${payment.listing_id}\nPayment: ${paymentIntentId}\n\n` +
+          `Listing: ${(paymentRows ?? []).map((r) => `${r.listing_table} ${r.listing_id}`).join(", ")}\nPayment: ${paymentIntentId}\n\n` +
           `Nothing was changed automatically. If credits or places should be reduced, adjust the listing by hand.`
       );
       return NextResponse.json({ received: true, note: "partial refund — admin notified" });
     }
 
-    // Full refund of one payment. If the listing has OTHER paid payments (e.g. an earlier
-    // purchase and a later top-up), only this payment is reversed — don't cancel the whole listing.
-    const { count: otherPaid } = await supabase
-      .from("payments")
-      .select("id", { count: "exact", head: true })
-      .eq("listing_table", payment.listing_table)
-      .eq("listing_id", payment.listing_id)
-      .neq("id", payment.id)
-      .neq("status", "refunded");
+    for (const payment of paymentRows ?? []) {
+      // Full refund of one payment (or of each advert in a bulk payment). If the listing has OTHER paid payments (e.g. an earlier
+      // purchase and a later top-up), only this payment is reversed — don't cancel the whole listing.
+      const { count: otherPaid } = await supabase
+        .from("payments")
+        .select("id", { count: "exact", head: true })
+        .eq("listing_table", payment.listing_table)
+        .eq("listing_id", payment.listing_id)
+        .neq("id", payment.id)
+        .neq("status", "refunded");
 
-    await supabase.from("payments").update({ status: "refunded", refunded_at: now }).eq("id", payment.id);
+      await supabase.from("payments").update({ status: "refunded", refunded_at: now }).eq("id", payment.id);
 
-    if ((otherPaid ?? 0) > 0) {
-      await sendAdminEmail(
-        "A top-up or earlier payment was fully refunded",
-        `A full refund was issued for one payment on a listing that has other paid payments.\n\n` +
-          `Listing: ${payment.listing_table} ${payment.listing_id}\nPayment: ${paymentIntentId}\n\n` +
-          `The listing was left active. If the credits or places from that payment should be removed, adjust the listing by hand.`
-      );
-      return NextResponse.json({ received: true, note: "one payment refunded; listing kept" });
+      if ((otherPaid ?? 0) > 0) {
+        await sendAdminEmail(
+          "A top-up or earlier payment was fully refunded",
+          `A full refund was issued for one payment on a listing that has other paid payments.\n\n` +
+            `Listing: ${payment.listing_table} ${payment.listing_id}\nPayment: ${paymentIntentId}\n\n` +
+            `The listing was left active. If the credits or places from that payment should be removed, adjust the listing by hand.`
+        );
+        return NextResponse.json({ received: true, note: "one payment refunded; listing kept" });
+      }
+
+      // A refund replaces any credit already returned to a club for that advert.
+      if (payment.listing_table === "club2coach_club_vacancies") {
+        await supabase.from("club_recredits").update({ used_at: now }).eq("source_vacancy_id", payment.listing_id).is("used_at", null);
+      }
+
+      // Mirror onto the listing itself: flips it out of "active" (so it
+      // drops out of matching, same as draft/paused/placed already do)
+      // and records when, so admin views and the refund-reminder cron
+      // both see it without a join.
+      const { error: listingUpdateError } = await supabase
+        .from(payment.listing_table)
+        .update({ status: "refunded", refunded_at: now })
+        .eq("id", payment.listing_id);
+      if (listingUpdateError) {
+        console.error("Stripe webhook: failed to mark listing refunded", payment.listing_table, payment.listing_id, listingUpdateError);
+      }
     }
-
-    // A refund replaces any credit already returned to a club for that advert.
-    if (payment.listing_table === "club2coach_club_vacancies") {
-      await supabase.from("club_recredits").update({ used_at: now }).eq("source_vacancy_id", payment.listing_id).is("used_at", null);
-    }
-
-    // Mirror onto the listing itself: flips it out of "active" (so it
-    // drops out of matching, same as draft/paused/placed already do)
-    // and records when, so admin views and the refund-reminder cron
-    // both see it without a join.
-    const { error: listingUpdateError } = await supabase
-      .from(payment.listing_table)
-      .update({ status: "refunded", refunded_at: now })
-      .eq("id", payment.listing_id);
-    if (listingUpdateError) {
-      console.error("Stripe webhook: failed to mark listing refunded", payment.listing_table, payment.listing_id, listingUpdateError);
-    }
-
     return NextResponse.json({ received: true });
   }
 
   const session = event.data.object as Stripe.Checkout.Session;
   const metadata = session.metadata ?? {};
+
+  // One card payment covering several club adverts (the club's "pay for all my roles" button).
+  // Each advert is marked paid with its own pack and its own payments row, all under one payment intent.
+  if (metadata.bulk === "1") {
+    const ids = (metadata.listingIds ?? "").split(",").filter(Boolean);
+    const each = Number(metadata.packageSize);
+    const intent = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id ?? null;
+    if (session.payment_status && session.payment_status !== "paid") {
+      return NextResponse.json({ received: true, note: "not paid, skipped" });
+    }
+    if (!ids.length || !each || !metadata.personId) {
+      console.error("Stripe webhook: bulk session missing metadata", session.id);
+      return NextResponse.json({ received: true, note: "missing metadata, skipped" });
+    }
+    const unitPrice = ((session.amount_total ?? 0) / 100) / ids.length;
+    const nowIso = new Date().toISOString();
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      const { data: done, error: upErr } = await supabase
+        .from("club2coach_club_vacancies")
+        .update({ paid: true, paid_at: nowIso, price_aud: unitPrice, included_introductions: each, status: "active" })
+        .eq("id", id)
+        .eq("person_id", metadata.personId)
+        .select("id");
+      if (upErr || !done?.length) {
+        console.error("Stripe webhook: bulk advert update failed", id, upErr);
+        await releaseEvent();
+        return NextResponse.json({ error: "Failed to update an advert." }, { status: 500 });
+      }
+      const { error: payErr } = await supabase.from("payments").insert({
+        person_id: metadata.personId,
+        product: "club2coach",
+        role: "club",
+        listing_table: "club2coach_club_vacancies",
+        listing_id: id,
+        amount_aud: unitPrice,
+        stripe_session_id: i === 0 ? session.id : `${session.id}#${i + 1}`,
+        stripe_payment_intent_id: intent,
+        marked_by_person_id: null,
+      });
+      if (payErr && payErr.code !== "23505") console.error("Stripe webhook: failed to log bulk payment", id, payErr);
+    }
+    try {
+      await runClub2CoachMatchSweep(supabase, { vacancyIds: ids });
+      await notifyApprovedShares(supabase);
+    } catch (err) {
+      console.error("Stripe webhook: match sweep after bulk payment failed", err);
+    }
+    return NextResponse.json({ received: true });
+  }
+
   const listingTable = metadata.listingTable;
   const listingId = metadata.listingId;
   const packageSize = Number(metadata.packageSize);
