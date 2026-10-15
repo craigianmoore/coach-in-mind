@@ -223,6 +223,31 @@ function Coach2MentorAdmin() {
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   }
 
+  // Attach a certificate on a mentor's behalf (PDF/JPEG/PNG, up to 10MB). The file goes straight to storage
+  // using a one-off upload link from the server, then the listing is updated to point at it.
+  async function uploadMentorEvidence(listingId: string, file: File | undefined) {
+    if (!file) return;
+    if (!["application/pdf", "image/jpeg", "image/png"].includes(file.type)) {
+      setStatus("The certificate must be a PDF, JPEG or PNG.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setStatus("The certificate must be under 10MB.");
+      return;
+    }
+    setStatus("Uploading certificate…");
+    const call = async (body: object) =>
+      (await fetch("/api/admin/mentor-evidence", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })).json().catch(() => ({ ok: false, error: "Unexpected response" }));
+    const signed = await call({ action: "sign", listingId, filename: file.name, contentType: file.type });
+    if (!signed.ok) return setStatus(signed.error ?? "Couldn't start the upload.");
+    const { error } = await supabase.storage.from("mentor-evidence").uploadToSignedUrl(signed.path, signed.token, file, { contentType: file.type });
+    if (error) return setStatus(`Upload failed: ${error.message}`);
+    const rec = await call({ action: "record", listingId, path: signed.path });
+    if (!rec.ok) return setStatus(rec.error ?? "Uploaded, but couldn't attach it to the profile.");
+    setStatus("Certificate attached. Check it, then click Verify mentor.");
+    await loadAll();
+  }
+
   async function verifyMentor(id: string, verify: boolean) {
     supabase.rpc("refresh_admin_session");
     setStatus(null);
@@ -665,6 +690,18 @@ function Coach2MentorAdmin() {
                           No evidence uploaded — do not mark paid until this is provided.
                         </p>
                       )}
+                      <label className="mt-1 inline-block cursor-pointer text-xs font-semibold text-gray-600 underline hover:text-gray-800">
+                        {l.accreditation_evidence_path ? "Replace certificate" : "Upload certificate for this mentor"}
+                        <input
+                          type="file"
+                          accept="application/pdf,image/jpeg,image/png"
+                          className="sr-only"
+                          onChange={(e) => {
+                            uploadMentorEvidence(l.id, e.target.files?.[0]);
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
                       {l.notes && <p className="mt-1 text-xs italic text-gray-400">Notes: {l.notes}</p>}
                       <p className={`mt-1 text-xs font-semibold ${l.verified_at ? "text-green-700" : "text-amber-700"}`}>
                         {l.verified_at ? "✓ Verified" : "Not verified yet — check the evidence, then click Verify"}
