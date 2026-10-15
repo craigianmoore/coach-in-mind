@@ -1,5 +1,6 @@
 "use client";
 
+import { isValidEmail, EMAIL_ERROR } from "@/lib/validate";
 import { useEffect, useState } from "react";
 import AuthGuard from "@/components/AuthGuard";
 import { createClient } from "@/lib/supabase/client";
@@ -47,6 +48,10 @@ function SupportForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!isValidEmail(email)) {
+      setError(EMAIL_ERROR);
+      return;
+    }
     setSending(true);
 
     const { error: saveError } = await supabase.from("support_queries").insert({

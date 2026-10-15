@@ -1,5 +1,6 @@
 "use client";
 
+import { isValidEmail, EMAIL_ERROR } from "@/lib/validate";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -42,6 +43,10 @@ function SignupForm() {
     e.preventDefault();
     setError(null);
 
+    if (!isValidEmail(email)) {
+      setError(EMAIL_ERROR);
+      return;
+    }
     if (!agreedToTerms) {
       setError("Please agree to the Terms of Service and Privacy Policy to continue.");
       return;

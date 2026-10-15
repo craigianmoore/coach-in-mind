@@ -1,5 +1,6 @@
 "use client";
 
+import { isValidEmail, isValidMobile, EMAIL_ERROR, MOBILE_ERROR } from "@/lib/validate";
 import { safeNext } from "@/lib/safeNext";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -113,6 +114,14 @@ function ProfileForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!isValidMobile(mobile)) {
+      setError(MOBILE_ERROR);
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setError(EMAIL_ERROR);
+      return;
+    }
     if (!isValidPostcode(postcode)) {
       setError("Please enter your 4-digit postcode.");
       return;
@@ -229,7 +238,10 @@ function ProfileForm() {
             <input
               required
               value={mobile}
-              onChange={(e) => setMobile(e.target.value)}
+              type="tel"
+              inputMode="tel"
+              placeholder="e.g. 0412 345 678"
+              onChange={(e) => setMobile(e.target.value.replace(/[^\d\s+\-()]/g, ""))}
               onBlur={(e) => checkMobile(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />

@@ -1,5 +1,6 @@
 "use client";
 
+import { isValidEmail, EMAIL_ERROR } from "@/lib/validate";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -21,6 +22,10 @@ function LoginForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!isValidEmail(email)) {
+      setError(EMAIL_ERROR);
+      return;
+    }
     setLoading(true);
 
     const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
