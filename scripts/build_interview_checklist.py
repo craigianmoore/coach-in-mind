@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rebuilds public/coach-interview-checklist.pdf (one A4 page).
+"""Rebuilds private/resources/coach-interview-checklist.pdf (one A4 page).
 
 Run from the repo root:  python3 scripts/build_interview_checklist.py
 (needs `pip install reportlab`).
@@ -61,7 +61,7 @@ ITEMS = [
 ]
 
 doc = SimpleDocTemplate(
-    "public/coach-interview-checklist.pdf", pagesize=A4,
+    "private/resources/coach-interview-checklist.pdf", pagesize=A4,
     leftMargin=20*mm, rightMargin=20*mm, topMargin=18*mm, bottomMargin=16*mm,
     title="Interviewing a Coach — a checklist for clubs", author="Coach In Mind",
 )
@@ -126,4 +126,4 @@ story += [sign, Spacer(1, 18),
           Paragraph("This checklist is a practical starting point, not legal advice — clubs remain responsible for meeting "
                     "their own state/territory's child safety and coach screening obligations in full.", small)]
 doc.build(story)
-print("built public/coach-interview-checklist.pdf")
+print("built private/resources/coach-interview-checklist.pdf")

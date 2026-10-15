@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { canAccessResources } from "@/lib/server/resourceAccess";
 import {
   CALM_STEPS,
   MANUAL_SECTIONS,
@@ -11,7 +12,26 @@ export const metadata = {
   title: "Navigating Difficult Conversations & Scenarios — Coach In Mind",
 };
 
-export default function ManualPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ManualPage() {
+  if (!(await canAccessResources())) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-10">
+        <Link
+          href="/help"
+          className="inline-flex items-center gap-1 rounded-full bg-brand-goldLight/40 px-4 py-1.5 text-base font-semibold text-brand-navy transition hover:bg-brand-gold hover:text-white"
+        >
+          ← Back to Help &amp; Resources
+        </Link>
+        <h1 className="mt-4 text-2xl font-bold text-brand-navy">Navigating Difficult Conversations &amp; Scenarios</h1>
+        <p className="mt-4 rounded-xl border bg-white p-5 text-sm text-gray-700">
+          🔒 This guide unlocks once your club has paid for a vacancy and it&apos;s live.{" "}
+          <Link href="/club2coach/club" className="font-medium text-brand-navy underline">Go to your vacancies</Link>
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <Link
@@ -29,7 +49,7 @@ export default function ManualPage() {
         expectations and family. Jump straight to a topic below, or read it end to end.
       </p>
       <a
-        href="/coach-influence-manual.pdf"
+        href="/api/resources/coach-influence-manual.pdf"
         target="_blank"
         rel="noopener noreferrer"
         className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-brand-navy underline"

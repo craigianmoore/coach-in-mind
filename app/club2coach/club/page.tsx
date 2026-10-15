@@ -842,7 +842,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
               Before your first interview with a coach, check the{" "}
               <a
-                href="/coach-interview-checklist.pdf"
+                href="/api/resources/coach-interview-checklist.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-semibold underline"

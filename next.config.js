@@ -8,6 +8,7 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
+  outputFileTracingIncludes: { "/api/resources/[name]": ["./private/resources/**/*"] },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

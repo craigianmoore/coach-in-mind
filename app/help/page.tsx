@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ResourcesBox from "@/components/ResourcesBox";
 
 export const metadata = { title: "Help and resources", description: "Guides, pricing, refunds and answers for coaches, clubs and mentors." };
 
@@ -30,39 +31,7 @@ export default function HelpPage() {
           </p>
         </section>
 
-        <section className="rounded-xl border border-brand-gold/40 bg-brand-goldLight/20 p-6">
-          <h2 className="font-semibold text-brand-navy">Resources</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            <Link href="/help/manual" className="font-medium text-brand-navy underline">
-              Navigating Difficult Conversations &amp; Scenarios
-            </Link>{" "}
-            — a practical guide covering parents, players, committees, sponsors, other coaches,
-            new coaches, female coaches, goalkeeping coaches, weather calls, officials, club
-            expectations, and keeping a healthy balance. Browse it by topic, or{" "}
-            <a
-              href="/coach-influence-manual.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-brand-navy underline"
-            >
-              download the PDF
-            </a>
-            .
-          </p>
-          <p className="mt-3 text-sm text-gray-600">
-            <a
-              href="/coach-interview-checklist.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-brand-navy underline"
-            >
-              Interviewing a Coach — Checklist for Clubs
-            </a>{" "}
-            — a one-page checklist to work through when interviewing a coach: sighting their
-            current Licence/Diploma, confirming a valid WWCC, checking Play Football
-            registration, and asking about any disciplinary history.
-          </p>
-        </section>
+        <ResourcesBox />
 
         <section className="rounded-xl border bg-white p-6">
           <h2 className="font-semibold">Frequently asked questions</h2>
