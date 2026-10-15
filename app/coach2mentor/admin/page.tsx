@@ -1103,6 +1103,41 @@ function Coach2MentorAdmin() {
                       {m.paid ? "Paid" : "Unpaid"} · {m.status} · capacity{" "}
                       {m.max_mentees != null ? `${mentorAcceptedCount(m.id)} of ${m.max_mentees}` : "not set"}
                     </p>
+                    {!m.deleted_at && (
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                        {m.accreditation_evidence_path ? (
+                          <button
+                            onClick={() => viewMentorEvidence(m.accreditation_evidence_path!)}
+                            className="font-semibold text-blue-700 underline hover:text-blue-900"
+                          >
+                            View certificate ({m.accreditation_evidence_filename})
+                          </button>
+                        ) : (
+                          <span className="font-semibold text-red-600">No certificate uploaded</span>
+                        )}
+                        <label className="cursor-pointer font-semibold text-gray-600 underline hover:text-gray-800">
+                          {m.accreditation_evidence_path ? "Replace certificate" : "Upload certificate for this mentor"}
+                          <input
+                            type="file"
+                            accept="application/pdf,image/jpeg,image/png"
+                            className="sr-only"
+                            onChange={(e) => {
+                              uploadMentorEvidence(m.id, e.target.files?.[0]);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                        <span className={`font-semibold ${m.verified_at ? "text-green-700" : "text-amber-700"}`}>
+                          {m.verified_at ? "✓ Verified" : "Not verified"}
+                        </span>
+                        <button
+                          onClick={() => verifyMentor(m.id, !m.verified_at)}
+                          className="font-semibold text-gray-600 underline hover:text-gray-800"
+                        >
+                          {m.verified_at ? "Remove verification" : "Verify mentor"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                   {m.deleted_at ? (
                     <div className="flex flex-wrap justify-end gap-2">
