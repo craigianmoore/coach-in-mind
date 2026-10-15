@@ -127,7 +127,7 @@ export default function InvitationsPanel() {
             checked={counts?.autoSend === true}
             onChange={(e) => run({ action: "auto", on: e.target.checked }, (j) => (j.autoSend ? "Automatic sending is on." : "Automatic sending is off."))}
           />
-          <span>Send automatically, about 80 a day between 9am and 5pm Melbourne time, until the list is finished</span>
+          <span>Send automatically, about 81 a day between 9am and 5pm Melbourne time, plus a 4:30pm top-up to use spare Resend quota, until the list is finished</span>
         </label>
         <span className="text-xs text-gray-500">You get a summary email each day at 5pm, an alert if anything fails, and it switches itself off when done.</span>
       </div>

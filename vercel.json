@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/match-sweep",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/invite-topup",
+      "schedule": "30 * * * *"
     }
   ]
 }

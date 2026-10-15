@@ -72,9 +72,9 @@ export async function inviteCounts(service: SupabaseClient) {
 }
 
 // Sends to the next `want` pending people, never past the daily ceiling, never twice to one person.
-export async function sendInviteBatch(service: SupabaseClient, want: number) {
+export async function sendInviteBatch(service: SupabaseClient, want: number, opts: { ignoreRollingCap?: boolean } = {}) {
   const c = await inviteCounts(service);
-  const room = INVITE_DAILY_CAP - c.sentLast24h;
+  const room = opts.ignoreRollingCap ? want : INVITE_DAILY_CAP - c.sentLast24h;
   if (room <= 0) return { sent: 0, failed: 0, paused: false, atCeiling: true, cappedByDailyCeiling: true, counts: c };
   const n = Math.min(want, room);
   const { data: next } = await service
@@ -119,7 +119,7 @@ export function melbourneHour(d = new Date()) {
 }
 
 // Automatic sending: each hourly run between 9am and 5pm Melbourne sends up to INVITE_AUTO_PER_RUN
-// (about 80 a day), emails the admin inbox a daily summary at 5pm, an alert on any failure, and switches
+// (about 81 a day, plus the 4:30pm top-up), emails the admin inbox a daily summary at 5pm, an alert on any failure, and switches
 // itself off with a note when the list is finished. Does nothing unless the switch on the Invites tab is on.
 export const INVITE_AUTO_PER_RUN = 9;
 export async function runInviteAutoSend(
@@ -151,4 +151,60 @@ export async function runInviteAutoSend(
   if (hour === 17) {
     await notify("Invitations: today's summary", `${counts.sentLast24h} invitations sent in the last 24 hours. ${counts.pending} still to send, ${counts.failed} failed, ${counts.optout} marked no thanks. Automatic sending continues tomorrow from 9am.`);
   }
+}
+
+
+// ---- 4:30pm top-up ----
+// Resend's daily quota resets at 00:00 UTC (10 or 11am Melbourne), so its "day" runs from then. At 4:30pm
+// we look at how much of it is used and send one extra batch, keeping room for the runs still to come in
+// that same Resend day (5pm, and the next morning's runs before the reset) plus a small buffer.
+export const INVITE_RESEND_TARGET = 95;
+const FALLBACK_APP_EMAILS = 15; // assumed app emails today if Resend's list can't be read
+
+async function resendSentSince(sinceMs: number): Promise<number | null> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
+  let count = 0;
+  let after: string | undefined;
+  for (let page = 0; page < 6; page++) {
+    const res = await fetch(`https://api.resend.com/emails?limit=100${after ? `&after=${after}` : ""}`, { headers: { Authorization: `Bearer ${apiKey}` } });
+    if (!res.ok) return null; // e.g. a send-only key can't list emails
+    const body = (await res.json()) as { data?: { id: string; created_at: string }[]; has_more?: boolean };
+    const rows = body.data ?? [];
+    let reachedOlder = false;
+    for (const r of rows) {
+      if (new Date(r.created_at.replace(" ", "T").replace(/\+00(:00)?$/, "Z")).getTime() >= sinceMs) count++;
+      else reachedOlder = true;
+    }
+    if (reachedOlder || !body.has_more || rows.length === 0) return count;
+    after = rows[rows.length - 1].id;
+  }
+  return null; // too many to count safely
+}
+
+export async function runInviteTopUp(
+  service: SupabaseClient,
+  notify: (subject: string, text: string) => Promise<unknown>
+) {
+  const before = await inviteCounts(service);
+  if (!before.autoSend || before.pending === 0) return;
+  const now = new Date();
+  if (melbourneHour(now) !== 16) return;
+  const utcMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const resetHour = melbourneHour(new Date(utcMidnight + 24 * 3600_000)); // Melbourne hour of the next reset
+  const runsLeftInResendDay = 1 + Math.max(0, resetHour - 9); // the 5pm run + next morning's runs before the reset
+  let used = await resendSentSince(utcMidnight);
+  let source = "Resend's own count";
+  if (used === null) {
+    const { data } = await service.from("invite_recipients").select("sent_at").eq("status", "sent").gte("sent_at", new Date(utcMidnight).toISOString());
+    used = (data?.length ?? 0) + FALLBACK_APP_EMAILS;
+    source = "our own count plus an allowance for app emails";
+  }
+  const room = INVITE_RESEND_TARGET - used - runsLeftInResendDay * INVITE_AUTO_PER_RUN;
+  if (room <= 0) {
+    await notify("Invitations: no 4:30pm top-up today", `Resend has ${used} emails counted so far today (${source}), so there was no spare room. Normal sending continues.`);
+    return;
+  }
+  const r = await sendInviteBatch(service, room, { ignoreRollingCap: true });
+  await notify("Invitations: 4:30pm top-up", `Resend had ${used} emails counted today (${source}). Sent ${r.sent} extra invitations (target ${INVITE_RESEND_TARGET} for the day, leaving room for ${runsLeftInResendDay} more runs).${r.paused ? " Resend refused part-way, so it stopped early; nobody was lost." : ""} ${r.counts.pending} still to send.`);
 }
