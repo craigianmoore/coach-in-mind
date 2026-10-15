@@ -3,17 +3,18 @@
 import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { canAccessResources } from "@/lib/server/resourceAccess";
+import { resourceAccess } from "@/lib/server/resourceAccess";
 
 export const dynamic = "force-dynamic";
 
-const FILES = ["coach-influence-manual.pdf", "coach-interview-checklist.pdf"];
+const FILES = { "coach-influence-manual.pdf": "manual", "coach-interview-checklist.pdf": "checklist" } as const;
 
 export async function GET(_req: Request, { params }: { params: Promise<{ name: string }> }) {
   const { name } = await params;
-  if (!FILES.includes(name)) return new NextResponse("Not found", { status: 404 });
-  if (!(await canAccessResources())) {
-    return new NextResponse("These resources unlock when your club's vacancy is paid for and live.", { status: 403 });
+  const key = (FILES as Record<string, "manual" | "checklist">)[name];
+  if (!key) return new NextResponse("Not found", { status: 404 });
+  if (!(await resourceAccess())[key]) {
+    return new NextResponse("This resource unlocks once you have paid for a listing.", { status: 403 });
   }
   const file = await readFile(path.join(process.cwd(), "private", "resources", name));
   return new NextResponse(new Uint8Array(file), {

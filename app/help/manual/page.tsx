@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { canAccessResources } from "@/lib/server/resourceAccess";
+import { resourceAccess } from "@/lib/server/resourceAccess";
 import {
   CALM_STEPS,
   MANUAL_SECTIONS,
@@ -15,7 +15,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function ManualPage() {
-  if (!(await canAccessResources())) {
+  if (!(await resourceAccess()).manual) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10">
         <Link
@@ -26,8 +26,7 @@ export default async function ManualPage() {
         </Link>
         <h1 className="mt-4 text-2xl font-bold text-brand-navy">Navigating Difficult Conversations &amp; Scenarios</h1>
         <p className="mt-4 rounded-xl border bg-white p-5 text-sm text-gray-700">
-          🔒 This guide unlocks once your club has paid for a vacancy and it&apos;s live.{" "}
-          <Link href="/club2coach/club" className="font-medium text-brand-navy underline">Go to your vacancies</Link>
+          🔒 This guide unlocks once you have paid for a listing (coaches) or a vacancy (clubs). A free credit doesn&apos;t count.
         </p>
       </div>
     );
