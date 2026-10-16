@@ -39,20 +39,25 @@ export default function AnnouncementBanner() {
 
   if (items.length === 0) return null;
   return (
-    <div className="mx-auto max-w-5xl px-4 pt-3">
+    <div className="mx-auto max-w-5xl px-4 pt-4">
       {items.map((a) => (
-        <div key={a.id} className="mb-2 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950 shadow-sm">
-          <span aria-hidden className="mt-0.5 text-base">📣</span>
+        <div key={a.id} className="mb-3 flex items-start gap-4 rounded-2xl border-l-8 border-[#D4AF6A] bg-[#191B41] px-5 py-4 text-white shadow-lg ring-1 ring-[#D4AF6A]/40">
+          <span aria-hidden className="mt-0.5 text-2xl">📣</span>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold">{a.title}</p>
-            {a.body && <p className="mt-0.5 whitespace-pre-line">{a.body}</p>}
+            <p className="text-lg font-bold leading-snug text-[#F1D9A0]">{a.title}</p>
+            {a.body && <p className="mt-1 whitespace-pre-line text-base leading-relaxed text-white/95">{a.body}</p>}
             {a.link_url && (
-              <a href={a.link_url} className="mt-1 inline-block font-semibold text-blue-800 underline" target={a.link_url.startsWith("/") ? undefined : "_blank"} rel="noopener noreferrer">
-                {a.link_label || "Read more"}
+              <a
+                href={a.link_url}
+                className="mt-3 inline-block rounded-lg bg-[#D4AF6A] px-4 py-2 text-sm font-bold text-[#191B41] hover:bg-[#e2c07f]"
+                target={a.link_url.startsWith("/") ? undefined : "_blank"}
+                rel="noopener noreferrer"
+              >
+                {a.link_label || "Read more"} →
               </a>
             )}
           </div>
-          <button type="button" onClick={() => dismiss(a.id)} aria-label="Dismiss announcement" className="rounded px-2 text-lg leading-none text-blue-700 hover:bg-blue-100">
+          <button type="button" onClick={() => dismiss(a.id)} aria-label="Dismiss announcement" className="rounded-lg px-2.5 py-1 text-2xl leading-none text-white/80 hover:bg-white/10 hover:text-white">
             ×
           </button>
         </div>
