@@ -60,13 +60,23 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmailDetailed } from "./sendEmail";
 
 export async function inviteCounts(service: SupabaseClient) {
-  const { data } = await service.from("invite_recipients").select("status, sent_at");
-  const c = { pending: 0, sent: 0, failed: 0, optout: 0, sending: 0, sentLast24h: 0 };
-  const since = Date.now() - 24 * 3600_000;
-  for (const r of data ?? []) {
-    c[r.status as "pending" | "sent" | "failed" | "optout" | "sending"] += 1;
-    if (r.status === "sent" && r.sent_at && new Date(r.sent_at).getTime() > since) c.sentLast24h += 1;
-  }
+  // Counted by the database, never by reading rows back: Supabase silently returns at most 1000 rows per
+  // request, which made these counts (and the 24-hour ceiling) wrong once the list passed 1000 people.
+  const count = async (build: (q: ReturnType<typeof base>) => ReturnType<typeof base>) => {
+    const { count: n } = await build(base());
+    return n ?? 0;
+  };
+  const base = () => service.from("invite_recipients").select("*", { count: "exact", head: true });
+  const since = new Date(Date.now() - 24 * 3600_000).toISOString();
+  const [pending, sent, failed, optout, sending, sentLast24h] = await Promise.all([
+    count((q) => q.eq("status", "pending")),
+    count((q) => q.eq("status", "sent")),
+    count((q) => q.eq("status", "failed")),
+    count((q) => q.eq("status", "optout")),
+    count((q) => q.eq("status", "sending")),
+    count((q) => q.eq("status", "sent").gt("sent_at", since)),
+  ]);
+  const c = { pending, sent, failed, optout, sending, sentLast24h };
   const { data: ps } = await service.from("platform_settings").select("invite_auto_send").limit(1).maybeSingle();
   return { ...c, dailyCap: INVITE_DAILY_CAP, autoSend: ps?.invite_auto_send === true };
 }

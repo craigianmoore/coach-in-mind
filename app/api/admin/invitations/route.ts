@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/server/sendEmail";
+import { fetchAll } from "@/lib/fetchAll";
 import { INVITE_SUBJECT, firstNameOf, inviteCounts, inviteText, parseCsv, sendInviteBatch } from "@/lib/server/invitations";
 
 export const maxDuration = 60;
@@ -53,9 +54,10 @@ export async function POST(req: Request) {
       names.set(e, [...(names.get(e) ?? []), ni >= 0 ? (r[ni] ?? "").trim() : ""]);
     }
     const valid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-    const [{ data: ppl }, { data: have }] = await Promise.all([
-      service.from("people").select("email"),
-      service.from("invite_recipients").select("email"),
+    // Paged: a plain select silently stops at 1000 rows, which would let duplicates slip past these checks.
+    const [ppl, have] = await Promise.all([
+      fetchAll<{ email: string | null }>((a, b) => service.from("people").select("email").order("id").range(a, b)),
+      fetchAll<{ email: string }>((a, b) => service.from("invite_recipients").select("email").order("email").range(a, b)),
     ]);
     const skipPeople = new Set((ppl ?? []).map((p) => (p.email ?? "").toLowerCase()));
     const skipHave = new Set((have ?? []).map((p) => p.email));
@@ -83,12 +85,10 @@ export async function POST(req: Request) {
   }
 
   if (body.action === "list") {
-    const { data } = await service
-      .from("invite_recipients")
-      .select("email, first_name, status, sent_at")
-      .order("email", { ascending: true })
-      .limit(1000);
-    return NextResponse.json({ ok: true, rows: data ?? [] });
+    const data = await fetchAll<{ email: string; first_name: string | null; status: string; sent_at: string | null }>((a, b) =>
+      service.from("invite_recipients").select("email, first_name, status, sent_at").order("email", { ascending: true }).range(a, b)
+    );
+    return NextResponse.json({ ok: true, rows: data });
   }
 
   if (body.action === "restore") {
