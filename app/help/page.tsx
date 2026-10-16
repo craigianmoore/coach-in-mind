@@ -47,6 +47,17 @@ export default function HelpPage() {
               </p>
             </div>
             <div>
+              <p className="font-medium text-gray-800">Can I advertise for more than one kind of role?</p>
+              <p className="mt-1 text-gray-600">
+                Yes — up to two role profiles (for example head coach and assistant coach). On your Club 2 Coach
+                page press &quot;+ Add another role&quot;. Each role is its own tab, shares your personal details,
+                and is activated separately with its own credit. When you take a role, press &quot;I&apos;ve taken a
+                role&quot; on that tab: your other role goes on hold with a warning, because holding two coaching
+                roles at once may breach your competition rules. Tick the box to keep advertising it (its clock keeps
+                counting), or don&apos;t and its remaining time is lost — your details are always kept.
+              </p>
+            </div>
+            <div>
               <p className="font-medium text-gray-800">What if more than one mentor accepts me?</p>
               <p className="mt-1 text-gray-600">
                 They all show on your Coach 2 Mentor page. Press &quot;Choose this mentor&quot; on the one you want.
@@ -130,7 +141,7 @@ export default function HelpPage() {
               <p className="font-medium text-gray-800">How do referral rewards work?</p>
               <p className="mt-1 text-gray-600">
                 Share your referral code or link. When someone you refer makes their first payment
-                you earn 1 free credit (2 if it's a club), up to 6 in total. You need a paid
+                you earn 1 free credit (2 if it's a club), for up to 3 rewards (6 credits at most). You need a paid
                 or founding listing to receive them, and a club can only earn one referral reward.
               </p>
             </div>

@@ -185,6 +185,13 @@ story.append(bullets([
     "To be shown to clubs again you activate with another credit. On Coach 2 Mentor a credit covers 60 days.",
     "To look for a club AND a mentor you activate both listings — one credit each. Your credits are "
     "one balance shared across both services.",
+    "<b>Looking for more than one kind of role?</b> You can advertise up to <b>two</b> role profiles (for example "
+    "head coach and assistant coach). Press <b>+ Add another role</b> on your coach page; each role is a separate tab, "
+    "uses your same personal details, and is activated separately with its own credit.",
+    "<b>When you take a role</b>, press <b>I've taken a role</b> on that tab. Your other role then goes on hold with a "
+    "warning, because holding two coaching roles at once may breach your competition rules. To keep advertising it you tick a box "
+    "confirming you're responsible for that: its clock keeps counting. If you don't, its remaining time is lost, "
+    "but your details are kept so you can advertise again later with a new credit.",
     "You'll get an email as soon as your listing is saved. It joins matching only once you activate "
     "it, and we email you a week before it ends.",
     "While it's active, Coach In Mind matches you against live vacancies and introduces "
