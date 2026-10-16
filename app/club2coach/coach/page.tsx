@@ -32,6 +32,9 @@ import CoachRolePanel from "@/components/CoachRolePanel";
 import { isActivated, loadCoachBank } from "@/lib/coachPool";
 import ContactDetailsGlass from "@/components/ContactDetailsGlass";
 
+// A coach can advertise for at most two roles at once.
+const MAX_ROLE_LISTINGS = 2;
+
 function Club2CoachCoachForm({ person }: { person: Person }) {
   const supabase = createClient();
   // While card payments are administratively off (trial mode, see the
@@ -469,7 +472,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
               </button>
             );
           })}
-          {selectedId !== "new" && listings.length < COACHING_ROLES.length && (
+          {selectedId !== "new" && listings.length < MAX_ROLE_LISTINGS && (
             <button
               type="button"
               onClick={() => load("new")}

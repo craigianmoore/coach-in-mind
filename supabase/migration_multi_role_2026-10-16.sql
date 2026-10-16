@@ -48,3 +48,17 @@ begin
 end;
 $$;
 grant execute on function coach_resolve_hibernation(uuid, boolean) to authenticated;
+
+-- A coach can hold at most two live Club2Coach listings (deleted ones don't count).
+create or replace function enforce_max_two_coach_listings()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if (select count(*) from club2coach_coach_listings where person_id = new.person_id and deleted_at is null) >= 2 then
+    raise exception 'A coach can advertise for at most two roles at once.';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists max_two_coach_listings on club2coach_coach_listings;
+create trigger max_two_coach_listings before insert on club2coach_coach_listings
+  for each row execute function enforce_max_two_coach_listings();
