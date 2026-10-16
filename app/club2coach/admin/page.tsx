@@ -1253,7 +1253,7 @@ function Club2CoachAdmin() {
 
       <EmailFailureBanner />
 
-      <div className="mt-4 flex flex-nowrap overflow-x-auto whitespace-nowrap border-b">
+      <div className="mt-4 flex flex-wrap border-b">
         {(["unpaid", "overview", "matches", "weighting", "listings", "clubs", "promos", "admins", "support", "people", "payments", "invites", "announcements"] as Tab[]).map((t) => (
           <button
             key={t}

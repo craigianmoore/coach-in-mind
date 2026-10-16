@@ -4,7 +4,7 @@
 // People see it as a dismissible banner when signed in (components/AnnouncementBanner.tsx).
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { REGIONS } from "@/lib/constants";
+import { REGIONS_BY_STATE } from "@/lib/constants";
 
 type Audience = { roles: string[]; regions: string[]; payment: "any" | "paid" | "unpaid"; activity: "any" | "active" | "inactive" };
 type Row = {
@@ -238,13 +238,29 @@ export default function AnnouncementsPanel() {
           </div>
           <details className="mt-3">
             <summary className="cursor-pointer text-xs font-semibold text-gray-600">Regions {aud.regions.length ? `(${aud.regions.length} selected)` : "(all)"}</summary>
-            <div className="mt-2 flex max-h-40 flex-wrap gap-1 overflow-y-auto">
-              {REGIONS.map((r) => (
-                <label key={r} className={`cursor-pointer rounded-full border px-2 py-0.5 text-[11px] ${aud.regions.includes(r) ? "border-brand-navy bg-brand-navy text-white" : "border-gray-300 text-gray-600"}`}>
-                  <input type="checkbox" className="sr-only" checked={aud.regions.includes(r)} onChange={() => setAud({ ...aud, regions: toggle(aud.regions, r) })} />
-                  {r}
-                </label>
-              ))}
+            <div className="mt-2 space-y-3">
+              {Object.entries(REGIONS_BY_STATE).map(([state, regs]) => {
+                const allOn = regs.every((r) => aud.regions.includes(r));
+                return (
+                  <div key={state}>
+                    <button
+                      type="button"
+                      className="mb-1 text-xs font-bold text-gray-700 underline-offset-2 hover:underline"
+                      onClick={() => setAud({ ...aud, regions: allOn ? aud.regions.filter((x) => !regs.includes(x)) : Array.from(new Set([...aud.regions, ...regs])) })}
+                    >
+                      {state} {allOn ? "(clear all)" : "(select all)"}
+                    </button>
+                    <div className="flex flex-wrap gap-1">
+                      {regs.map((r) => (
+                        <label key={r} className={`cursor-pointer rounded-full border px-2 py-0.5 text-[11px] ${aud.regions.includes(r) ? "border-brand-navy bg-brand-navy text-white" : "border-gray-300 text-gray-600"}`}>
+                          <input type="checkbox" className="sr-only" checked={aud.regions.includes(r)} onChange={() => setAud({ ...aud, regions: toggle(aud.regions, r) })} />
+                          {r}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </details>
 
