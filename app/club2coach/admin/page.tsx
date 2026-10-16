@@ -2035,25 +2035,9 @@ function Club2CoachAdmin() {
             <div className="mt-3 flex flex-col gap-1">
               {visible.map((c) => (
                 <div key={c.id} className="flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">
                       {c.name} <span className="text-xs font-normal text-gray-400">{c.state}</span>
-                      {c.activity && (
-                        <span className="ml-2 inline-flex flex-wrap items-center gap-1 align-middle">
-                          {[
-                            { n: c.activity.roles, label: "advertised", tip: "Roles advertised", cls: "bg-blue-100 text-blue-800" },
-                            { n: c.activity.paid, label: "paid", tip: "Roles paid for", cls: "bg-green-100 text-green-800" },
-                            { n: c.activity.matched, label: "matched", tip: "Introductions made", cls: "bg-purple-100 text-purple-800" },
-                            { n: c.activity.filled, label: "filled", tip: "Roles filled", cls: "bg-amber-100 text-amber-800" },
-                          ]
-                            .filter((x) => x.n > 0)
-                            .map((x) => (
-                              <span key={x.label} title={x.tip} className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${x.cls}`}>
-                                {x.n} {x.label}
-                              </span>
-                            ))}
-                        </span>
-                      )}
                     </p>
                     {c.email ? (
                       <p className="truncate text-xs text-gray-600" title={c.source ?? undefined}>
@@ -2121,6 +2105,22 @@ function Club2CoachAdmin() {
                         Delete club
                       </button>
                     )}
+                  </div>
+                  {/* Activity pills: own fixed-width column just left of the buttons; empty (a gap) when the club has no activity. */}
+                  <div className="hidden w-64 flex-shrink-0 flex-wrap items-center justify-end gap-1 md:flex">
+                    {c.activity &&
+                      [
+                        { n: c.activity.roles, label: "advertised", tip: "Roles advertised", cls: "bg-blue-100 text-blue-800" },
+                        { n: c.activity.paid, label: "paid", tip: "Roles paid for", cls: "bg-green-100 text-green-800" },
+                        { n: c.activity.matched, label: "matched", tip: "Introductions made", cls: "bg-purple-100 text-purple-800" },
+                        { n: c.activity.filled, label: "filled", tip: "Roles filled", cls: "bg-amber-100 text-amber-800" },
+                      ]
+                        .filter((x) => x.n > 0)
+                        .map((x) => (
+                          <span key={x.label} title={x.tip} className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${x.cls}`}>
+                            {x.n} {x.label}
+                          </span>
+                        ))}
                   </div>
                   {c.email && (
                     <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-1">
