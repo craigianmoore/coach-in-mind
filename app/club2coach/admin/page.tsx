@@ -38,6 +38,8 @@ interface ClubContactRow {
   confidence: string | null;
   contacted_at: string | null;
   do_not_contact: boolean;
+  // Activity pills: only present when the club has advertised at least one role.
+  activity?: { roles: number; paid: number; matched: number; filled: number };
 }
 
 // Free-mail domains — a club volunteer signing up with one of these isn't
@@ -275,14 +277,33 @@ function Club2CoachAdmin() {
   }
 
   async function loadClubContacts() {
-    const [cl, cc] = await Promise.all([
+    const [cl, cc, vac, shr] = await Promise.all([
       fetchAll<{ id: string; name: string; state: string }>((a, b) =>
         supabase.from("clubs").select("id,name,state").order("name", { ascending: true }).order("id").range(a, b),
       ),
       fetchAll<any>((a, b) =>
         supabase.from("club_contacts").select("club_id,email,source,confidence,contacted_at,do_not_contact").order("club_id").range(a, b),
       ),
+      fetchAll<{ id: string; club_id: string | null; paid: boolean; status: string }>((a, b) =>
+        supabase.from("club2coach_club_vacancies").select("id,club_id,paid,status").is("deleted_at", null).neq("status", "superseded").order("id").range(a, b),
+      ),
+      fetchAll<{ club_vacancy_id: string }>((a, b) =>
+        supabase.from("club2coach_shares").select("club_vacancy_id,id").eq("status", "approved").order("id").range(a, b),
+      ),
     ]);
+    // Per-club activity from the vacancies each club advertised (linked through club_id).
+    const matchesByVacancy = new Map<string, number>();
+    ((shr as { club_vacancy_id: string }[]) ?? []).forEach((x) => matchesByVacancy.set(x.club_vacancy_id, (matchesByVacancy.get(x.club_vacancy_id) ?? 0) + 1));
+    const activityByClub = new Map<string, { roles: number; paid: number; matched: number; filled: number }>();
+    ((vac as { id: string; club_id: string | null; paid: boolean; status: string }[]) ?? []).forEach((v) => {
+      if (!v.club_id) return;
+      const a = activityByClub.get(v.club_id) ?? { roles: 0, paid: 0, matched: 0, filled: 0 };
+      a.roles += 1;
+      if (v.paid && v.status !== "refunded") a.paid += 1;
+      a.matched += matchesByVacancy.get(v.id) ?? 0;
+      if (v.status === "filled") a.filled += 1;
+      activityByClub.set(v.club_id, a);
+    });
     const byClub = new Map<string, Omit<ClubContactRow, "id" | "name" | "state"> & { club_id: string }>();
     ((cc as (Omit<ClubContactRow, "id" | "name" | "state"> & { club_id: string })[]) ?? []).forEach((c) =>
       byClub.set(c.club_id, c)
@@ -297,6 +318,7 @@ function Club2CoachAdmin() {
           confidence: k?.confidence ?? null,
           contacted_at: k?.contacted_at ?? null,
           do_not_contact: k?.do_not_contact ?? false,
+          activity: activityByClub.get(c.id),
         };
       })
     );
@@ -2016,6 +2038,22 @@ function Club2CoachAdmin() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">
                       {c.name} <span className="text-xs font-normal text-gray-400">{c.state}</span>
+                      {c.activity && (
+                        <span className="ml-2 inline-flex flex-wrap items-center gap-1 align-middle">
+                          {[
+                            { n: c.activity.roles, label: "advertised", tip: "Roles advertised", cls: "bg-blue-100 text-blue-800" },
+                            { n: c.activity.paid, label: "paid", tip: "Roles paid for", cls: "bg-green-100 text-green-800" },
+                            { n: c.activity.matched, label: "matched", tip: "Introductions made", cls: "bg-purple-100 text-purple-800" },
+                            { n: c.activity.filled, label: "filled", tip: "Roles filled", cls: "bg-amber-100 text-amber-800" },
+                          ]
+                            .filter((x) => x.n > 0)
+                            .map((x) => (
+                              <span key={x.label} title={x.tip} className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${x.cls}`}>
+                                {x.n} {x.label}
+                              </span>
+                            ))}
+                        </span>
+                      )}
                     </p>
                     {c.email ? (
                       <p className="truncate text-xs text-gray-600" title={c.source ?? undefined}>
