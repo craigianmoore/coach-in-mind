@@ -82,7 +82,8 @@ function ProfileForm() {
           .select("id")
           .eq("person_id", p.id)
           .is("deleted_at", null)
-          .maybeSingle(),
+          .limit(1)
+          .maybeSingle(), // a coach can now hold several listings, so ask for one rather than expect exactly one
         supabase
           .from("coach2mentor_coach_listings")
           .select("id")

@@ -18,6 +18,7 @@ export type ListingStatus =
   | "active"
   | "paused"
   | "placed"
+  | "hibernating" // coach took another role: details kept, not matched (Club 2 Coach coach listings only)
   | "filled"
   | "expired"
   | "refunded"

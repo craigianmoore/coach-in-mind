@@ -28,6 +28,7 @@ import { notifyAdmin, notifySelf } from "@/lib/notify";
 import MatchedContacts from "@/components/MatchedContacts";
 import FoundingBanner from "@/components/FoundingBanner";
 import CoachActivation from "@/components/CoachActivation";
+import CoachRolePanel from "@/components/CoachRolePanel";
 import { isActivated, loadCoachBank } from "@/lib/coachPool";
 import ContactDetailsGlass from "@/components/ContactDetailsGlass";
 
@@ -42,6 +43,9 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [existing, setExisting] = useState<Club2CoachCoachListing | null>(null);
+  // A coach can hold several listings, one per role. `existing` is the one being viewed; "new" means a blank extra role.
+  const [listings, setListings] = useState<Club2CoachCoachListing[]>([]);
+  const [selectedId, setSelectedId] = useState<string | "new" | null>(null);
 
   const [roleSought, setRoleSought] = useState<string>(COACHING_ROLES[0]);
   const [preferredTeamGender, setPreferredTeamGender] = useState("");
@@ -105,18 +109,23 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     setSelectedPackage(1);
   }
 
-  async function load() {
+  async function load(selectId?: string | "new") {
     // Founding offer: coaches get their free credit as soon as they open this page (before saving a
     // listing). The database decides eligibility, so a "no" here is fine and silent.
     await supabase.rpc("claim_founding_credit");
     setBank(await loadCoachBank(supabase, person.id));
 
-    const { data } = await supabase
+    const { data: all } = await supabase
       .from("club2coach_coach_listings")
       .select("*")
       .eq("person_id", person.id)
       .is("deleted_at", null)
-      .maybeSingle();
+      .order("created_at", { ascending: true });
+    const mine = (all as Club2CoachCoachListing[]) ?? [];
+    setListings(mine);
+    const want = selectId ?? selectedId ?? undefined;
+    const data = want === "new" ? null : mine.find((x) => x.id === want) ?? mine[0] ?? null;
+    setSelectedId(data ? data.id : want === "new" ? "new" : null);
 
     if (data) {
       const l = data as Club2CoachCoachListing;
@@ -162,6 +171,11 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       setBank(await loadCoachBank(supabase, person.id));
     } else {
       resetForm();
+      if (mine.length > 0) {
+        // An extra role: personal consent carries over from the first listing so it isn't asked twice.
+        setAuthoriseShare(mine[0].authorise_share);
+        setAgreedToTerms(mine[0].agreed_to_terms ?? false);
+      }
     }
     setLoading(false);
   }
@@ -378,7 +392,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       return;
     }
 
-    await load();
+    await load(newListingId ?? undefined);
     setSaving(false);
     setDirty(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -412,7 +426,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       .from("club2coach_coach_listings")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", existing.id);
-    await load();
+    await load(listings.find((x) => x.id !== existing.id)?.id);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -437,9 +451,40 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     <div className="py-8">
       <h1 className="text-xl font-bold">Let clubs know you&apos;re looking</h1>
 
-      {!existing?.paid && bank < 1 && <FoundingBanner className="mt-4" />}
+      {listings.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {listings.map((l) => {
+            const badge =
+              l.status === "placed" ? "Taken" : l.status === "hibernating" ? (isActivated({ ...l, status: "active" }) ? "On hold" : "Hibernating") : isActivated(l) ? "Active" : "Not active";
+            return (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => load(l.id)}
+                className={`rounded-full border px-4 py-1.5 text-sm font-semibold ${
+                  selectedId === l.id ? "border-brand-navy bg-brand-navy text-white" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {l.role_sought} · {badge}
+              </button>
+            );
+          })}
+          {selectedId !== "new" && listings.length < COACHING_ROLES.length && (
+            <button
+              type="button"
+              onClick={() => load("new")}
+              className="rounded-full border border-dashed border-gray-400 px-4 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+            >
+              + Add another role
+            </button>
+          )}
+          {selectedId === "new" && <span className="text-sm font-semibold text-gray-600">New role: fill in below and save</span>}
+        </div>
+      )}
 
-      {!existing && bank >= 1 && (
+      {!existing?.paid && bank < 1 && listings.length === 0 && <FoundingBanner className="mt-4" />}
+
+      {!existing && bank >= 1 && listings.length === 0 && (
         <div className="mt-4 rounded-xl border-2 border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">
           <strong>🎉 Your free founding credit is in your account.</strong> Fill in your details below and save your listing, then press
           Activate whenever you&apos;re ready — the clock only starts then.
@@ -448,10 +493,12 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
 
       <div className="mt-4 grid items-stretch gap-4 md:grid-cols-[minmax(0,300px)_1fr] [&>*]:!mt-0">
         <ContactDetailsGlass fullName={person.full_name} email={person.email} mobile={person.mobile} who="a club" />
-        {existing && (
+        {existing && existing.status !== "placed" && existing.status !== "hibernating" && (
           <CoachActivation listingTable="club2coach_coach_listings" listing={existing} onChanged={() => load()} bank={bank} />
         )}
       </div>
+
+      {existing && <CoachRolePanel listing={existing} onChanged={() => load()} />}
 
       {existing && !existing.paid && bank < 1 && (
         <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">

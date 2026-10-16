@@ -113,6 +113,20 @@ export async function runClub2CoachMatchSweep(
       !v.deleted_at
   );
   const sharedPairs = new Set(shares.map((s) => `${s.coach_listing_id}:${s.club_vacancy_id}`));
+  // A coach can hold several listings (one per role). Never introduce the same coach to the same club
+  // twice through different listings: remember which (coach, club contact) pairs already have a share.
+  const listingOwner = new Map(coachListings.map((l) => [l.id, l.person_id]));
+  const vacancyOwner = new Map(vacancies.map((v) => [v.id, v.person_id]));
+  const coachClubPairs = new Map<string, Set<string>>(); // `${coachPerson}:${clubPerson}` -> listing ids already shared
+  for (const s of shares) {
+    const key = `${listingOwner.get(s.coach_listing_id)}:${vacancyOwner.get(s.club_vacancy_id)}`;
+    if (!coachClubPairs.has(key)) coachClubPairs.set(key, new Set());
+    coachClubPairs.get(key)!.add(s.coach_listing_id);
+  }
+  const sharedWithClubViaOtherListing = (coach: Club2CoachCoachListing, vacancy: Club2CoachClubVacancy) => {
+    const ids = coachClubPairs.get(`${coach.person_id}:${vacancy.person_id}`);
+    return !!ids && Array.from(ids).some((id) => id !== coach.id);
+  };
 
   // A vacancy with an approved-but-unresolved introduction is held back
   // from any further match (manual or auto) until the club says what
@@ -141,7 +155,7 @@ export async function runClub2CoachMatchSweep(
     if (remaining <= 0) continue;
 
     const candidates = activeCoaches
-      .filter((c) => introsThisActivation(c) + (runIntros.get(c.id) ?? 0) < introCapFor(c.activated_at) && !sharedPairs.has(`${c.id}:${vacancy.id}`))
+      .filter((c) => introsThisActivation(c) + (runIntros.get(c.id) ?? 0) < introCapFor(c.activated_at) && !sharedPairs.has(`${c.id}:${vacancy.id}`) && !sharedWithClubViaOtherListing(c, vacancy))
       .map((coach) => {
         const coachPerson = people[coach.person_id];
         const vacancyWeights = vacancy.personal_weights ?? weights;
@@ -162,6 +176,9 @@ export async function runClub2CoachMatchSweep(
       });
       if (!error) {
         totalNew += 1;
+        const pairKey = `${coach.person_id}:${vacancy.person_id}`;
+        if (!coachClubPairs.has(pairKey)) coachClubPairs.set(pairKey, new Set());
+        coachClubPairs.get(pairKey)!.add(coach.id);
         if (!autoApprove) {
           fresh.push({
             target: `${vacancy.role_being_recruited} at ${vacancy.club_name}`,
