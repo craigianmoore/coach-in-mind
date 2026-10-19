@@ -10,7 +10,7 @@ export function inviteText(first: string) {
   const hi = first ? `Hi ${first},` : "Hi there,";
   return `${hi}
 
-You’re receiving this one-off invitation because, as a coach, you may be interested to hear about football coaching opportunities.
+You’re receiving this one-off invitation because, as a Victorian football coach, you may be interested to hear about football coaching opportunities.
 
 Coach In Mind connects football coaches with clubs looking for coaches, and with mentors who can help coaches develop. We're opening to coaches first and bringing clubs in shortly, so coaches who join now will be in place when clubs arrive.
 
