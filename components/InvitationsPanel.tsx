@@ -78,7 +78,7 @@ export default function InvitationsPanel() {
       )}
 
       <label className="flex flex-col gap-1">
-        <span className="font-semibold text-gray-700">1. Load the list (CSV with ticket_name and email_address)</span>
+        <span className="font-semibold text-gray-700">1. Load the list (CSV with ticket_name and email_address, plus an optional state column such as VIC, TAS or NSW; a blank state reads &ldquo;a football coach&rdquo;)</span>
         <input type="file" accept=".csv,text/csv" disabled={busy} onChange={(e) => onFile(e.target.files?.[0])} />
       </label>
 
