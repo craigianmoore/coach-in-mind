@@ -3447,3 +3447,6 @@ begin
 end;
 $$;
 grant execute on function announcement_audience_count(jsonb) to authenticated;
+
+-- Invite emails adapt to the coach's state (2026-10-20)
+alter table invite_recipients add column if not exists state text;

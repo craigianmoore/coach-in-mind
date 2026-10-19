@@ -6,11 +6,45 @@ export const INVITE_SUBJECT = "An invitation to join Coach In Mind (free for the
 // Raise it if the Resend plan is upgraded.
 export const INVITE_DAILY_CAP = 85;
 
-export function inviteText(first: string) {
+// How each state reads in "as a ___ football coach". Unknown or blank falls back to plain "football coach",
+// so nobody is ever told they are from a state they are not.
+const STATE_ADJECTIVE: Record<string, string> = {
+  VIC: "Victorian",
+  TAS: "Tasmanian",
+  NSW: "New South Wales",
+  NNSW: "Northern NSW",
+  QLD: "Queensland",
+  SA: "South Australian",
+  WA: "Western Australian",
+  ACT: "ACT",
+  NT: "Northern Territory",
+};
+
+// Accepts a code (TAS) or a name (Tasmania, Tasmanian); returns the code, or null if not recognised.
+export function normaliseState(v?: string | null): string | null {
+  const t = (v ?? "").trim().toLowerCase();
+  if (!t) return null;
+  const aliases: Record<string, string> = {
+    vic: "VIC", victoria: "VIC", victorian: "VIC",
+    tas: "TAS", tasmania: "TAS", tasmanian: "TAS",
+    nsw: "NSW", "new south wales": "NSW",
+    nnsw: "NNSW", "northern nsw": "NNSW",
+    qld: "QLD", queensland: "QLD",
+    sa: "SA", "south australia": "SA", "south australian": "SA",
+    wa: "WA", "western australia": "WA", "western australian": "WA",
+    act: "ACT", "australian capital territory": "ACT",
+    nt: "NT", "northern territory": "NT",
+  };
+  return aliases[t] ?? null;
+}
+
+export function inviteText(first: string, state?: string | null) {
   const hi = first ? `Hi ${first},` : "Hi there,";
+  const adj = STATE_ADJECTIVE[state ?? ""];
+  const who = adj ? `a ${adj} football coach` : "a football coach";
   return `${hi}
 
-You’re receiving this one-off invitation because, as a Victorian football coach, you may be interested to hear about football coaching opportunities.
+You’re receiving this one-off invitation because, as ${who}, you may be interested to hear about football coaching opportunities.
 
 Coach In Mind connects football coaches with clubs looking for coaches, and with mentors who can help coaches develop. We're opening to coaches first and bringing clubs in shortly, so coaches who join now will be in place when clubs arrive.
 
@@ -89,7 +123,7 @@ export async function sendInviteBatch(service: SupabaseClient, want: number, opt
   const n = Math.min(want, room);
   const { data: next } = await service
     .from("invite_recipients")
-    .select("email, first_name")
+    .select("email, first_name, state")
     .eq("status", "pending")
     .order("created_at", { ascending: true })
     .order("email", { ascending: true })
@@ -106,7 +140,7 @@ export async function sendInviteBatch(service: SupabaseClient, want: number, opt
       .eq("status", "pending")
       .select("email");
     if (!claimed || claimed.length === 0) continue;
-    const res = await sendEmailDetailed({ to: r.email, subject: INVITE_SUBJECT, text: inviteText(r.first_name ?? "") }, { record: false });
+    const res = await sendEmailDetailed({ to: r.email, subject: INVITE_SUBJECT, text: inviteText(r.first_name ?? "", r.state) }, { record: false });
     if (res.ok) {
       sent++;
       await service.from("invite_recipients").update({ status: "sent", sent_at: new Date().toISOString(), error: null }).eq("email", r.email);

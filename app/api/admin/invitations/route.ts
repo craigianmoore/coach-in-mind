@@ -13,7 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/server/sendEmail";
 import { fetchAll } from "@/lib/fetchAll";
-import { INVITE_SUBJECT, firstNameOf, inviteCounts, inviteText, parseCsv, sendInviteBatch } from "@/lib/server/invitations";
+import { INVITE_SUBJECT, firstNameOf, inviteCounts, inviteText, normaliseState, parseCsv, sendInviteBatch } from "@/lib/server/invitations";
 
 export const maxDuration = 60;
 
@@ -46,12 +46,15 @@ export async function POST(req: Request) {
     const header = (rows.shift() ?? []).map((h) => h.trim().toLowerCase());
     const ni = header.indexOf("ticket_name");
     const ei = header.indexOf("email_address");
+    const si = header.indexOf("state"); // optional: VIC, TAS, NSW... (code or name)
     if (ei < 0) return NextResponse.json({ ok: false, error: "The CSV needs an email_address column." }, { status: 400 });
     const names = new Map<string, string[]>();
+    const states = new Map<string, string | null>();
     for (const r of rows) {
       const e = (r[ei] ?? "").trim().toLowerCase();
       if (!e) continue;
       names.set(e, [...(names.get(e) ?? []), ni >= 0 ? (r[ni] ?? "").trim() : ""]);
+      if (si >= 0 && !states.get(e)) states.set(e, normaliseState(r[si]));
     }
     const valid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
     // Paged: a plain select silently stops at 1000 rows, which would let duplicates slip past these checks.
@@ -62,13 +65,13 @@ export async function POST(req: Request) {
     const skipPeople = new Set((ppl ?? []).map((p) => (p.email ?? "").toLowerCase()));
     const skipHave = new Set((have ?? []).map((p) => p.email));
     const out = { added: 0, invalid: 0, footballVictoria: 0, alreadySignedUp: 0, alreadyListed: 0 };
-    const toAdd: { email: string; first_name: string }[] = [];
+    const toAdd: { email: string; first_name: string; state: string | null }[] = [];
     for (const [e, ns] of Array.from(names.entries())) {
       if (!valid.test(e)) { out.invalid++; continue; }
       if (e.endsWith("@footballvictoria.com.au")) { out.footballVictoria++; continue; }
       if (skipPeople.has(e)) { out.alreadySignedUp++; continue; }
       if (skipHave.has(e)) { out.alreadyListed++; continue; }
-      toAdd.push({ email: e, first_name: ns.length === 1 ? firstNameOf(ns[0]) : "" });
+      toAdd.push({ email: e, first_name: ns.length === 1 ? firstNameOf(ns[0]) : "", state: states.get(e) ?? null });
     }
     for (let i = 0; i < toAdd.length; i += 100) {
       const { error } = await service.from("invite_recipients").insert(toAdd.slice(i, i + 100));
@@ -80,7 +83,7 @@ export async function POST(req: Request) {
 
   if (body.action === "test") {
     if (!auth.email) return NextResponse.json({ ok: false, error: "No admin email on this session." }, { status: 400 });
-    const ok = await sendEmail({ to: auth.email, subject: `TEST: ${INVITE_SUBJECT}`, text: inviteText("Aaron") });
+    const ok = await sendEmail({ to: auth.email, subject: `TEST: ${INVITE_SUBJECT}`, text: inviteText("Aaron", "VIC") });
     return NextResponse.json({ ok, to: auth.email });
   }
 
