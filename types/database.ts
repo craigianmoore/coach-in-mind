@@ -28,6 +28,7 @@ export interface Club {
   id: string;
   name: string;
   state: "VIC" | "TAS";
+  postcode?: string | null;
   created_at: string;
 }
 
