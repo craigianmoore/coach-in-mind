@@ -3,6 +3,7 @@
 import EmailFailureBanner from "@/components/EmailFailureBanner";
 import InvitationsPanel from "@/components/InvitationsPanel";
 import ClubInvitationsPanel from "@/components/ClubInvitationsPanel";
+import ClubPostcodePanel from "@/components/ClubPostcodePanel";
 import dynamic from "next/dynamic";
 // The map needs the browser (Leaflet), so it is loaded only on the client, only when the tab is opened.
 const HotSpotMapPanel = dynamic(() => import("@/components/HotSpotMapPanel"), { ssr: false });
@@ -88,6 +89,11 @@ interface AdminPinRow {
 
 function Club2CoachAdmin() {
   const supabase = createClient();
+  const [postcodeConflicts, setPostcodeConflicts] = useState(0);
+  useEffect(() => {
+    supabase.from("club_postcode_conflicts").select("club_id").then(({ data }) => setPostcodeConflicts(new Set((data ?? []).map((r) => r.club_id)).size));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [tab, setTab] = useState<Tab>("unpaid");
 
   const [coachListings, setCoachListings] = useState<Club2CoachCoachListing[]>([]);
@@ -1291,6 +1297,8 @@ function Club2CoachAdmin() {
               ? `Support (${supportQueries.filter((q) => q.status === "open").length})`
               : t === "people"
               ? `People${newSignupsCount > 0 ? ` (${newSignupsCount} new)` : ""}`
+              : t === "map"
+              ? `Map${postcodeConflicts > 0 ? ` (${postcodeConflicts} to check)` : ""}`
               : t === "weighting"
               ? "loading"
               : t}
@@ -2474,7 +2482,12 @@ function Club2CoachAdmin() {
         </>
       )}
       {tab === "announcements" && <AnnouncementsPanel />}
-      {tab === "map" && <HotSpotMapPanel />}
+      {tab === "map" && (
+        <>
+          <ClubPostcodePanel onCount={setPostcodeConflicts} />
+          <HotSpotMapPanel />
+        </>
+      )}
 
       {tab === "payments" && (
         <div className="mt-6 flex flex-col gap-3">
