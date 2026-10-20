@@ -3461,3 +3461,6 @@ alter table platform_settings add column if not exists reminders_enabled boolean
 alter table platform_settings add column if not exists club_invite_enabled boolean not null default false;
 alter table platform_settings add column if not exists club_invite_share integer not null default 25;
 alter table platform_settings add column if not exists club_invite_regions text[] not null default '{}';
+
+-- Distance matching switch (2026-10-20)
+alter table platform_settings add column if not exists distance_matching_enabled boolean not null default false;

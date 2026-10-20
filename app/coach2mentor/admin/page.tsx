@@ -32,6 +32,7 @@ type RequestStatus = "pending" | "accepted" | "declined";
 // singleton settings row rather than a per-product/per-listing one.
 interface PlatformSettings {
   stripe_payments_enabled: boolean;
+  distance_matching_enabled?: boolean;
 }
 
 function FilterPills<T extends string>({
@@ -156,7 +157,7 @@ function Coach2MentorAdmin() {
   async function toggleStripePayments(value: boolean) {
     supabase.rpc("refresh_admin_session");
     const previous = platformSettings;
-    setPlatformSettings({ stripe_payments_enabled: value });
+    setPlatformSettings({ ...(previous ?? {}), stripe_payments_enabled: value });
     const { data, error } = await supabase
       .from("platform_settings")
       .update({ stripe_payments_enabled: value })
@@ -167,6 +168,23 @@ function Coach2MentorAdmin() {
     if (error || !data || data.length !== 1) {
       setPlatformSettings(previous);
       window.alert("Couldn't change the card payments switch. Check your master PIN session and try again.");
+    }
+  }
+
+  // Use real postcode distance to sharpen the geography score (both products). Off by default. Same singleton row as
+  // the card payments switch, so it works the same way: master-PIN session only, and it puts itself back if refused.
+  async function toggleDistanceMatching(value: boolean) {
+    supabase.rpc("refresh_admin_session");
+    const previous = platformSettings;
+    setPlatformSettings({ ...(previous ?? { stripe_payments_enabled: true }), distance_matching_enabled: value });
+    const { data, error } = await supabase
+      .from("platform_settings")
+      .update({ distance_matching_enabled: value })
+      .eq("id", true)
+      .select("distance_matching_enabled");
+    if (error || !data || data.length !== 1) {
+      setPlatformSettings(previous);
+      window.alert("Couldn't change the distance matching switch. Check your master PIN session and try again.");
     }
   }
 
@@ -385,7 +403,7 @@ function Coach2MentorAdmin() {
             .filter((m) => !requestedMentorIds.has(m.id))
             .map((mentor) => {
               const coachPerson = people[coach.person_id];
-              const breakdown = scoreCoach2MentorMatch(coach, coachPerson?.region ?? null, mentor, coachWeights, coachPerson?.current_licence ?? null);
+              const breakdown = scoreCoach2MentorMatch(coach, coachPerson?.region ?? null, mentor, coachWeights, coachPerson?.current_licence ?? null, { useDistance: platformSettings?.distance_matching_enabled === true, coachPostcode: coachPerson?.postcode, mentorPostcode: people[mentor.person_id]?.postcode });
               return { mentor, breakdown };
             })
             .sort((a, b) => b.breakdown.total - a.breakdown.total)
@@ -397,7 +415,7 @@ function Coach2MentorAdmin() {
           if (!mentor) return null;
           const coachPerson = people[coach.person_id];
           const breakdown = coachWeights
-            ? scoreCoach2MentorMatch(coach, coachPerson?.region ?? null, mentor, coachWeights, coachPerson?.current_licence ?? null)
+            ? scoreCoach2MentorMatch(coach, coachPerson?.region ?? null, mentor, coachWeights, coachPerson?.current_licence ?? null, { useDistance: platformSettings?.distance_matching_enabled === true, coachPostcode: coachPerson?.postcode, mentorPostcode: people[mentor.person_id]?.postcode })
             : { total: r.score ?? 0 };
           return { mentor, breakdown, requestRow: r };
         })
@@ -998,6 +1016,18 @@ function Coach2MentorAdmin() {
             Used for any coach who hasn't set their own personal loading. From 1 (least
             important) to 10 (most important).
           </p>
+          <label className="mt-4 flex items-start gap-2 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={platformSettings?.distance_matching_enabled === true}
+              onChange={(e) => toggleDistanceMatching(e.target.checked)}
+            />
+            <span>
+              <strong>Use the real distance between postcodes for geography.</strong> Inside a region a coach chose, nearer scores higher; a nearby club
+              just outside it still gets a partial score. In-person mentoring only. One switch for Club 2 Coach and Coach 2 Mentor. Off = regions only, as before.
+            </span>
+          </label>
           {(Object.keys(weights) as (keyof Coach2MentorWeights)[]).map((key) => (
             <div key={key} className="mt-4">
               <div className="flex justify-between text-sm">
