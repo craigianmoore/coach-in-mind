@@ -2,6 +2,7 @@
 
 import EmailFailureBanner from "@/components/EmailFailureBanner";
 import InvitationsPanel from "@/components/InvitationsPanel";
+import ClubInvitationsPanel from "@/components/ClubInvitationsPanel";
 import AnnouncementsPanel from "@/components/AnnouncementsPanel";
 import { fetchAll } from "@/lib/fetchAll";
 import { introCapFor, COACH_ACTIVE_DAYS, isActivated } from "@/lib/coachPool";
@@ -2433,7 +2434,12 @@ function Club2CoachAdmin() {
         </div>
       )}
 
-      {tab === "invites" && <InvitationsPanel />}
+      {tab === "invites" && (
+        <>
+          <InvitationsPanel />
+          <ClubInvitationsPanel />
+        </>
+      )}
       {tab === "announcements" && <AnnouncementsPanel />}
 
       {tab === "payments" && (

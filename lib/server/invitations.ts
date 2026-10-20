@@ -1,10 +1,13 @@
 // The one-off coach invitation email, and helpers for the admin send tool.
 export const INVITE_SUBJECT = "An invitation to join Coach In Mind (free for the first 100 coaches)";
 
-// Soft daily ceiling across everything Resend sends. The Free plan stops at 100 a day and the app's own
-// emails (welcomes, confirmations, alerts) share it, so invitations stop at this many in any 24 hours.
-// Raise it if the Resend plan is upgraded.
-export const INVITE_DAILY_CAP = 85;
+// Default for how many emails (invitations, reminders and club invitations together) may go out in any rolling 24
+// hours. The admin can change it on the Invites tab (platform_settings.invite_daily_limit). Sending is spread across
+// the working day in small hourly batches, never all at once.
+export const DEFAULT_DAILY_LIMIT = 150;
+export const SEND_HOURS_PER_DAY = 9; // the hourly runs between 9am and 5pm Melbourne time
+export const REMINDER_AFTER_DAYS = 4; // a reminder goes only to people who were invited at least this long ago
+export const CLUB_INVITE_STATES = ["VIC"]; // club invitations are Victoria-only for now
 
 // How each state reads in "as a ___ football coach". Unknown or blank falls back to plain "football coach",
 // so nobody is ever told they are from a state they are not.
@@ -89,36 +92,184 @@ export function firstNameOf(full: string) {
   return f === f.toLowerCase() || f === f.toUpperCase() ? f.charAt(0).toUpperCase() + f.slice(1).toLowerCase() : f;
 }
 
+// ---- Reminder and club emails ----
+export const REMINDER_SUBJECT = "A quick follow-up from Coach In Mind (free for the first 100 coaches)";
+
+// Sent once only, to people invited a few days earlier who have not signed up and have not said no thanks.
+export function reminderText(first: string, state?: string | null) {
+  const hi = first ? `Hi ${first},` : "Hi there,";
+  const adj = STATE_ADJECTIVE[state ?? ""];
+  const who = adj ? `a ${adj} football coach` : "a football coach";
+  return `${hi}
+
+Just a quick follow-up to our note a few days ago, in case it got buried.
+
+As ${who}, you might like Coach In Mind: it connects football coaches with clubs looking for coaches, and with mentors who can help coaches develop. We're opening to coaches first and bringing clubs in shortly, so coaches who join now will be in place when clubs arrive.
+
+The first 100 coaches get a free founding credit, so it costs nothing to try.
+
+Sign up here: https://www.coachinmind.com.au/signup
+
+This is the only reminder we'll send. If you'd rather not hear from us again, just reply "no thanks" and we'll remove you.`;
+}
+
+export const CLUB_INVITE_SUBJECT = "Find your next coach with Coach In Mind (your first introduction is free)";
+
+// Written in the "we" voice, signed by the standard Coach In Mind footer. Deliberately no mention of any
+// governing body or Football Victoria.
+export function clubInviteText(clubName: string, state?: string | null) {
+  const adj = STATE_ADJECTIVE[state ?? ""];
+  const what = adj ? `a ${adj} football club` : "a football club";
+  const club = clubName.trim() ? `${clubName.trim()} is ${what}` : `you run ${what}`;
+  return `Hi there,
+
+You're receiving this one-off note because ${club}, and clubs often need to find coaches.
+
+Coach In Mind connects football clubs with coaches looking for roles. Tell us what you need (role, age group, ability, competition level and area) and we introduce you to coaches who fit. Your first introduction is free, so it costs nothing to try.
+
+Advertise a vacancy here: https://www.coachinmind.com.au/signup
+
+This isn't a regular newsletter. If you'd rather not hear from us again, just reply "no thanks" and we'll remove you.`;
+}
+
 // ---- Sending (shared by the admin tool and the hourly cron) ----
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmailDetailed } from "./sendEmail";
+import { fetchAll } from "@/lib/fetchAll";
+
+type Settings = {
+  autoSend: boolean;
+  dailyLimit: number;
+  remindersEnabled: boolean;
+  clubEnabled: boolean;
+  clubShare: number;
+  clubRegions: string[];
+};
+
+async function loadSettings(service: SupabaseClient): Promise<Settings> {
+  const { data } = await service
+    .from("platform_settings")
+    .select("invite_auto_send, invite_daily_limit, reminders_enabled, club_invite_enabled, club_invite_share, club_invite_regions")
+    .limit(1)
+    .maybeSingle();
+  const d = (data ?? {}) as Record<string, unknown>;
+  return {
+    autoSend: d.invite_auto_send === true,
+    dailyLimit: typeof d.invite_daily_limit === "number" ? d.invite_daily_limit : DEFAULT_DAILY_LIMIT,
+    remindersEnabled: d.reminders_enabled !== false,
+    clubEnabled: d.club_invite_enabled === true,
+    clubShare: typeof d.club_invite_share === "number" ? Math.max(0, Math.min(100, d.club_invite_share)) : 25,
+    clubRegions: Array.isArray(d.club_invite_regions) ? (d.club_invite_regions as string[]) : [],
+  };
+}
+
+export const perRunFor = (dailyLimit: number) => Math.max(1, Math.ceil(dailyLimit / SEND_HOURS_PER_DAY));
+
+async function signedUpEmails(service: SupabaseClient): Promise<Set<string>> {
+  const rows = await fetchAll<{ email: string | null }>((a, b) => service.from("people").select("email").order("id").range(a, b));
+  return new Set(rows.map((r) => (r.email ?? "").trim().toLowerCase()));
+}
+
+type Candidate = { email: string; first_name: string | null; state: string | null };
+
+// Invited at least REMINDER_AFTER_DAYS ago, not yet reminded, not signed up. Longest-waiting first.
+// (Someone who signed up with a different email address than the one we invited can't be recognised.)
+async function reminderCandidates(service: SupabaseClient): Promise<Candidate[]> {
+  const cutoff = new Date(Date.now() - REMINDER_AFTER_DAYS * 86400_000).toISOString();
+  const rows = await fetchAll<Candidate>((a, b) =>
+    service
+      .from("invite_recipients")
+      .select("email, first_name, state")
+      .eq("status", "sent")
+      .is("reminder_sent_at", null)
+      .lte("sent_at", cutoff)
+      .order("sent_at", { ascending: true })
+      .order("email", { ascending: true })
+      .range(a, b)
+  );
+  if (rows.length === 0) return [];
+  const signed = await signedUpEmails(service);
+  return rows.filter((r) => !signed.has(r.email.trim().toLowerCase()));
+}
+
+// Victorian club contacts that can be invited now: in a region the admin has switched on, never contacted,
+// not marked do-not-contact.
+function eligibleClubQuery(service: SupabaseClient, select: string, opts: { head?: boolean } = {}) {
+  return service
+    .from("club_contacts")
+    .select(select, opts.head ? { count: "exact", head: true } : undefined)
+    .in("clubs.state", CLUB_INVITE_STATES)
+    .eq("do_not_contact", false)
+    .is("invite_sent_at", null)
+    .is("contacted_at", null);
+}
 
 export async function inviteCounts(service: SupabaseClient) {
   // Counted by the database, never by reading rows back: Supabase silently returns at most 1000 rows per
   // request, which made these counts (and the 24-hour ceiling) wrong once the list passed 1000 people.
+  const base = () => service.from("invite_recipients").select("*", { count: "exact", head: true });
   const count = async (build: (q: ReturnType<typeof base>) => ReturnType<typeof base>) => {
     const { count: n } = await build(base());
     return n ?? 0;
   };
-  const base = () => service.from("invite_recipients").select("*", { count: "exact", head: true });
   const since = new Date(Date.now() - 24 * 3600_000).toISOString();
-  const [pending, sent, failed, optout, sending, sentLast24h] = await Promise.all([
-    count((q) => q.eq("status", "pending")),
-    count((q) => q.eq("status", "sent")),
-    count((q) => q.eq("status", "failed")),
-    count((q) => q.eq("status", "optout")),
-    count((q) => q.eq("status", "sending")),
-    count((q) => q.eq("status", "sent").gt("sent_at", since)),
-  ]);
-  const c = { pending, sent, failed, optout, sending, sentLast24h };
-  const { data: ps } = await service.from("platform_settings").select("invite_auto_send").limit(1).maybeSingle();
-  return { ...c, dailyCap: INVITE_DAILY_CAP, autoSend: ps?.invite_auto_send === true };
-}
+  const cutoff = new Date(Date.now() - REMINDER_AFTER_DAYS * 86400_000).toISOString();
+  const st = await loadSettings(service);
 
-// Sends to the next `want` pending people, never past the daily ceiling, never twice to one person.
+  const clubCount = async (build: (q: any) => any) => {
+    const { count: n } = await build(eligibleClubQuery(service, "club_id, clubs!inner(state, region)", { head: true }));
+    return n ?? 0;
+  };
+  const [pending, sent, failed, optout, sending, coachSentLast24h, remindersSent, remindersLast24h, remindersWaiting, due, clubsLast24h, clubsSent, clubsEligible, clubsNoRegion] =
+    await Promise.all([
+      count((q) => q.eq("status", "pending")),
+      count((q) => q.eq("status", "sent")),
+      count((q) => q.eq("status", "failed")),
+      count((q) => q.eq("status", "optout")),
+      count((q) => q.eq("status", "sending")),
+      count((q) => q.eq("status", "sent").gt("sent_at", since)),
+      count((q) => q.not("reminder_sent_at", "is", null)),
+      count((q) => q.gt("reminder_sent_at", since)),
+      count((q) => q.eq("status", "sent").is("reminder_sent_at", null).gt("sent_at", cutoff)),
+      reminderCandidates(service),
+      service.from("club_contacts").select("*", { count: "exact", head: true }).gt("invite_sent_at", since).then((r) => r.count ?? 0),
+      service.from("club_contacts").select("*", { count: "exact", head: true }).not("invite_sent_at", "is", null).then((r) => r.count ?? 0),
+      st.clubRegions.length ? clubCount((q) => q.in("clubs.region", st.clubRegions)) : Promise.resolve(0),
+      clubCount((q) => q.is("clubs.region", null)),
+    ]);
+  return {
+    pending,
+    sent,
+    failed,
+    optout,
+    sending,
+    // Everything that has gone out in the last 24 hours counts towards the daily limit.
+    sentLast24h: coachSentLast24h + remindersLast24h + clubsLast24h,
+    dailyCap: st.dailyLimit,
+    perRun: perRunFor(st.dailyLimit),
+    autoSend: st.autoSend,
+    remindersEnabled: st.remindersEnabled,
+    remindersDue: due.length,
+    remindersWaiting,
+    remindersSent,
+    reminderAfterDays: REMINDER_AFTER_DAYS,
+    clubEnabled: st.clubEnabled,
+    clubShare: st.clubShare,
+    clubRegions: st.clubRegions,
+    clubsEligible,
+    clubsSent,
+    clubsNoRegion,
+  };
+}
+type Counts = Awaited<ReturnType<typeof inviteCounts>>;
+type BatchResult = { sent: number; failed: number; paused: boolean };
+const NONE: BatchResult = { sent: 0, failed: 0, paused: false };
+const pause = () => new Promise((res) => setTimeout(res, 600)); // stay under Resend's request rate limit
+
+// Sends to the next `want` pending people, never past the daily limit, never twice to one person.
 export async function sendInviteBatch(service: SupabaseClient, want: number, opts: { ignoreRollingCap?: boolean } = {}) {
   const c = await inviteCounts(service);
-  const room = opts.ignoreRollingCap ? want : INVITE_DAILY_CAP - c.sentLast24h;
+  const room = opts.ignoreRollingCap ? want : c.dailyCap - c.sentLast24h;
   if (room <= 0) return { sent: 0, failed: 0, paused: false, atCeiling: true, cappedByDailyCeiling: true, counts: c };
   const n = Math.min(want, room);
   const { data: next } = await service
@@ -153,19 +304,122 @@ export async function sendInviteBatch(service: SupabaseClient, want: number, opt
       failed++;
       await service.from("invite_recipients").update({ status: "failed", error: "Resend refused or errored" }).eq("email", r.email);
     }
-    await new Promise((res) => setTimeout(res, 600)); // stay under Resend's request rate limit
+    await pause();
   }
   return { sent, failed, paused, atCeiling: false, cappedByDailyCeiling: n < want, counts: await inviteCounts(service) };
+}
+
+// One reminder to each person who was invited a few days ago and hasn't signed up. Claimed before sending, so
+// nobody is reminded twice.
+export async function sendReminderBatch(service: SupabaseClient, n: number): Promise<BatchResult> {
+  if (n <= 0) return NONE;
+  const todo = (await reminderCandidates(service)).slice(0, n);
+  let sent = 0;
+  let failed = 0;
+  let paused = false;
+  for (const r of todo) {
+    const { data: claimed } = await service
+      .from("invite_recipients")
+      .update({ reminder_sent_at: new Date().toISOString() })
+      .eq("email", r.email)
+      .eq("status", "sent")
+      .is("reminder_sent_at", null)
+      .select("email");
+    if (!claimed || claimed.length === 0) continue;
+    const res = await sendEmailDetailed({ to: r.email, subject: REMINDER_SUBJECT, text: reminderText(r.first_name ?? "", r.state) }, { record: false });
+    if (res.ok) sent++;
+    else if (res.transient) {
+      paused = true;
+      await service.from("invite_recipients").update({ reminder_sent_at: null }).eq("email", r.email);
+      break;
+    } else {
+      failed++; // stays marked so it is not retried every hour
+      await service.from("invite_recipients").update({ error: "Reminder failed: Resend refused or errored" }).eq("email", r.email);
+    }
+    await pause();
+  }
+  return { sent, failed, paused };
+}
+
+type ClubRow = { club_id: string; email: string; clubs: { name: string; state: string; region: string | null } };
+
+// Invitations to Victorian clubs, only in the regions the admin has switched on.
+export async function sendClubInviteBatch(service: SupabaseClient, n: number, regions: string[]): Promise<BatchResult> {
+  if (n <= 0 || regions.length === 0) return NONE;
+  const { data } = await eligibleClubQuery(service, "club_id, email, clubs!inner(name, state, region)")
+    .in("clubs.region", regions)
+    .order("club_id", { ascending: true })
+    .limit(n);
+  let sent = 0;
+  let failed = 0;
+  let paused = false;
+  for (const r of ((data ?? []) as unknown as ClubRow[])) {
+    const { data: claimed } = await service
+      .from("club_contacts")
+      .update({ invite_sent_at: new Date().toISOString() })
+      .eq("club_id", r.club_id)
+      .eq("do_not_contact", false)
+      .is("invite_sent_at", null)
+      .select("club_id");
+    if (!claimed || claimed.length === 0) continue;
+    const res = await sendEmailDetailed(
+      { to: r.email, subject: CLUB_INVITE_SUBJECT, text: clubInviteText(r.clubs.name, r.clubs.state) },
+      { record: false }
+    );
+    if (res.ok) {
+      sent++;
+      await service.from("club_contacts").update({ contacted_at: new Date().toISOString(), invite_error: null }).eq("club_id", r.club_id);
+    } else if (res.transient) {
+      paused = true;
+      await service.from("club_contacts").update({ invite_sent_at: null }).eq("club_id", r.club_id);
+      break;
+    } else {
+      failed++; // stays marked so it is not retried every hour
+      await service.from("club_contacts").update({ invite_error: "Resend refused or errored" }).eq("club_id", r.club_id);
+    }
+    await pause();
+  }
+  return { sent, failed, paused };
+}
+
+// One scheduled batch: clubs get their share (when switched on), the rest goes to coaches (new invitations first,
+// then reminders). If a group has nobody left to send to, its unused places go to the other.
+export async function sendScheduledBatch(service: SupabaseClient, want: number) {
+  const c = await inviteCounts(service);
+  const room = c.dailyCap - c.sentLast24h;
+  if (room <= 0) return { sent: 0, failed: 0, paused: false, atCeiling: true, counts: c };
+  const n = Math.min(want, room);
+  let sent = 0;
+  let failed = 0;
+  let paused = false;
+  const add = (r: BatchResult) => {
+    sent += r.sent;
+    failed += r.failed;
+    paused = paused || r.paused;
+  };
+  const used = () => sent + failed;
+  if (c.clubEnabled && c.clubShare > 0) add(await sendClubInviteBatch(service, Math.round((n * c.clubShare) / 100), c.clubRegions));
+  if (!paused && n - used() > 0) {
+    const r = await sendInviteBatch(service, n - used(), { ignoreRollingCap: true });
+    add({ sent: r.sent, failed: r.failed, paused: r.paused });
+  }
+  if (!paused && c.remindersEnabled && n - used() > 0) add(await sendReminderBatch(service, n - used()));
+  if (!paused && c.clubEnabled && n - used() > 0) add(await sendClubInviteBatch(service, n - used(), c.clubRegions));
+  return { sent, failed, paused, atCeiling: false, counts: await inviteCounts(service) };
 }
 
 export function melbourneHour(d = new Date()) {
   return Number(new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Melbourne", hour: "numeric", hour12: false }).format(d)) % 24;
 }
 
-// Automatic sending: each hourly run between 9am and 5pm Melbourne sends up to INVITE_AUTO_PER_RUN
-// (about 81 a day, plus the 4:30pm top-up), emails the admin inbox a daily summary at 5pm, an alert on any failure, and switches
-// itself off with a note when the list is finished. Does nothing unless the switch on the Invites tab is on.
-export const INVITE_AUTO_PER_RUN = 9;
+const workLeft = (c: Counts) =>
+  c.pending + (c.remindersEnabled ? c.remindersDue : 0) + (c.clubEnabled ? c.clubsEligible : 0);
+// Reminders still to become due (invited too recently) also keep automatic sending switched on.
+const allDone = (c: Counts) => workLeft(c) === 0 && (!c.remindersEnabled || c.remindersWaiting === 0);
+
+// Automatic sending: each hourly run between 9am and 5pm Melbourne sends a small batch (the daily limit spread over
+// the 9 runs), emails the admin inbox a daily summary at 5pm, an alert on any failure, and switches itself off with a
+// note when everything is finished. Does nothing unless the switch on the Invites tab is on.
 export async function runInviteAutoSend(
   service: SupabaseClient,
   notify: (subject: string, text: string) => Promise<unknown>
@@ -176,79 +430,24 @@ export async function runInviteAutoSend(
   if (hour < 9 || hour > 17) return;
   let failed = 0;
   let counts = before;
-  if (before.pending > 0) {
-    const r = await sendInviteBatch(service, INVITE_AUTO_PER_RUN);
+  if (workLeft(before) > 0) {
+    const r = await sendScheduledBatch(service, before.perRun);
     failed = r.failed;
     counts = r.counts;
     if (r.paused) {
-      await notify("Invitation sending paused", `Resend temporarily refused an email (most likely the daily limit). Nobody was lost: ${counts.pending} are still waiting and automatic sending will retry on the next hourly run.`);
+      await notify("Invitation sending paused", `Resend temporarily refused an email. Nobody was lost: automatic sending will retry on the next hourly run.`);
     }
     if (failed > 0) {
-      await notify("Invitation sending: some emails failed", `${failed} invitation${failed === 1 ? "" : "s"} failed to send in the latest run. Check your Resend plan and logs. ${counts.pending} still waiting; automatic sending is still on.`);
+      await notify("Invitation sending: some emails failed", `${failed} email${failed === 1 ? "" : "s"} failed to send in the latest run. Check your Resend logs. Automatic sending is still on.`);
     }
   }
-  if (counts.pending === 0) {
+  const summary = `${counts.pending} invitations waiting, ${counts.remindersEnabled ? `${counts.remindersDue} reminders due (${counts.remindersWaiting} more not yet due), ` : ""}${counts.clubEnabled ? `${counts.clubsEligible} clubs waiting, ` : ""}${counts.failed} failed, ${counts.optout} marked no thanks.`;
+  if (allDone(counts)) {
     await service.from("platform_settings").update({ invite_auto_send: false }).not("id", "is", null);
-    await notify("Invitation mail-out finished", `All invitations have been sent: ${counts.sent} sent in total, ${counts.failed} failed, ${counts.optout} marked no thanks. Automatic sending has switched itself off.`);
+    await notify("Invitation mail-out finished", `Everything has been sent: ${counts.sent} invitations, ${counts.remindersSent} reminders and ${counts.clubsSent} club invitations in total. ${counts.failed} failed, ${counts.optout} marked no thanks. Automatic sending has switched itself off.`);
     return;
   }
   if (hour === 17) {
-    await notify("Invitations: today's summary", `${counts.sentLast24h} invitations sent in the last 24 hours. ${counts.pending} still to send, ${counts.failed} failed, ${counts.optout} marked no thanks. Automatic sending continues tomorrow from 9am.`);
+    await notify("Invitations: today's summary", `${counts.sentLast24h} emails sent in the last 24 hours (limit ${counts.dailyCap}). ${summary} Automatic sending continues tomorrow from 9am.`);
   }
-}
-
-
-// ---- 4:30pm top-up ----
-// Resend's daily quota resets at 00:00 UTC (10 or 11am Melbourne), so its "day" runs from then. At 4:30pm
-// we look at how much of it is used and send one extra batch, keeping room for the runs still to come in
-// that same Resend day (5pm, and the next morning's runs before the reset) plus a small buffer.
-export const INVITE_RESEND_TARGET = 95;
-const FALLBACK_APP_EMAILS = 15; // assumed app emails today if Resend's list can't be read
-
-async function resendSentSince(sinceMs: number): Promise<number | null> {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return null;
-  let count = 0;
-  let after: string | undefined;
-  for (let page = 0; page < 6; page++) {
-    const res = await fetch(`https://api.resend.com/emails?limit=100${after ? `&after=${after}` : ""}`, { headers: { Authorization: `Bearer ${apiKey}` } });
-    if (!res.ok) return null; // e.g. a send-only key can't list emails
-    const body = (await res.json()) as { data?: { id: string; created_at: string }[]; has_more?: boolean };
-    const rows = body.data ?? [];
-    let reachedOlder = false;
-    for (const r of rows) {
-      if (new Date(r.created_at.replace(" ", "T").replace(/\+00(:00)?$/, "Z")).getTime() >= sinceMs) count++;
-      else reachedOlder = true;
-    }
-    if (reachedOlder || !body.has_more || rows.length === 0) return count;
-    after = rows[rows.length - 1].id;
-  }
-  return null; // too many to count safely
-}
-
-export async function runInviteTopUp(
-  service: SupabaseClient,
-  notify: (subject: string, text: string) => Promise<unknown>
-) {
-  const before = await inviteCounts(service);
-  if (!before.autoSend || before.pending === 0) return;
-  const now = new Date();
-  if (melbourneHour(now) !== 16) return;
-  const utcMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  const resetHour = melbourneHour(new Date(utcMidnight + 24 * 3600_000)); // Melbourne hour of the next reset
-  const runsLeftInResendDay = 1 + Math.max(0, resetHour - 9); // the 5pm run + next morning's runs before the reset
-  let used = await resendSentSince(utcMidnight);
-  let source = "Resend's own count";
-  if (used === null) {
-    const { data } = await service.from("invite_recipients").select("sent_at").eq("status", "sent").gte("sent_at", new Date(utcMidnight).toISOString());
-    used = (data?.length ?? 0) + FALLBACK_APP_EMAILS;
-    source = "our own count plus an allowance for app emails";
-  }
-  const room = INVITE_RESEND_TARGET - used - runsLeftInResendDay * INVITE_AUTO_PER_RUN;
-  if (room <= 0) {
-    await notify("Invitations: no 4:30pm top-up today", `Resend has ${used} emails counted so far today (${source}), so there was no spare room. Normal sending continues.`);
-    return;
-  }
-  const r = await sendInviteBatch(service, room, { ignoreRollingCap: true });
-  await notify("Invitations: 4:30pm top-up", `Resend had ${used} emails counted today (${source}). Sent ${r.sent} extra invitations (target ${INVITE_RESEND_TARGET} for the day, leaving room for ${runsLeftInResendDay} more runs).${r.paused ? " Resend refused part-way, so it stopped early; nobody was lost." : ""} ${r.counts.pending} still to send.`);
 }

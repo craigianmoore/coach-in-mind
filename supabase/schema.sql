@@ -3450,3 +3450,14 @@ grant execute on function announcement_audience_count(jsonb) to authenticated;
 
 -- Invite emails adapt to the coach's state (2026-10-20)
 alter table invite_recipients add column if not exists state text;
+
+-- Reminders, daily send limit and club invitations (2026-10-20)
+alter table invite_recipients add column if not exists reminder_sent_at timestamptz;
+alter table clubs add column if not exists region text;
+alter table club_contacts add column if not exists invite_sent_at timestamptz;
+alter table club_contacts add column if not exists invite_error text;
+alter table platform_settings add column if not exists invite_daily_limit integer not null default 150;
+alter table platform_settings add column if not exists reminders_enabled boolean not null default true;
+alter table platform_settings add column if not exists club_invite_enabled boolean not null default false;
+alter table platform_settings add column if not exists club_invite_share integer not null default 25;
+alter table platform_settings add column if not exists club_invite_regions text[] not null default '{}';
