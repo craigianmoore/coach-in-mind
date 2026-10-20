@@ -3,6 +3,9 @@
 import EmailFailureBanner from "@/components/EmailFailureBanner";
 import InvitationsPanel from "@/components/InvitationsPanel";
 import ClubInvitationsPanel from "@/components/ClubInvitationsPanel";
+import dynamic from "next/dynamic";
+// The map needs the browser (Leaflet), so it is loaded only on the client, only when the tab is opened.
+const HotSpotMapPanel = dynamic(() => import("@/components/HotSpotMapPanel"), { ssr: false });
 import AnnouncementsPanel from "@/components/AnnouncementsPanel";
 import { fetchAll } from "@/lib/fetchAll";
 import { introCapFor, COACH_ACTIVE_DAYS, isActivated } from "@/lib/coachPool";
@@ -29,7 +32,7 @@ import type {
   Payment,
 } from "@/types/database";
 
-type Tab = "unpaid" | "overview" | "matches" | "weighting" | "listings" | "clubs" | "promos" | "admins" | "support" | "people" | "payments" | "invites" | "announcements";
+type Tab = "unpaid" | "overview" | "matches" | "weighting" | "listings" | "clubs" | "promos" | "admins" | "support" | "people" | "payments" | "invites" | "announcements" | "map";
 
 interface ClubContactRow {
   id: string;
@@ -1255,7 +1258,7 @@ function Club2CoachAdmin() {
       <EmailFailureBanner />
 
       <div className="mt-4 flex flex-wrap border-b">
-        {(["unpaid", "overview", "matches", "weighting", "listings", "clubs", "promos", "admins", "support", "people", "payments", "invites", "announcements"] as Tab[]).map((t) => (
+        {(["unpaid", "overview", "matches", "weighting", "listings", "clubs", "promos", "admins", "support", "people", "payments", "invites", "announcements", "map"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -2441,6 +2444,7 @@ function Club2CoachAdmin() {
         </>
       )}
       {tab === "announcements" && <AnnouncementsPanel />}
+      {tab === "map" && <HotSpotMapPanel />}
 
       {tab === "payments" && (
         <div className="mt-6 flex flex-col gap-3">
