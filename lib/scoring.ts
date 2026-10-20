@@ -12,6 +12,26 @@ import type {
   Coach2MentorWeights,
 } from "@/types/database";
 
+import { distanceKm, distanceScore } from "@/lib/geo";
+
+// Optional, switched on by the admin (platform_settings.distance_matching_enabled). When on and both postcodes are
+// known, the real distance sharpens the geography score. Without it, scoring is exactly as before.
+export interface GeoOptions {
+  useDistance?: boolean;
+  coachPostcode?: string | null;
+}
+
+// regionScore is the old all-or-nothing region result (1 = a region the coach chose, 0 = not, 0.5 = no preference).
+// Inside a chosen region, nearer is better (0.6 to 1.0). Outside it, a nearby club still gets a modest partial score
+// (up to 0.4), so a coach right on a border isn't shut out. "No preference" stays neutral.
+function refineGeography(regionScore: number, km: number | null): number {
+  if (km === null) return regionScore;
+  const d = distanceScore(km);
+  if (regionScore === 1) return 0.6 + 0.4 * d;
+  if (regionScore === 0) return 0.4 * d;
+  return regionScore;
+}
+
 // Every sub-score is 0-1. The final score is a weighted average using
 // the admin-configured weights (which don't need to sum to anything in
 // particular — they're normalised here).
@@ -142,6 +162,8 @@ export interface Club2CoachScoreBreakdown {
   competition_level: number;
   age_group: number;
   geography: number;
+  // Straight-line km between the two postcodes when distance matching is on and both are known.
+  distanceKm?: number | null;
   salary: number;
   gender: number;
   // False when the coach explicitly ruled out this vacancy's state —
@@ -156,7 +178,8 @@ export function scoreClub2CoachMatch(
   coach: Club2CoachCoachListing,
   coachLicence: string | null,
   vacancy: Club2CoachClubVacancy,
-  weights: Club2CoachWeights
+  weights: Club2CoachWeights,
+  geo: GeoOptions = {}
 ): Club2CoachScoreBreakdown {
   const eligible = stateFitOk(coach.state_preferences, vacancy.state);
 
@@ -170,11 +193,12 @@ export function scoreClub2CoachMatch(
   // is false, purely so the breakdown UI has something sane to show
   // rather than an undefined value; it plays no part in `total` in
   // that case, since total is forced to 0 below regardless.
+  const km = geo.useDistance ? distanceKm(geo.coachPostcode, vacancy.postcode) : null;
   const geography = !eligible
     ? 0
     : coach.open_to_relocating
     ? 1
-    : overlapScore(coach.preferred_regions, vacancy.region);
+    : refineGeography(overlapScore(coach.preferred_regions, vacancy.region), km);
 
   const salary = rangeOverlapScore(
     coach.salary_min,
@@ -200,7 +224,7 @@ export function scoreClub2CoachMatch(
       ])
     : 0;
 
-  return { total, accreditation, ability, competition_level, age_group, geography, salary, gender, eligible };
+  return { total, accreditation, ability, competition_level, age_group, geography, distanceKm: km, salary, gender, eligible };
 }
 
 export interface Coach2MentorScoreBreakdown {
@@ -208,6 +232,7 @@ export interface Coach2MentorScoreBreakdown {
   specialism_overlap: number;
   career_stage: number;
   geography: number;
+  distanceKm?: number | null;
   availability: number;
   budget_fit: number;
   gender: number;
@@ -223,7 +248,8 @@ export function scoreCoach2MentorMatch(
   coachRegion: string | null,
   mentor: Coach2MentorMentorListing,
   weights: Coach2MentorWeights,
-  coachLicence?: string | null
+  coachLicence?: string | null,
+  geo: GeoOptions & { mentorPostcode?: string | null } = {}
 ): Coach2MentorScoreBreakdown {
   // Specialism overlap: intersection size relative to what the coach asked for
   const wanted = coach.support_areas ?? [];
@@ -249,11 +275,17 @@ export function scoreCoach2MentorMatch(
     coach.availability === "Either" ||
     mentor.availability === "Virtual" ||
     mentor.availability === "Either";
+  const km = geo.useDistance && !isRemoteFriendly ? distanceKm(geo.coachPostcode, geo.mentorPostcode) : null;
+  const inRegion = !!coachRegion && !!mentor.regions_served?.includes(coachRegion);
   const geography = isRemoteFriendly
     ? 1
-    : coachRegion && mentor.regions_served?.includes(coachRegion)
-    ? 1
-    : 0.3;
+    : km === null
+    ? inRegion
+      ? 1
+      : 0.3
+    : inRegion
+    ? 0.6 + 0.4 * distanceScore(km)
+    : Math.max(0.3, 0.5 * distanceScore(km));
 
   const availability =
     coach.availability === "Either" || mentor.availability === "Either"
@@ -288,5 +320,5 @@ export function scoreCoach2MentorMatch(
       ])
     : 0;
 
-  return { total, specialism_overlap, career_stage, geography, availability, budget_fit, gender, eligible };
+  return { total, specialism_overlap, career_stage, geography, distanceKm: km, availability, budget_fit, gender, eligible };
 }

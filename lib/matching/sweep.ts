@@ -73,10 +73,17 @@ async function emailAdminSuggestions(product: "club2coach" | "coach2mentor", ite
   }
 }
 
+// Admin switch (Weighting tab): use real postcode distance to sharpen the geography score. Off unless switched on.
+async function distanceMatchingOn(supabase: SupabaseClient): Promise<boolean> {
+  const { data } = await supabase.from("platform_settings").select("distance_matching_enabled").limit(1).maybeSingle();
+  return (data as { distance_matching_enabled?: boolean } | null)?.distance_matching_enabled === true;
+}
+
 export async function runClub2CoachMatchSweep(
   supabase: SupabaseClient,
   opts: { vacancyIds?: string[] } = {}
 ): Promise<{ totalNew: number }> {
+  const useDistance = await distanceMatchingOn(supabase);
   const [{ data: cl }, { data: cv }, { data: ppl }, { data: sh }, { data: st }] = await Promise.all([
     supabase.from("club2coach_coach_listings").select("*"),
     supabase.from("club2coach_club_vacancies").select("*"),
@@ -159,7 +166,7 @@ export async function runClub2CoachMatchSweep(
       .map((coach) => {
         const coachPerson = people[coach.person_id];
         const vacancyWeights = vacancy.personal_weights ?? weights;
-        const breakdown = scoreClub2CoachMatch(coach, coachPerson?.current_licence ?? null, vacancy, vacancyWeights);
+        const breakdown = scoreClub2CoachMatch(coach, coachPerson?.current_licence ?? null, vacancy, vacancyWeights, { useDistance, coachPostcode: coachPerson?.postcode });
         return { coach, breakdown };
       })
       .filter(({ breakdown }) => breakdown.eligible)
@@ -202,6 +209,7 @@ export async function runClub2CoachMatchSweep(
 }
 
 export async function runCoach2MentorMatchSweep(supabase: SupabaseClient): Promise<{ totalNew: number }> {
+  const useDistance = await distanceMatchingOn(supabase);
   const [{ data: cl }, { data: ml }, { data: ppl }, { data: rq }, { data: st }] = await Promise.all([
     supabase.from("coach2mentor_coach_listings").select("*"),
     supabase.from("coach2mentor_mentor_listings").select("*"),
@@ -256,7 +264,8 @@ export async function runCoach2MentorMatchSweep(supabase: SupabaseClient): Promi
           coachPerson?.region ?? null,
           mentor,
           coachWeights,
-          coachPerson?.current_licence ?? null
+          coachPerson?.current_licence ?? null,
+          { useDistance, coachPostcode: coachPerson?.postcode, mentorPostcode: people[mentor.person_id]?.postcode }
         );
         return { mentor, breakdown };
       })
