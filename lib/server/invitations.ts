@@ -93,7 +93,7 @@ export function firstNameOf(full: string) {
 }
 
 // ---- Reminder and club emails ----
-export const REMINDER_SUBJECT = "A quick follow-up from Coach In Mind (free for the first 100 coaches)";
+export const REMINDER_SUBJECT = "A quick follow-up: finding a club shouldn't be a lottery (free for the first 100 coaches)";
 
 // Sent once only, to people invited a few days earlier who have not signed up and have not said no thanks.
 export function reminderText(first: string, state?: string | null) {
@@ -104,16 +104,18 @@ export function reminderText(first: string, state?: string | null) {
 
 Just a quick follow-up to our note a few days ago, in case it got buried.
 
-As ${who}, you might like Coach In Mind: it connects football coaches with clubs looking for coaches, and with mentors who can help coaches develop. We're opening to coaches first and bringing clubs in shortly, so coaches who join now will be in place when clubs arrive.
+As ${who}, you'll know that finding your next club often comes down to chance: word of mouth, a post in a group, or applying and hoping. How well has that worked for you?
 
-The first 100 coaches get a free founding credit, so it costs nothing to try.
+Coach In Mind starts with alignment instead. You tell us what you're looking for (role, age group, ability, competition level and area), clubs tell us what they need, and we match the two, so the fit is closer from the start. If you're after a Ford, we won't send you to a Toyota showroom.
+
+We also connect coaches with mentors who can help you develop. We're opening to coaches first and bringing clubs in shortly, so coaches who join now will be in place when clubs arrive. The first 100 coaches get a free founding credit, so it costs nothing to try.
 
 Sign up here: https://www.coachinmind.com.au/signup
 
 This is the only reminder we'll send. If you'd rather not hear from us again, just reply "no thanks" and we'll remove you.`;
 }
 
-export const CLUB_INVITE_SUBJECT = "Find your next coach with Coach In Mind (your first introduction is free)";
+export const CLUB_INVITE_SUBJECT = "Finding a coach shouldn't be a lottery (your first introduction is free)";
 
 // Written in the "we" voice, signed by the standard Coach In Mind footer. Deliberately no mention of any
 // governing body or Football Victoria.
