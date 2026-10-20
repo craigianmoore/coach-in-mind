@@ -3583,3 +3583,46 @@ begin
     where club_id = target_club_id and postcode is distinct from new_postcode;
   delete from club_postcode_conflicts where club_id = target_club_id;
 end $$;
+
+-- ---------------------------------------------------------------------------
+-- Table grants.
+-- Supabase no longer gives the API roles access to tables created in "public"
+-- automatically, so a fresh project, preview branch or "supabase db reset"
+-- built from this file needs explicit grants or the API returns
+-- "permission denied". Existing production tables already have theirs.
+--
+-- Every table has row level security enabled, so granting table privileges to
+-- "authenticated" doesn't open any rows: the policies above still decide who
+-- sees or changes what. Internal tables (PIN data, rate limits, Stripe
+-- dedupe) are service_role only and get no authenticated grant. "anon" gets no
+-- table access at all — sign-in is required, and the two anon-callable
+-- functions (founding_status, coach_pool_totals) are granted above.
+-- When you add a table, add its name to the right list below.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  t text;
+  app_tables text[] := array[
+    'people','club2coach_coach_listings','clubs','club2coach_club_vacancies','club2coach_shares',
+    'coach2mentor_coach_listings','coach2mentor_mentor_listings','coach2mentor_requests',
+    'payments','coach_credit_requests','admin_settings','platform_settings','support_queries',
+    'club_contacts','free_first_claims','referral_codes','referrals','referral_rewards',
+    'club_recredits','email_failures','invite_recipients','announcements',
+    'announcement_dismissals','club_postcode_conflicts','founding_credits'
+  ];
+  internal_tables text[] := array[
+    'admin_pins','admin_master_state','admin_pin_failures','api_rate_limits','stripe_processed_events'
+  ];
+begin
+  foreach t in array app_tables loop
+    if to_regclass('public.' || t) is not null then
+      execute format('grant select, insert, update, delete on public.%I to authenticated', t);
+      execute format('grant select, insert, update, delete on public.%I to service_role', t);
+    end if;
+  end loop;
+  foreach t in array internal_tables loop
+    if to_regclass('public.' || t) is not null then
+      execute format('grant select, insert, update, delete on public.%I to service_role', t);
+    end if;
+  end loop;
+end $$;
