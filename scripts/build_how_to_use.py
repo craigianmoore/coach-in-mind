@@ -268,7 +268,9 @@ story.append(bullets([
     "Upload evidence of your accreditation. We check every mentor before they go live (usually "
     "1-2 business days) and email you when you're verified.",
     "Then choose your mentee capacity (how many coaches you can mentor at once, up to 10) — pricing "
-    "scales with capacity — and pay by card.",
+    "scales with capacity — and pay by card. <b>Founding mentor price:</b> while the founding coach offer is open, "
+    "your first mentee place is $50 instead of $100 (one per mentor; extra places are the normal price). "
+    "The rate you charge coaches is entirely your own — Coach In Mind takes no share of it.",
     "When a coach is matched and approved, you'll see the request on your own dashboard and can "
     "accept or decline it.",
     "Once you accept, contact details are shared and you arrange things directly with the coach "

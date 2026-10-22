@@ -175,6 +175,7 @@ export interface Coach2MentorCoachListing {
 
 export interface Coach2MentorMentorListing {
   id: string;
+  founding_mentor_price?: boolean; // paid the $50 founding mentor price for their first place
   person_id: string;
   preferred_coach_gender: string | null;
   availability: string | null;

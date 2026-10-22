@@ -19,6 +19,7 @@ import {
   MENTOR_SPECIALISMS,
   RATE_UNITS,
   COACH2MENTOR_MENTOR_CAPACITY_PACKAGES,
+  MENTOR_FOUNDING_PRICE_AUD,
   STATE_OPTIONS,
   MEMBER_FEDERATIONS,
   REGIONS_BY_STATE,
@@ -60,6 +61,14 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
   const [inPersonDiffers, setInPersonDiffers] = useState(false);
   const [inPersonAmount, setInPersonAmount] = useState("");
   const [selectedCapacity, setSelectedCapacity] = useState(1);
+  // Founding mentor price ($50 first place) — decided by the database, shown here so the price is no surprise.
+  const [foundingPrice, setFoundingPrice] = useState(false);
+  useEffect(() => {
+    if (!existing || existing.paid || !existing.verified_at) { setFoundingPrice(false); return; }
+    supabase.rpc("mentor_founding_price_available", { target_listing_id: existing.id }).then(({ data }) => setFoundingPrice(data === true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existing?.id, existing?.paid, existing?.verified_at]);
+  const priceFor = (count: number) => (count === 1 && foundingPrice ? MENTOR_FOUNDING_PRICE_AUD : COACH2MENTOR_MENTOR_CAPACITY_PACKAGES[count]);
   const [topupCount, setTopupCount] = useState(1);
   const [currentlyOpen, setCurrentlyOpen] = useState(true);
   const [bio, setBio] = useState("");
@@ -365,7 +374,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           ) : (
             <>
               <strong>
-                Payment required (${COACH2MENTOR_MENTOR_CAPACITY_PACKAGES[selectedCapacity]} AUD):
+                Payment required (${priceFor(selectedCapacity)} AUD{selectedCapacity === 1 && foundingPrice ? ", founding mentor price" : ""}):
               </strong>{" "}
               save your profile, then Coach In Mind will be in touch about how to pay, or pay now
               to activate immediately.
@@ -407,7 +416,12 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
                   <p className="font-semibold">
                     {count} mentee{count === "1" ? "" : "s"}
                   </p>
-                  <p className="text-sm text-gray-500">${price} AUD</p>
+                  <p className="text-sm text-gray-500">
+                    ${Number(count) === 1 && foundingPrice ? MENTOR_FOUNDING_PRICE_AUD : price} AUD
+                  </p>
+                  {Number(count) === 1 && foundingPrice && (
+                    <p className="text-xs font-semibold text-brand-gold">Founding mentor price (usually ${price})</p>
+                  )}
                 </label>
               ))}
           </div>

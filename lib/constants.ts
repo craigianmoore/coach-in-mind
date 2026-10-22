@@ -359,6 +359,9 @@ export const CLUB_PACK_SIZE = 3;
 // revenue for them (mentors typically recoup this within a session or
 // two of their own per-session rate). $100 per mentee place, with a
 // 10-place bulk tier at $750 ($75/place) for high-capacity mentors.
+// Founding mentor price: a mentor's first mentee place, while the founding coach offer is open (see mentor_founding_price_available()).
+export const MENTOR_FOUNDING_PRICE_AUD = 50;
+
 export const COACH2MENTOR_MENTOR_CAPACITY_PACKAGES: Record<number, number> = {
   1: 100,
   2: 200,

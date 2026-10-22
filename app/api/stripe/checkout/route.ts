@@ -12,6 +12,7 @@ import {
   CLUB2COACH_COACH_PACKAGES,
   CLUB2COACH_CLUB_PACKAGES,
   COACH2MENTOR_MENTOR_CAPACITY_PACKAGES,
+  MENTOR_FOUNDING_PRICE_AUD,
 } from "@/lib/constants";
 
 // I'm assuming your server-side Supabase client (the one that reads
@@ -132,9 +133,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "This is already paid for — use the top-up option to add more." }, { status: 409 });
   }
 
-  const amount = lookupAmount(listingTable, packageSize);
+  let amount = lookupAmount(listingTable, packageSize);
   if (amount == null) {
     return NextResponse.json({ error: "Not a valid package size for this listing type." }, { status: 400 });
+  }
+  // Founding mentor price: a mentor's first place only, decided by the database (never by the browser).
+  let foundingMentor = false;
+  if (listingTable === "coach2mentor_mentor_listings" && mode === "new" && packageSize === 1) {
+    const { data: ok } = await supabase.rpc("mentor_founding_price_available", { target_listing_id: listingId });
+    if (ok === true) {
+      amount = MENTOR_FOUNDING_PRICE_AUD;
+      foundingMentor = true;
+    }
   }
 
   const { product, role, label } = TABLE_INFO[listingTable];
@@ -157,6 +167,8 @@ export async function POST(req: NextRequest) {
             name:
               mode === "topup"
                 ? `${label} — top-up (${packageSize} more)`
+                : foundingMentor
+                ? `${label} — founding mentor price (1 mentee place)`
                 : `${label} — ${packageSize} package`,
           },
         },
@@ -171,6 +183,7 @@ export async function POST(req: NextRequest) {
       product,
       role,
       personId: listing.person_id,
+      ...(foundingMentor ? { foundingMentor: "1" } : {}),
     },
     success_url: `${origin}/${product === "club2coach" ? "club2coach" : "coach2mentor"}/${role}?paid=1`,
     cancel_url: `${origin}/${product === "club2coach" ? "club2coach" : "coach2mentor"}/${role}?paid=0`,

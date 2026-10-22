@@ -291,6 +291,8 @@ export async function POST(req: NextRequest) {
     // A refunded mentor's old places are gone: a re-buy starts from just the new package.
     updatePayload.max_mentees = (cur?.paid && !wasRefunded ? cur?.max_mentees ?? 0 : 0) + packageSize;
     if (wasRefunded) updatePayload.refunded_at = null;
+    // Paid the founding mentor price ($50 first place): remember it so it can't be used twice.
+    if (metadata.foundingMentor === "1") updatePayload.founding_mentor_price = true;
   }
 
   const { error: updateError } = await supabase.from(listingTable).update(updatePayload).eq("id", listingId);
