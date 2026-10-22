@@ -739,7 +739,7 @@ function Club2CoachAdmin() {
 
   async function approveShare(shareId: string, vacancyId: string) {
     supabase.rpc("refresh_admin_session");
-    await supabase.from("club2coach_shares").update({ status: "approved" }).eq("id", shareId);
+    await supabase.from("club2coach_shares").update({ status: "approved", admin_notes: "Approved by admin" }).eq("id", shareId);
     const vacancy = vacancies.find((v) => v.id === vacancyId);
     if (vacancy && !vacancy.shared_at) {
       await supabase
@@ -1825,9 +1825,13 @@ function Club2CoachAdmin() {
                             {renderWhy(coach, breakdown, vacancy)}
                           </div>
                           <div className="flex items-center gap-3">
-                            {shareRow?.admin_notes === "Auto-matched (top score)" && (
+                            {shareRow?.admin_notes === "Auto-matched (top score)" ? (
                               <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
                                 Auto
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                                Approved by you
                               </span>
                             )}
                             <span className="text-sm font-bold" style={{ color: "var(--accent-dark)" }}>
