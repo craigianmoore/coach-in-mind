@@ -1336,35 +1336,41 @@ function Club2CoachAdmin() {
       <EmailFailureBanner />
 
       {([
-        { label: "", tabs: ["unpaid", "overview", "matches", "weighting", "listings", "clubs", "admins", "support", "people", "payments"] as Tab[] },
-        { label: "Marketing & tools", tabs: ["promos", "invites", "announcements", "map"] as Tab[] },
+        { label: "Operations", bar: "#191B41", bg: "rgba(25,27,65,0.06)", tabs: ["unpaid", "overview", "matches", "weighting", "listings", "clubs", "admins", "support", "people", "payments"] as Tab[] },
+        { label: "Marketing & tools", bar: "#B8935A", bg: "rgba(184,147,90,0.14)", tabs: ["promos", "invites", "announcements", "map"] as Tab[] },
       ]).map((group, gi) => (
-        <div key={gi} className={`flex flex-wrap items-center border-b ${gi === 0 ? "mt-4" : "mt-1 bg-gray-50"}`}>
-          {group.label && (
-            <span className="flex-shrink-0 px-2.5 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{group.label}</span>
-          )}
-          {group.tabs.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`flex-shrink-0 px-2.5 py-2 text-sm font-medium capitalize ${
-                tab === t ? "border-b-2 border-accent text-accent" : "text-gray-500"
-              }`}
-              style={tab === t ? { borderColor: "var(--accent-dark)", color: "var(--accent-dark)" } : {}}
-            >
-              {t === "unpaid"
-                ? `Unpaid (${unpaidCoaches.length + unpaidVacancies.length + topupRequests.length})`
-                : t === "support"
-                ? `Support (${supportQueries.filter((q) => q.status === "open").length})`
-                : t === "people"
-                ? `People${newSignupsCount > 0 ? ` (${newSignupsCount} new)` : ""}`
-                : t === "map"
-                ? `Map${postcodeConflicts > 0 ? ` (${postcodeConflicts} to check)` : ""}`
-                : t === "weighting"
-                ? "loading"
-                : t}
-            </button>
-          ))}
+        <div
+          key={gi}
+          className={`overflow-hidden rounded-lg border-l-4 ${gi === 0 ? "mt-4" : "mt-3"}`}
+          style={{ borderColor: group.bar, background: group.bg }}
+        >
+          <p className="px-3 pt-2 text-sm font-bold uppercase tracking-wider" style={{ color: group.bar }}>
+            {group.label}
+          </p>
+          <div className="flex flex-wrap px-1">
+            {group.tabs.map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`flex-shrink-0 px-2.5 py-2 text-sm font-medium capitalize ${
+                  tab === t ? "border-b-2 border-accent text-accent" : "text-gray-500"
+                }`}
+                style={tab === t ? { borderColor: "var(--accent-dark)", color: "var(--accent-dark)" } : {}}
+              >
+                {t === "unpaid"
+                  ? `Unpaid (${unpaidCoaches.length + unpaidVacancies.length + topupRequests.length})`
+                  : t === "support"
+                  ? `Support (${supportQueries.filter((q) => q.status === "open").length})`
+                  : t === "people"
+                  ? `People${newSignupsCount > 0 ? ` (${newSignupsCount} new)` : ""}`
+                  : t === "map"
+                  ? `Map${postcodeConflicts > 0 ? ` (${postcodeConflicts} to check)` : ""}`
+                  : t === "weighting"
+                  ? "loading"
+                  : t}
+              </button>
+            ))}
+          </div>
         </div>
       ))}
 
