@@ -46,7 +46,7 @@ const TEMPLATES: Record<string, { subject: string; body: (d: string) => string }
   mentor_profile: {
     subject: "Your mentor profile is saved — we're verifying it",
     body: () =>
-      `We've received your mentor profile, and it's saved.\n\nBefore any mentor goes live we check their accreditation evidence, so coaches can trust who they're introduced to. This usually takes 1–2 business days, and we'll email you as soon as you're verified. You can then choose your mentee places and pay by card from your mentor page (you can edit your profile there at any time):\n${APP_URL}/coach2mentor/mentor\n\nOnce your places are confirmed we'll start matching coaches to you, and email you when you've been matched.`,
+      `We've received your mentor profile, and it's saved.\n\nBefore any mentor goes live we check their accreditation evidence, so coaches can trust who they're introduced to. This usually takes 1–2 business days, and we'll email you as soon as you're verified. You can then choose your mentee introductions and pay by card from your mentor page (you can edit your profile there at any time):\n${APP_URL}/coach2mentor/mentor\n\nOnce your introductions are confirmed we'll start matching coaches to you, and email you when you've been matched.`,
   },
 };
 

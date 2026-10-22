@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     const { data: v } = await supabase.from(listingTable).select("verified_at").eq("id", listingId).maybeSingle();
     if (!v?.verified_at) {
       return NextResponse.json(
-        { error: "Your mentor profile is still being verified. We'll email you as soon as it's checked, and then you can buy your places." },
+        { error: "Your mentor profile is still being verified. We'll email you as soon as it's checked, and then you can buy your mentee introductions." },
         { status: 403 }
       );
     }
@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
               mode === "topup"
                 ? `${label} — top-up (${packageSize} more)`
                 : foundingMentor
-                ? `${label} — founding mentor price (1 mentee place)`
+                ? `${label} — founding mentor price (1 mentee introduction)`
                 : `${label} — ${packageSize} package`,
           },
         },

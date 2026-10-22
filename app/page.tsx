@@ -54,7 +54,7 @@ const SOLUTIONS = [
       },
       {
         pain: "Giving more time than you meant to",
-        fix: "You set the number of mentee places and accept or decline each request. You stay in control.",
+        fix: "You set the number of mentee introductions and accept or decline each request. You stay in control.",
       },
     ],
   },
@@ -313,7 +313,7 @@ export default function HomePage() {
           </div>
           <div className="rounded-2xl bg-white p-6 shadow-lg ring-1 ring-black/5">
             <h3 className="text-lg font-bold text-brand-navy">Mentors</h3>
-            <p className="mt-1 text-sm text-gray-600">Mentee places</p>
+            <p className="mt-1 text-sm text-gray-600">Mentee introductions</p>
             <ul className="mt-3 space-y-1 text-sm text-gray-700">
               <li>1 place — $100</li>
               <li>2 places — $200</li>
@@ -322,7 +322,7 @@ export default function HomePage() {
               <li>10 places — $750</li>
             </ul>
             <p className="mt-3 text-xs text-gray-500">
-              Mentors are checked by our team before they can buy places or
+              Mentors are checked by our team before they can buy introductions or
               be matched.
             </p>
           </div>

@@ -81,7 +81,7 @@ export default function HelpPage() {
               <p className="font-medium text-gray-800">What am I actually paying for?</p>
               <p className="mt-1 text-gray-600">
                 A package of credits (1–3 for coaches; clubs buy a pack of 3 introductions for $100; a coach credit = 30 days in front of clubs (up to 3 introductions), a club credit = one advert) or, for
-                mentors, mentee places (1, 2, 3, 5 or 10 at a time — $100 for one place, up to 10 places for $750) that you can top up whenever you need more room. You're
+                mentors, mentee introductions (1, 2, 3, 5 or 10 at a time — $100 for one, up to 10 for $750) that you can top up whenever you need more room. You're
                 paying for a curated introduction, not a guaranteed outcome — what happens after
                 you're introduced is between you and the other party.
               </p>
@@ -201,7 +201,7 @@ export default function HelpPage() {
               <p className="mt-1 text-gray-600">
                 Set up your mentor profile and upload your accreditation evidence. We check every
                 mentor before they go live (usually 1–2 business days) and email you when you're verified. Then choose
-                your mentee places and pay, and you'll start receiving match requests on your own dashboard — accept or decline each one
+                your mentee introductions and pay, and you'll start receiving match requests on your own dashboard — accept or decline each one
                 individually.
               </p>
             </div>

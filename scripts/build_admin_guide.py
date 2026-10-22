@@ -194,7 +194,7 @@ story.append(bullets([
 story.append(Paragraph("Rules of thumb", h2_style))
 story.append(bullets([
     "Every introduction counts against the club's pack whatever the outcome; a fourth is never owed.",
-    "Founding mentor price: a verified mentor's first mentee place is $50 (instead of $100) while the founding coach offer is open. "
+    "Founding mentor price: a verified mentor's first mentee introduction is $50 (instead of $100) while the founding coach offer is open. "
     "It is applied automatically at checkout, once per mentor, and ends by itself when the coach founding places run out. "
     "Mentors never use up a founding coach place or get a free credit.",
     "Pay on listings is indicative only and is never an offer or contract (Terms, section 3).",

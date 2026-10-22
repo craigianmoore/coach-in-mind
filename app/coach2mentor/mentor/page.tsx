@@ -335,7 +335,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
     if (respondError) {
       window.alert(
         respondError.message.includes("no free mentee places")
-          ? "You've used all your mentee places. Buy more places below to accept another coach."
+          ? "You've used all your mentee introductions. Buy more introductions below to accept another coach."
           : `Sorry, that didn't save. Please try again. (${respondError.message})`
       );
       return;
@@ -369,7 +369,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
               <strong>Thanks — your profile is saved and is being verified.</strong> We check every
               mentor&apos;s accreditation evidence before they can go live, so coaches can trust who
               they&apos;re introduced to. This usually takes 1–2 business days, and we&apos;ll email you
-              as soon as you&apos;re verified. You can then choose your mentee places and pay by card.
+              as soon as you&apos;re verified. You can then choose your mentee introductions and pay by card.
             </>
           ) : (
             <>
@@ -660,7 +660,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Mentee capacity</label>
             <p className="mt-1 text-sm text-gray-700">
-              {selectedCapacity} mentee place{selectedCapacity === 1 ? "" : "s"}. Need room for more mentees? Add places at the same package prices.
+              {selectedCapacity} mentee introduction{selectedCapacity === 1 ? "" : "s"}. Need room for more mentees? Add introductions at the same package prices.
             </p>
             <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {Object.entries(COACH2MENTOR_MENTOR_CAPACITY_PACKAGES).map(([count, price]) => (
@@ -688,7 +688,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
                 listingId={existing.id}
                 packageSize={topupCount}
                 mode="topup"
-                label={`Add ${topupCount} mentee place${topupCount === 1 ? "" : "s"} ($${COACH2MENTOR_MENTOR_CAPACITY_PACKAGES[topupCount]})`}
+                label={`Add ${topupCount} mentee introduction${topupCount === 1 ? "" : "s"} ($${COACH2MENTOR_MENTOR_CAPACITY_PACKAGES[topupCount]})`}
               />
             </div>
           </div>

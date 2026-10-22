@@ -282,7 +282,7 @@ function Coach2MentorAdmin() {
         body: JSON.stringify({ listingId: id }),
       }).catch(() => {});
     }
-    setStatus(verify ? "Mentor verified — they've been emailed and can now buy places." : "Verification removed.");
+    setStatus(verify ? "Mentor verified — they've been emailed and can now buy mentee introductions." : "Verification removed.");
     await loadAll();
   }
 

@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     to: p.email,
     subject: "You're verified as a Coach In Mind mentor",
     text: `Hi ${first},\n\nThanks — we've checked your accreditation and you're now verified as a mentor.${
-      listing.paid ? "" : " The next step is to choose how many mentee places you'd like and pay by card from your mentor page. Your profile goes live as soon as that's done."
+      listing.paid ? "" : " The next step is to choose how many mentee introductions you'd like and pay by card from your mentor page. Your profile goes live as soon as that's done."
     }\n${APP_URL}/coach2mentor/mentor\n\nWe only list mentors we've checked, so coaches can trust who they're being introduced to.`,
   });
   return NextResponse.json({ ok });
