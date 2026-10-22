@@ -1627,20 +1627,20 @@ function Club2CoachAdmin() {
             />
             Fully automate matching — skip review and share top matches immediately
           </label>
-          {settings?.auto_approve_matches && (
-            <label className="-mt-2 mb-4 ml-6 flex items-center gap-2 text-sm text-gray-700">
-              Only if the match is at least
-              <input
-                type="number"
-                min={0}
-                max={100}
-                defaultValue={Math.round((settings.auto_approve_min_score ?? 0.7) * 100)}
-                onBlur={(e) => setAutoApproveMinScore(Number(e.target.value))}
-                className="w-16 rounded border px-2 py-1"
-              />
-              % — lower scores come to you to approve
-            </label>
-          )}
+          <label className={`-mt-2 mb-4 ml-6 flex flex-wrap items-center gap-2 text-sm ${settings?.auto_approve_matches ? "text-gray-700" : "text-gray-400"}`}>
+            Only if the match is at least
+            <input
+              key={settings?.auto_approve_min_score ?? 0.7}
+              type="number"
+              min={0}
+              max={100}
+              defaultValue={Math.round((settings?.auto_approve_min_score ?? 0.7) * 100)}
+              onBlur={(e) => setAutoApproveMinScore(Number(e.target.value))}
+              className="w-16 rounded border px-2 py-1 text-gray-700"
+            />
+            % — lower scores come to you to approve
+            {!settings?.auto_approve_matches && <span className="text-xs">(only applies when automation is ticked)</span>}
+          </label>
 
           {vacancyGroups.length === 0 ? (
             <EmptyState
