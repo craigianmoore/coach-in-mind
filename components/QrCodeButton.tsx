@@ -11,10 +11,36 @@ export default function QrCodeButton() {
 
   useEffect(() => {
     if (!open) return;
-    QRCode.toDataURL(url, { width: 640, margin: 2, errorCorrectionLevel: "M" }).then(setImg).catch(() => setImg(""));
+    let cancelled = false;
+    (async () => {
+      try {
+        // High error correction so the logo can cover the centre and the code still scans.
+        const canvas = document.createElement("canvas");
+        await QRCode.toCanvas(canvas, url, { width: 640, margin: 2, errorCorrectionLevel: "H" });
+        const plain = canvas.toDataURL("image/png");
+        try {
+          const logo = new Image();
+          logo.src = "/coach-in-mind-logo.png";
+          await logo.decode();
+          const ctx = canvas.getContext("2d")!;
+          const box = canvas.width * 0.24; // ~6% of the code area, well inside H-level recovery
+          const x = (canvas.width - box) / 2;
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(x - 8, x - 8, box + 16, box + 16);
+          const scale = Math.min(box / logo.naturalWidth, box / logo.naturalHeight);
+          const w = logo.naturalWidth * scale, h = logo.naturalHeight * scale;
+          ctx.drawImage(logo, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+          if (!cancelled) setImg(canvas.toDataURL("image/png"));
+        } catch {
+          if (!cancelled) setImg(plain); // logo failed to load: plain code still works
+        }
+      } catch {
+        if (!cancelled) setImg("");
+      }
+    })();
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => { cancelled = true; window.removeEventListener("keydown", onKey); };
   }, [open, url]);
 
   return (
