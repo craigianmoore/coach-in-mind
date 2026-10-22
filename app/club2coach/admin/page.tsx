@@ -16,7 +16,7 @@ import PinGate from "@/components/PinGate";
 import AdminOverview from "@/components/AdminOverview";
 import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
-import { scoreClub2CoachMatch } from "@/lib/scoring";
+import { scoreClub2CoachMatch, type Club2CoachScoreBreakdown } from "@/lib/scoring";
 import QrCodeButton from "@/components/QrCodeButton";
 import { copyShareBlurbToClipboard, shareJoinByText, shareFlyer } from "@/lib/shareBlurb";
 import { CLUB2COACH_COACH_PACKAGES, CLUB2COACH_CLUB_PACKAGES, STATE_LABELS } from "@/lib/constants";
@@ -695,6 +695,46 @@ function Club2CoachAdmin() {
       );
     }
     await loadAll();
+  }
+
+  // "Why this match": the itemised score, where the coach is, and how long they're in matching. Native <details>, no state.
+  function renderWhy(coach: Club2CoachCoachListing, b: Club2CoachScoreBreakdown, v: Club2CoachClubVacancy) {
+    const person = people[coach.person_id];
+    const pct = (n: number) => `${Math.round(n * 100)}%`;
+    const rows: [string, number][] = [
+      ["Accreditation", b.accreditation],
+      ["Ability level", b.ability],
+      ["Competition level", b.competition_level],
+      ["Age group", b.age_group],
+      ["Geography", b.geography],
+      ["Salary", b.salary],
+      ["Gender", b.gender],
+    ];
+    const list = (a?: string[] | null) => (a && a.length ? a.join(", ") : "any");
+    return (
+      <details className="mt-1 text-xs text-gray-600">
+        <summary className="cursor-pointer font-semibold text-gray-500">Why this match</summary>
+        <div className="mt-1 rounded border border-gray-200 bg-white p-2">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 sm:grid-cols-4">
+            {rows.map(([label, val]) => (
+              <span key={label}>{label}: <strong>{pct(val)}</strong></span>
+            ))}
+          </div>
+          <p className="mt-2">
+            <strong>Coach:</strong> regions {list(coach.preferred_regions)} · states {list(coach.state_preferences)} · postcode {person?.postcode ?? "not given"}
+          </p>
+          <p>
+            <strong>Club:</strong> {v.region} · postcode {v.postcode ?? "not given"}
+            {b.distanceKm != null && <> · about <strong>{Math.round(b.distanceKm)} km</strong> apart</>}
+          </p>
+          <p>
+            <strong>In matching until:</strong>{" "}
+            {coach.active_until ? new Date(coach.active_until).toLocaleDateString("en-GB") : "not activated"}
+          </p>
+          <p className="mt-1 text-gray-400">Ability/level/age/geography are overlap scores; 100% = the coach listed exactly what the club needs.</p>
+        </div>
+      </details>
+    );
   }
 
   async function approveShare(shareId: string, vacancyId: string) {
@@ -1738,6 +1778,7 @@ function Club2CoachAdmin() {
                             {coach.notes && (
                               <p className="text-xs italic text-gray-400">Coach notes: {coach.notes}</p>
                             )}
+                            {renderWhy(coach, breakdown, vacancy)}
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
@@ -1775,6 +1816,7 @@ function Club2CoachAdmin() {
                             {coach.notes && (
                               <p className="text-xs italic text-gray-400">Coach notes: {coach.notes}</p>
                             )}
+                            {renderWhy(coach, breakdown, vacancy)}
                           </div>
                           <div className="flex items-center gap-3">
                             {shareRow?.admin_notes === "Auto-matched (top score)" && (
@@ -1821,6 +1863,7 @@ function Club2CoachAdmin() {
                               {coach.notes && (
                                 <p className="text-xs italic text-gray-400">Coach notes: {coach.notes}</p>
                               )}
+                              {renderWhy(coach, breakdown, vacancy)}
                             </div>
                             <div className="flex items-center gap-3">
                               <span className="text-sm font-bold" style={{ color: "var(--accent-dark)" }}>
