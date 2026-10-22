@@ -17,6 +17,7 @@ import AdminOverview from "@/components/AdminOverview";
 import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
 import { scoreClub2CoachMatch } from "@/lib/scoring";
+import QrCodeButton from "@/components/QrCodeButton";
 import { copyShareBlurbToClipboard, shareJoinByText, shareFlyer } from "@/lib/shareBlurb";
 import { CLUB2COACH_COACH_PACKAGES, CLUB2COACH_CLUB_PACKAGES, STATE_LABELS } from "@/lib/constants";
 import type {
@@ -1276,6 +1277,7 @@ function Club2CoachAdmin() {
         >
           Share flyer
         </button>
+        <QrCodeButton />
         </div>
       </div>
 

@@ -9,6 +9,7 @@ import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
 import { notifyMentoring } from "@/lib/notify";
 import { scoreCoach2MentorMatch } from "@/lib/scoring";
+import QrCodeButton from "@/components/QrCodeButton";
 import { copyShareBlurbToClipboard, shareJoinByText, shareFlyer } from "@/lib/shareBlurb";
 import { getEmbedUrl, safeHttpsUrl } from "@/lib/videoEmbed";
 import { CLUB2COACH_COACH_PACKAGES, COACH2MENTOR_MENTOR_CAPACITY_PACKAGES, ACCREDITATION_LEVELS } from "@/lib/constants";
@@ -542,6 +543,7 @@ function Coach2MentorAdmin() {
         >
           Share flyer
         </button>
+        <QrCodeButton />
         </div>
       </div>
 
