@@ -205,7 +205,9 @@ export function scoreClub2CoachMatch(
     coach.salary_max,
     vacancy.salary_min,
     vacancy.salary_max,
-    coach.salary_negotiable || vacancy.salary_negotiable
+    // "Negotiable" only counts when that side has actually given a pay figure.
+    (coach.salary_negotiable && (coach.salary_min != null || coach.salary_max != null)) ||
+      (vacancy.salary_negotiable && (vacancy.salary_min != null || vacancy.salary_max != null))
   );
   const gender = weightedAverage([
     { value: genderPreferenceScore(coach.preferred_team_gender, vacancy.team_gender), weight: 1 },

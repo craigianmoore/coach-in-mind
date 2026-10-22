@@ -325,6 +325,11 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   }
 
   function toggleAgeGroup(v: string) {
+    if (!ageGroups.includes(v) && ageGroups.length >= 2) {
+      setError("You can choose up to two age groups. Untick one first, or tick \"No preference\" if you're open to any.");
+      return;
+    }
+    setError(null);
     const next = ageGroups.includes(v) ? ageGroups.filter((a) => a !== v) : [...ageGroups, v];
     setAgeGroups(next);
     // A previously-picked competition level might no longer fit the
@@ -353,6 +358,14 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     e.preventDefault();
     setError(null);
 
+    if (ageGroups.length > 2) {
+      setError("Please choose no more than two age groups (or tick \"No preference\" if you're open to any).");
+      return;
+    }
+    if (salaryNegotiable && !salaryMin && !salaryMax) {
+      setError("Please enter a pay figure (min or max) before ticking \"Pay negotiable\".");
+      return;
+    }
     if (!agreedToTerms) {
       setError("Please agree to the Terms of Service and Privacy Policy to continue.");
       return;
@@ -823,6 +836,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
               />
               No preference — open to any age group
             </label>
+            {!ageNoPreference && <p className="mt-1 text-xs text-gray-500">Choose up to two age groups.</p>}
 
             {!ageNoPreference && (
               <div className="mt-2">
@@ -879,32 +893,32 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
         )}
 
         <div>
-          <p className="text-xs font-semibold uppercase text-gray-500">Package</p>
+          <p className="text-xs font-semibold uppercase text-gray-500">Pay</p>
           <p className="mt-1 text-xs text-gray-500">
-            This is only indicative — actual pay structures vary a lot by club and level, and
+            This is only indicative — actual pay varies a lot by club and level, and
             this figure is more relevant to NSW &amp; VIC than other states.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">
-              Package expectation min (AUD)
+              Pay expectation min (AUD)
             </label>
             <input
               type="number"
               value={salaryMin}
-              onChange={(e) => setSalaryMin(e.target.value)}
+              onChange={(e) => { setSalaryMin(e.target.value); if (!e.target.value && !salaryMax) setSalaryNegotiable(false); }}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
           </div>
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">
-              Package expectation max (AUD)
+              Pay expectation max (AUD)
             </label>
             <input
               type="number"
               value={salaryMax}
-              onChange={(e) => setSalaryMax(e.target.value)}
+              onChange={(e) => { setSalaryMax(e.target.value); if (!e.target.value && !salaryMin) setSalaryNegotiable(false); }}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
           </div>
@@ -913,9 +927,10 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           <input
             type="checkbox"
             checked={salaryNegotiable}
+            disabled={!salaryMin && !salaryMax}
             onChange={(e) => setSalaryNegotiable(e.target.checked)}
           />
-          Package negotiable
+          Pay negotiable {!salaryMin && !salaryMax && <span className="text-xs text-gray-400">(enter a pay figure first)</span>}
         </label>
 
         <div>

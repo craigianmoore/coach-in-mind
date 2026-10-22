@@ -42,7 +42,7 @@ const PRIORITY_HINTS = [
   "Geography",
   "Ability level",
   "Age group",
-  "Salary fit",
+  "Pay fit",
   "Gender fit",
 ] as const;
 
@@ -409,6 +409,11 @@ function Club2CoachClubForm({ person }: { person: Person }) {
 
     if (!isValidPostcode(form.postcode)) {
       setError("Please enter the club's 4-digit postcode.");
+      return;
+    }
+
+    if (form.salaryNegotiable && !form.salaryMin && !form.salaryMax) {
+      setError("Please enter a pay figure (min or max) before ticking \"Pay negotiable\".");
       return;
     }
 
@@ -1156,28 +1161,28 @@ function Club2CoachClubForm({ person }: { person: Person }) {
         </div>
 
         <div>
-          <p className="text-xs font-semibold uppercase text-gray-500">Package</p>
+          <p className="text-xs font-semibold uppercase text-gray-500">Pay</p>
           <p className="mt-1 text-xs text-gray-500">
-            This is only indicative — actual pay structures vary a lot by club and level, and
+            This is only indicative — actual pay varies a lot by club and level, and
             this figure is more relevant to NSW &amp; VIC than other states.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Package offer min (AUD)</label>
+            <label className="text-xs font-semibold uppercase text-gray-500">Pay offer min (AUD)</label>
             <input
               type="number"
               value={form.salaryMin}
-              onChange={(e) => setForm((f) => ({ ...f, salaryMin: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, salaryMin: e.target.value, salaryNegotiable: e.target.value || f.salaryMax ? f.salaryNegotiable : false }))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Package offer max (AUD)</label>
+            <label className="text-xs font-semibold uppercase text-gray-500">Pay offer max (AUD)</label>
             <input
               type="number"
               value={form.salaryMax}
-              onChange={(e) => setForm((f) => ({ ...f, salaryMax: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, salaryMax: e.target.value, salaryNegotiable: e.target.value || f.salaryMin ? f.salaryNegotiable : false }))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
           </div>
@@ -1186,9 +1191,10 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           <input
             type="checkbox"
             checked={form.salaryNegotiable}
+            disabled={!form.salaryMin && !form.salaryMax}
             onChange={(e) => setForm((f) => ({ ...f, salaryNegotiable: e.target.checked }))}
           />
-          Package negotiable
+          Pay negotiable {!form.salaryMin && !form.salaryMax && <span className="text-xs text-gray-400">(enter a pay figure first)</span>}
         </label>
 
         <div>

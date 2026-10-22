@@ -707,7 +707,7 @@ function Club2CoachAdmin() {
       ["Competition level", b.competition_level],
       ["Age group", b.age_group],
       ["Geography", b.geography],
-      ["Salary", b.salary],
+      ["Pay", b.salary],
       ["Gender", b.gender],
     ];
     const list = (a?: string[] | null) => (a && a.length ? a.join(", ") : "any");
@@ -1747,7 +1747,7 @@ function Club2CoachAdmin() {
                         return (
                           <div key={key} className="mt-3">
                             <div className="flex justify-between text-xs">
-                              <span className="capitalize">{key.replace("_", " ")}</span>
+                              <span className="capitalize">{key === "salary" ? "pay" : key.replace("_", " ")}</span>
                               <span>{effective[key]}</span>
                             </div>
                             <input
@@ -1908,7 +1908,7 @@ function Club2CoachAdmin() {
           {(Object.keys(weights) as (keyof Club2CoachWeights)[]).map((key) => (
             <div key={key} className="mt-4">
               <div className="flex justify-between text-sm">
-                <span className="capitalize">{key.replace("_", " ")}</span>
+                <span className="capitalize">{key === "salary" ? "pay" : key.replace("_", " ")}</span>
                 <span>{weights[key]}</span>
               </div>
               <input
@@ -2698,7 +2698,7 @@ function Club2CoachAdmin() {
                         <div className="mt-1 flex flex-col gap-0.5">
                           <DetailLine label="Status" value={`${listing.status}${listing.paid ? "" : " · unpaid"}`} />
                           <DetailLine
-                            label="Salary"
+                            label="Pay"
                             value={formatSalaryRange(listing.salary_min, listing.salary_max, listing.salary_negotiable)}
                           />
                           <DetailLine label="Ability levels" value={listing.ability_levels.join(", ")} />
@@ -2754,7 +2754,7 @@ function Club2CoachAdmin() {
                             value={`${vacancy.status}${vacancy.is_charity ? " · gifted" : vacancy.paid ? "" : " · unpaid"}`}
                           />
                           <DetailLine
-                            label="Salary"
+                            label="Pay"
                             value={formatSalaryRange(vacancy.salary_min, vacancy.salary_max, vacancy.salary_negotiable)}
                           />
                           <DetailLine label="Competition level" value={vacancy.competition_level} />

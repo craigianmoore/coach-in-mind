@@ -269,7 +269,7 @@ export default function AdminOverview({
                             ["States", l.state_preferences?.join(", ") || "Open to all"],
                             ["Relocating", l.open_to_relocating ? "Yes" : "No"],
                             [
-                              "Salary",
+                              "Pay",
                               l.salary_min || l.salary_max
                                 ? `$${l.salary_min ?? "?"}–$${l.salary_max ?? "?"}${l.salary_negotiable ? " (negotiable)" : ""}`
                                 : l.salary_negotiable
@@ -318,7 +318,7 @@ export default function AdminOverview({
                             ["Region", v.region],
                             ["Accreditation", v.required_accreditation],
                             [
-                              "Salary",
+                              "Pay",
                               v.salary_min || v.salary_max
                                 ? `$${v.salary_min ?? "?"}–$${v.salary_max ?? "?"}${v.salary_negotiable ? " (negotiable)" : ""}`
                                 : v.salary_negotiable
