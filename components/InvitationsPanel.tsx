@@ -106,7 +106,21 @@ export default function InvitationsPanel() {
 
       <label className="flex flex-col gap-1">
         <span className="font-semibold text-gray-700">1. Load the list (CSV with ticket_name and email_address, plus an optional state column such as VIC, TAS or NSW; a blank state reads &ldquo;a football coach&rdquo;)</span>
-        <input type="file" accept=".csv,text/csv" disabled={busy} onChange={(e) => onFile(e.target.files?.[0])} />
+        <div className="flex flex-wrap items-center gap-3">
+          <input type="file" accept=".csv,text/csv" disabled={busy} onChange={(e) => onFile(e.target.files?.[0])} />
+          <button
+            type="button"
+            disabled={busy || !counts || counts.pending === 0}
+            onClick={() => {
+              if (!window.confirm(`Remove the ${counts?.pending ?? 0} people who haven't been emailed yet? Anyone already emailed, and anyone marked "no thanks", stays on the list so they can't be invited twice. This can't be undone.`)) return;
+              run({ action: "clear_pending" }, (j) => `Removed ${j.removed} people who hadn't been emailed. You can now load a new list.`);
+            }}
+            className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40"
+            title="Removes only people who have not been emailed yet"
+          >
+            Delete unsent list{counts ? ` (${counts.pending})` : ""}
+          </button>
+        </div>
       </label>
 
       <div className="flex flex-col gap-1">

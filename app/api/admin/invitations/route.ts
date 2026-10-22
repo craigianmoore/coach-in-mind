@@ -15,6 +15,7 @@
 //   POST { action: "club_settings", enabled, share, regions } -> club invitations on/off, % of each day, regions
 //   POST { action: "club_list" }          -> Victorian clubs with their region and invite status (for a CSV to fill in)
 //   POST { action: "club_regions_import", csv } -> set each club's region from a CSV (club, region)
+//   POST { action: "clear_pending" }      -> remove everyone NOT yet emailed (status pending, no reminder sent); sent, failed and "no thanks" people stay
 //   POST { action: "club_optout", email } -> never email this club contact
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -146,6 +147,24 @@ export async function POST(req: Request) {
       .upsert({ email: e, status: "optout" }, { onConflict: "email" });
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true, ...(await counts()) });
+  }
+
+  if (body.action === "clear_pending") {
+    // Only people who have never been emailed. Sent / failed / sending / no-thanks rows are kept on purpose,
+    // so removing and re-importing a list can never cause anyone to be invited twice.
+    const st = await service.from("platform_settings").select("invite_auto_send").limit(1).maybeSingle();
+    if (st.data?.invite_auto_send === true) {
+      return NextResponse.json({ ok: false, error: "Switch automatic sending off first, so nobody is emailed while the list is being changed." }, { status: 400 });
+    }
+    const { data, error } = await service
+      .from("invite_recipients")
+      .delete()
+      .eq("status", "pending")
+      .is("sent_at", null)
+      .is("reminder_sent_at", null)
+      .select("email");
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, removed: (data ?? []).length, ...(await counts()) });
   }
 
   if (body.action === "auto") {
