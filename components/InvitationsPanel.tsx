@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type Counts = {
   autoSend?: boolean;
@@ -36,6 +36,8 @@ export default function InvitationsPanel() {
   const [rows, setRows] = useState<{ email: string; first_name: string | null; status: string; sent_at: string | null }[] | null>(null);
   const [q, setQ] = useState("");
   const [limit, setLimit] = useState(150);
+  const msgRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (msg) msgRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [msg]);
 
   async function call(body?: object) {
     const res = await fetch("/api/admin/invitations", body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : undefined);
@@ -88,6 +90,8 @@ export default function InvitationsPanel() {
 
   return (
     <div className="mt-6 flex max-w-xl flex-col gap-4 text-sm">
+      {msg && <div ref={msgRef} className="sticky top-2 z-10 rounded-lg border border-gray-300 bg-white p-3 text-gray-800 shadow">{msg}</div>}
+
       <p className="text-gray-600">
         One-off coach invitation. Load the list once, send yourself a test, then send in batches. Nobody is emailed twice, and
         anyone marked &quot;no thanks&quot; is never emailed.
@@ -111,9 +115,16 @@ export default function InvitationsPanel() {
           <button
             type="button"
             disabled={busy || !counts || counts.pending === 0}
-            onClick={() => {
-              if (!window.confirm(`Remove the ${counts?.pending ?? 0} people who haven't been emailed yet? Anyone already emailed, and anyone marked "no thanks", stays on the list so they can't be invited twice. This can't be undone.`)) return;
-              run({ action: "clear_pending" }, (j) => `Removed ${j.removed} people who hadn't been emailed. You can now load a new list.`);
+            onClick={async () => {
+              const autoNote = counts?.autoSend ? " Automatic sending is on, so it will be switched off first (turn it back on when your new list is loaded)." : "";
+              if (!window.confirm(`Remove the ${counts?.pending ?? 0} people who haven't been emailed yet? Anyone already emailed, and anyone marked "no thanks", stays on the list so they can't be invited twice. This can't be undone.${autoNote}`)) return;
+              if (counts?.autoSend) {
+                setBusy(true);
+                const off = await call({ action: "auto", on: false });
+                setBusy(false);
+                if (!off.ok) { setMsg(off.error ?? "Couldn't switch automatic sending off."); return; }
+              }
+              await run({ action: "clear_pending" }, (j) => `Removed ${j.removed} people who hadn't been emailed. You can now load a new list. Automatic sending is off; turn it back on once the new list is loaded.`);
             }}
             className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40"
             title="Removes only people who have not been emailed yet"
@@ -287,7 +298,6 @@ export default function InvitationsPanel() {
         )}
       </div>
 
-      {msg && <div className="rounded-lg bg-gray-50 p-3 text-gray-800">{msg}</div>}
     </div>
   );
 }
