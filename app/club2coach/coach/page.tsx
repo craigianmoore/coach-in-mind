@@ -363,7 +363,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       return;
     }
     if (salaryNegotiable && !salaryMin && !salaryMax) {
-      setError("Please enter a pay figure (min or max) before ticking \"Pay negotiable\".");
+      setError("Please enter a pay figure (min or max) before ticking \"Indicative pay negotiable\".");
       return;
     }
     if (!agreedToTerms) {
@@ -893,16 +893,15 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
         )}
 
         <div>
-          <p className="text-xs font-semibold uppercase text-gray-500">Pay</p>
+          <p className="text-xs font-semibold uppercase text-gray-500">Indicative pay</p>
           <p className="mt-1 text-xs text-gray-500">
-            This is only indicative — actual pay varies a lot by club and level, and
-            this figure is more relevant to NSW &amp; VIC than other states.
+            This is only indicative and is not an offer or a contract: actual pay varies a lot by club and level, and this figure is more relevant to NSW &amp; VIC than other states.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">
-              Pay expectation min (AUD)
+              Indicative pay min (AUD)
             </label>
             <input
               type="number"
@@ -913,7 +912,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           </div>
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">
-              Pay expectation max (AUD)
+              Indicative pay max (AUD)
             </label>
             <input
               type="number"
@@ -930,7 +929,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
             disabled={!salaryMin && !salaryMax}
             onChange={(e) => setSalaryNegotiable(e.target.checked)}
           />
-          Pay negotiable {!salaryMin && !salaryMax && <span className="text-xs text-gray-400">(enter a pay figure first)</span>}
+          Indicative pay negotiable {!salaryMin && !salaryMax && <span className="text-xs text-gray-400">(enter a pay figure first)</span>}
         </label>
 
         <div>

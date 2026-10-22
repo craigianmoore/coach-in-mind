@@ -707,7 +707,7 @@ function Club2CoachAdmin() {
       ["Competition level", b.competition_level],
       ["Age group", b.age_group],
       ["Geography", b.geography],
-      ["Pay", b.salary],
+      ["Indicative pay", b.salary],
       ["Gender", b.gender],
     ];
     const list = (a?: string[] | null) => (a && a.length ? a.join(", ") : "any");
@@ -2698,7 +2698,7 @@ function Club2CoachAdmin() {
                         <div className="mt-1 flex flex-col gap-0.5">
                           <DetailLine label="Status" value={`${listing.status}${listing.paid ? "" : " · unpaid"}`} />
                           <DetailLine
-                            label="Pay"
+                            label="Indicative pay"
                             value={formatSalaryRange(listing.salary_min, listing.salary_max, listing.salary_negotiable)}
                           />
                           <DetailLine label="Ability levels" value={listing.ability_levels.join(", ")} />
@@ -2754,7 +2754,7 @@ function Club2CoachAdmin() {
                             value={`${vacancy.status}${vacancy.is_charity ? " · gifted" : vacancy.paid ? "" : " · unpaid"}`}
                           />
                           <DetailLine
-                            label="Pay"
+                            label="Indicative pay"
                             value={formatSalaryRange(vacancy.salary_min, vacancy.salary_max, vacancy.salary_negotiable)}
                           />
                           <DetailLine label="Competition level" value={vacancy.competition_level} />

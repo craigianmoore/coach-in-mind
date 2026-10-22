@@ -413,7 +413,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     }
 
     if (form.salaryNegotiable && !form.salaryMin && !form.salaryMax) {
-      setError("Please enter a pay figure (min or max) before ticking \"Pay negotiable\".");
+      setError("Please enter a pay figure (min or max) before ticking \"Indicative pay negotiable\".");
       return;
     }
 
@@ -1161,15 +1161,14 @@ function Club2CoachClubForm({ person }: { person: Person }) {
         </div>
 
         <div>
-          <p className="text-xs font-semibold uppercase text-gray-500">Pay</p>
+          <p className="text-xs font-semibold uppercase text-gray-500">Indicative pay</p>
           <p className="mt-1 text-xs text-gray-500">
-            This is only indicative — actual pay varies a lot by club and level, and
-            this figure is more relevant to NSW &amp; VIC than other states.
+            This is only indicative and is not an offer or a contract: actual pay varies a lot by club and level, and this figure is more relevant to NSW &amp; VIC than other states.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Pay offer min (AUD)</label>
+            <label className="text-xs font-semibold uppercase text-gray-500">Indicative pay min (AUD)</label>
             <input
               type="number"
               value={form.salaryMin}
@@ -1178,7 +1177,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Pay offer max (AUD)</label>
+            <label className="text-xs font-semibold uppercase text-gray-500">Indicative pay max (AUD)</label>
             <input
               type="number"
               value={form.salaryMax}
@@ -1194,7 +1193,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             disabled={!form.salaryMin && !form.salaryMax}
             onChange={(e) => setForm((f) => ({ ...f, salaryNegotiable: e.target.checked }))}
           />
-          Pay negotiable {!form.salaryMin && !form.salaryMax && <span className="text-xs text-gray-400">(enter a pay figure first)</span>}
+          Indicative pay negotiable {!form.salaryMin && !form.salaryMax && <span className="text-xs text-gray-400">(enter a pay figure first)</span>}
         </label>
 
         <div>
