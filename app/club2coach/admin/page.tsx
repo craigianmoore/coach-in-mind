@@ -4,6 +4,7 @@ import EmailFailureBanner from "@/components/EmailFailureBanner";
 import InvitationsPanel from "@/components/InvitationsPanel";
 import ClubInvitationsPanel from "@/components/ClubInvitationsPanel";
 import ClubPostcodePanel from "@/components/ClubPostcodePanel";
+import AdminGuidePanel from "@/components/AdminGuidePanel";
 import dynamic from "next/dynamic";
 // The map needs the browser (Leaflet), so it is loaded only on the client, only when the tab is opened.
 const HotSpotMapPanel = dynamic(() => import("@/components/HotSpotMapPanel"), { ssr: false });
@@ -34,7 +35,7 @@ import type {
   Payment,
 } from "@/types/database";
 
-type Tab = "unpaid" | "overview" | "matches" | "weighting" | "listings" | "clubs" | "promos" | "admins" | "support" | "people" | "payments" | "invites" | "announcements" | "map";
+type Tab = "unpaid" | "overview" | "matches" | "weighting" | "listings" | "clubs" | "promos" | "admins" | "support" | "people" | "payments" | "invites" | "announcements" | "map" | "guide";
 
 interface ClubContactRow {
   id: string;
@@ -1337,7 +1338,7 @@ function Club2CoachAdmin() {
 
       {([
         { label: "Operations", bar: "#191B41", bg: "rgba(25,27,65,0.06)", tabs: ["unpaid", "overview", "matches", "weighting", "listings", "clubs", "admins", "support", "people", "payments"] as Tab[] },
-        { label: "Marketing & tools", bar: "#B8935A", bg: "rgba(184,147,90,0.14)", tabs: ["promos", "invites", "announcements", "map"] as Tab[] },
+        { label: "Marketing & tools", bar: "#B8935A", bg: "rgba(184,147,90,0.14)", tabs: ["promos", "invites", "announcements", "map", "guide"] as Tab[] },
       ]).map((group, gi) => (
         <div
           key={gi}
@@ -1367,6 +1368,8 @@ function Club2CoachAdmin() {
                   ? `Map${postcodeConflicts > 0 ? ` (${postcodeConflicts} to check)` : ""}`
                   : t === "weighting"
                   ? "loading"
+                  : t === "guide"
+                  ? "Admin guide"
                   : t}
               </button>
             ))}
@@ -2584,6 +2587,7 @@ function Club2CoachAdmin() {
         </>
       )}
       {tab === "announcements" && <AnnouncementsPanel />}
+      {tab === "guide" && <AdminGuidePanel />}
       {tab === "map" && (
         <>
           <ClubPostcodePanel onCount={setPostcodeConflicts} />
