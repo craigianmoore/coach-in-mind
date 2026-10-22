@@ -100,7 +100,8 @@ export async function runClub2CoachMatchSweep(
   const settings = st as AdminSettings | null;
   const weights = settings?.weights as Club2CoachWeights | undefined;
   if (!weights) return { totalNew: 0 };
-  const autoApprove = settings?.auto_approve_matches ?? false;
+  const autoApproveOn = settings?.auto_approve_matches ?? false;
+  const minScore = settings?.auto_approve_min_score ?? 0.7;
 
   // A refunded listing keeps paid=true for the record, so it must be
   // excluded from "active" explicitly — it isn't caught by the
@@ -174,6 +175,7 @@ export async function runClub2CoachMatchSweep(
       .slice(0, remaining);
 
     for (const { coach, breakdown } of candidates) {
+      const autoApprove = autoApproveOn && breakdown.total >= minScore; // below the minimum score: waits for admin approval
       const { error } = await supabase.from("club2coach_shares").insert({
         coach_listing_id: coach.id,
         club_vacancy_id: vacancy.id,

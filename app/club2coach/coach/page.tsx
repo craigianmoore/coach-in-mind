@@ -29,6 +29,7 @@ import MatchedContacts from "@/components/MatchedContacts";
 import FoundingBanner from "@/components/FoundingBanner";
 import CoachActivation from "@/components/CoachActivation";
 import CoachRolePanel from "@/components/CoachRolePanel";
+import CoachIntroCheck from "@/components/CoachIntroCheck";
 import { isActivated, loadCoachBank } from "@/lib/coachPool";
 import ContactDetailsGlass from "@/components/ContactDetailsGlass";
 
@@ -501,6 +502,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
         )}
       </div>
 
+      <CoachIntroCheck />
       {existing && <CoachRolePanel listing={existing} onChanged={() => load()} />}
 
       {existing && !existing.paid && bank < 1 && (

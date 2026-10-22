@@ -101,3 +101,42 @@ export async function notifyApprovedShares(supabase: SupabaseClient): Promise<nu
   }
   return sent;
 }
+
+// A week after an introduction, asks the coach whether they took the role (the answer appears in the app and in
+// admin). Each share is emailed once: claimed by stamping coach_check_sent_at before sending, released if it fails.
+export async function sendCoachIntroChecks(supabase: SupabaseClient): Promise<number> {
+  const cutoff = new Date(Date.now() - 7 * 86400000).toISOString();
+  const { data: shares } = await supabase
+    .from("club2coach_shares")
+    .select("id,coach_listing_id,club_vacancy_id")
+    .eq("status", "approved")
+    .is("coach_response", null)
+    .is("coach_check_sent_at", null)
+    .lt("shared_at", cutoff)
+    .limit(50);
+  let sent = 0;
+  for (const s of shares ?? []) {
+    const { data: claimed } = await supabase
+      .from("club2coach_shares")
+      .update({ coach_check_sent_at: new Date().toISOString() })
+      .eq("id", s.id)
+      .is("coach_check_sent_at", null)
+      .select("id");
+    if (!claimed || claimed.length === 0) continue;
+    const { data: listing } = await supabase.from("club2coach_coach_listings").select("person_id").eq("id", s.coach_listing_id).single();
+    const { data: vacancy } = await supabase.from("club2coach_club_vacancies").select("club_name,role_being_recruited").eq("id", s.club_vacancy_id).single();
+    const { data: coach } = listing ? await supabase.from("people").select("full_name,email").eq("id", listing.person_id).single() : { data: null };
+    let ok = false;
+    if (coach?.email && vacancy) {
+      const first = (coach.full_name ?? "").trim().split(/\s+/)[0] || "there";
+      ok = await sendEmail({
+        to: coach.email,
+        subject: `Did you take the ${vacancy.role_being_recruited} role at ${vacancy.club_name}?`,
+        text: `Hi ${first},\n\nIt's been a week since we introduced you to ${vacancy.club_name} for their ${vacancy.role_being_recruited} vacancy. Did you take the role? It takes one tap to let us know:\n${APP_URL}/club2coach/coach\n\nIf it didn't work out, no problem — we'll keep looking for the right fit.`,
+      });
+    }
+    if (ok) sent += 1;
+    else await supabase.from("club2coach_shares").update({ coach_check_sent_at: null }).eq("id", s.id);
+  }
+  return sent;
+}

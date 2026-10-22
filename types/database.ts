@@ -132,6 +132,9 @@ export interface Club2CoachShare {
   // happened at match time regardless of outcome; this only gates
   // whether another (also-chargeable) match can be offered.
   outcome: "pending" | "filled" | "not_filled";
+  // The coach's own answer to "did you take this role?" (asked ~7 days after the introduction).
+  coach_response?: "hired" | "not_hired" | null;
+  coach_responded_at?: string | null;
 }
 
 export interface Coach2MentorCoachListing {
@@ -268,6 +271,7 @@ export interface AdminSettings {
   product: "club2coach" | "coach2mentor";
   weights: Club2CoachWeights | Coach2MentorWeights;
   salary_benchmarks: Record<string, SalaryBenchmark>;
+  auto_approve_min_score?: number; // 0-1; auto-approve only at or above this match score (Club 2 Coach)
   auto_approve_matches: boolean; // club2coach only — when false (default), auto-matched suggestions need explicit admin approval before contact details are shared
   updated_at: string;
 }

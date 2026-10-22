@@ -630,7 +630,9 @@ function Club2CoachAdmin() {
     if (!weights) return;
     setAutoMatching(true);
 
-    const autoApprove = settings?.auto_approve_matches ?? false;
+    const autoApproveOn = settings?.auto_approve_matches ?? false;
+    const minScore = settings?.auto_approve_min_score ?? 0.7;
+    let anyApproved = false;
 
     const targets = activeVacancies.filter((v) => {
       if (vacancyIds && !vacancyIds.includes(v.id)) return false;
@@ -661,6 +663,7 @@ function Club2CoachAdmin() {
         .slice(0, remaining);
 
       for (const { coach, breakdown } of candidates) {
+        const autoApprove = autoApproveOn && breakdown.total >= minScore; // below the minimum score: waits for your approval
         const { error } = await supabase.from("club2coach_shares").insert({
           coach_listing_id: coach.id,
           club_vacancy_id: vacancy.id,
@@ -670,6 +673,7 @@ function Club2CoachAdmin() {
         });
         if (!error) {
           totalNew += 1;
+          if (autoApprove) anyApproved = true;
           if (autoApprove) runIntros.set(coach.id, (runIntros.get(coach.id) ?? 0) + 1);
           if (autoApprove && !vacancy.shared_at) {
             await supabase
@@ -682,11 +686,11 @@ function Club2CoachAdmin() {
     }
 
     setAutoMatching(false);
-    if (totalNew > 0 && autoApprove) notifyMatches();
+    if (totalNew > 0 && anyApproved) notifyMatches();
     if (totalNew > 0) {
       setStatus(
-        autoApprove
-          ? `Auto-matched and shared ${totalNew} new introduction${totalNew === 1 ? "" : "s"}.`
+        anyApproved
+          ? `Auto-matched ${totalNew} new introduction${totalNew === 1 ? "" : "s"}; any below ${Math.round(minScore * 100)}% are waiting for your approval.`
           : `Found ${totalNew} new suggested match${totalNew === 1 ? "" : "es"} — awaiting your approval.`
       );
     }
@@ -711,6 +715,14 @@ function Club2CoachAdmin() {
     supabase.rpc("refresh_admin_session");
     await supabase.from("club2coach_shares").delete().eq("id", shareId);
     await loadAll();
+  }
+
+  async function setAutoApproveMinScore(pct: number) {
+    if (!settings || Number.isNaN(pct)) return;
+    const value = Math.min(100, Math.max(0, Math.round(pct))) / 100;
+    supabase.rpc("refresh_admin_session");
+    setSettings({ ...settings, auto_approve_min_score: value });
+    await supabase.from("admin_settings").update({ auto_approve_min_score: value }).eq("id", settings.id);
   }
 
   async function toggleAutoApprove(value: boolean) {
@@ -1569,6 +1581,20 @@ function Club2CoachAdmin() {
             />
             Fully automate matching — skip review and share top matches immediately
           </label>
+          {settings?.auto_approve_matches && (
+            <label className="-mt-2 mb-4 ml-6 flex items-center gap-2 text-sm text-gray-700">
+              Only if the match is at least
+              <input
+                type="number"
+                min={0}
+                max={100}
+                defaultValue={Math.round((settings.auto_approve_min_score ?? 0.7) * 100)}
+                onBlur={(e) => setAutoApproveMinScore(Number(e.target.value))}
+                className="w-16 rounded border px-2 py-1"
+              />
+              % — lower scores come to you to approve
+            </label>
+          )}
 
           {vacancyGroups.length === 0 ? (
             <EmptyState
@@ -1598,6 +1624,11 @@ function Club2CoachAdmin() {
                         {new Date(vacancy.created_at).toLocaleDateString("en-GB")}
                       </p>
                       {renderClubContact(vacancy)}
+                      {shares.filter((x) => x.club_vacancy_id === vacancy.id && x.outcome === "not_filled").length >= 2 && (
+                        <p className="mt-1 text-xs font-semibold text-amber-700">
+                          ⚠ This club has reported "not filled" {shares.filter((x) => x.club_vacancy_id === vacancy.id && x.outcome === "not_filled").length} times — check before approving another.
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       {suggestedCount > 0 && (
@@ -1754,6 +1785,14 @@ function Club2CoachAdmin() {
                             <span className="text-sm font-bold" style={{ color: "var(--accent-dark)" }}>
                               {Math.round(breakdown.total * 100)}%
                             </span>
+                            {shareRow?.coach_response === "hired" && shareRow.outcome !== "filled" && (
+                              <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700" title="The coach says they took this role, but the club hasn't marked it filled">
+                                ⚠ Coach says hired — club says {shareRow.outcome === "not_filled" ? "not filled" : "no answer yet"}
+                              </span>
+                            )}
+                            {shareRow?.coach_response === "hired" && shareRow.outcome === "filled" && (
+                              <span className="text-xs text-gray-500">Coach confirms hired</span>
+                            )}
                             <span className="text-xs text-green-600">✓ Shared</span>
                             <button
                               onClick={() => shareRow && revokeShare(shareRow.id)}
