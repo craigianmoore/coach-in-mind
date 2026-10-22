@@ -13,14 +13,13 @@ export default function AdminGuidePanel() {
         </div>
         <div className="flex flex-wrap gap-2">
           <a
-            href="/admin-guide.pdf"
-            download="Coach-In-Mind-Admin-Guide.pdf"
+            href="/api/admin/guide?download=1"
             className="btn-accent rounded-lg px-4 py-2 text-sm font-semibold"
           >
             Download PDF
           </a>
           <a
-            href="/admin-guide.pdf"
+            href="/api/admin/guide"
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
@@ -30,7 +29,7 @@ export default function AdminGuidePanel() {
         </div>
       </div>
       <iframe
-        src="/admin-guide.pdf#view=FitH"
+        src="/api/admin/guide#view=FitH"
         title="Admin guide"
         className="mt-4 hidden h-[75vh] w-full rounded-xl border bg-white sm:block"
       />

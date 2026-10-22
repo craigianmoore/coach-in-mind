@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rebuilds public/admin-guide.pdf (the admin guide shown on the admin page, Marketing & tools).
+"""Rebuilds private/admin/admin-guide.pdf (the admin guide shown on the admin page, Marketing & tools).
 
 Run from the repo root:  python3 scripts/build_admin_guide.py
 (needs `pip install reportlab`). Edit the content below, re-run, and commit
@@ -200,7 +200,7 @@ story.append(bullets([
 ]))
 
 doc = SimpleDocTemplate(
-    "public/admin-guide.pdf", pagesize=A4,
+    "private/admin/admin-guide.pdf", pagesize=A4,
     leftMargin=22 * mm, rightMargin=22 * mm, topMargin=18 * mm, bottomMargin=18 * mm,
     title="Coach In Mind — Admin Guide",
 )
