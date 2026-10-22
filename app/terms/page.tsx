@@ -4,7 +4,7 @@ export default function TermsPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-16 text-sm leading-relaxed text-gray-700">
       <h1 className="text-2xl font-bold text-gray-900">Terms of Service</h1>
-      <p className="mt-2 text-xs text-gray-500">Last updated: 1 October 2026</p>
+      <p className="mt-2 text-xs text-gray-500">Last updated: 22 October 2026</p>
 
       <p className="mt-6">
         These Terms of Service ("Terms") govern your use of Coach In Mind,
@@ -50,6 +50,16 @@ export default function TermsPage() {
         take no responsibility for the accuracy of information entered
         by users, or for the conduct, decisions, or outcomes of any
         coach, club, or mentor using the Platform.
+      </p>
+      <p className="mt-2">
+        <strong>Indicative pay.</strong> Any pay figure or range, and any
+        "negotiable" indication, that a coach or club enters on the
+        Platform is indicative only. It is used to help suggest matches,
+        is not an offer of employment or engagement, and is not a
+        contract or a term of any agreement. Any agreement about pay,
+        duties, or any other terms is made directly between the coach
+        and the club, and Coach In Mind is not a party to it and does
+        not guarantee, record, or enforce it.
       </p>
 
       <h2 className="mt-8 text-lg font-semibold text-gray-900">
@@ -136,6 +146,16 @@ export default function TermsPage() {
         coaching, club, or mentoring connection, and not to use contact
         details shared with you through the Platform for any purpose
         unrelated to that connection.
+      </p>
+      <p className="mt-2">
+        A club's advert and the introductions that come with it are for
+        the one coaching role advertised, and may not be used to fill
+        other roles. After an introduction, a club agrees to tell us
+        honestly whether the role was filled, and a coach agrees to
+        answer honestly if we ask whether they took the role. We may
+        compare these answers, and may decline further introductions or
+        suspend a listing where they are inconsistent or we reasonably
+        believe an introduction has been misused.
       </p>
 
       <h2 className="mt-8 text-lg font-semibold text-gray-900">7. Account suspension and termination</h2>
