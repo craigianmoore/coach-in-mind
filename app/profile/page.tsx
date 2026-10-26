@@ -37,6 +37,8 @@ function ProfileForm() {
 
   const [hasClub2CoachListing, setHasClub2CoachListing] = useState(false);
   const [hasCoach2MentorListing, setHasCoach2MentorListing] = useState(false);
+  // True once they've started ANY role profile (coach, club or mentor). Until then nobody can match them.
+  const [hasAnyRoleProfile, setHasAnyRoleProfile] = useState(true);
 
   useEffect(() => {
     try {
@@ -93,6 +95,11 @@ function ProfileForm() {
       ]);
       setHasClub2CoachListing(Boolean(c2c));
       setHasCoach2MentorListing(Boolean(c2m));
+      const [{ data: vac }, { data: men }] = await Promise.all([
+        supabase.from("club2coach_club_vacancies").select("id").eq("person_id", p.id).is("deleted_at", null).limit(1).maybeSingle(),
+        supabase.from("coach2mentor_mentor_listings").select("id").eq("person_id", p.id).is("deleted_at", null).limit(1).maybeSingle(),
+      ]);
+      setHasAnyRoleProfile(Boolean(c2c || c2m || vac || men));
     }
     setLoading(false);
   }
@@ -372,6 +379,16 @@ function ProfileForm() {
           <p className="mt-1 text-sm text-gray-600">
             Your introductions are shared across Club 2 Coach and Coach 2 Mentor. Buy a package on
             either side and use it wherever the best match turns up — there&apos;s nothing to split.
+          </p>
+        </div>
+      )}
+
+      {existing && !next && !hasAnyRoleProfile && (
+        <div className="mt-8 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-semibold">One more step — you can&apos;t be matched yet</p>
+          <p className="mt-1">
+            Your details are saved, but we can only match you once you&apos;ve set up a coach, club or mentor profile. Without one,
+            nobody can find you and you won&apos;t be put forward for anything. Choose an option below to finish setting up.
           </p>
         </div>
       )}

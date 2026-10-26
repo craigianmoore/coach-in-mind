@@ -5,6 +5,7 @@ import { closeUsedActivations, notifyApprovedShares, sendCoachIntroChecks, sendC
 import { notifyMentoringRequests } from "@/lib/server/notifyMentoring";
 import { APP_URL, sendEmail } from "@/lib/server/sendEmail";
 import { sendAdminEmail } from "@/lib/server/sendAdminEmail";
+import { sendSignupReminders } from "@/lib/server/signupReminders";
 import { retryQueuedEmails } from "@/lib/server/emailRetry";
 
 // Safety-net sweep: runs the same matching logic admin triggers by hand
@@ -126,6 +127,11 @@ export async function GET(req: Request) {
   await notifyApprovedShares(supabase);
   await sendCoachIntroChecks(supabase);
   await sendClubOutcomeNudges(supabase);
+  try {
+    await sendSignupReminders(supabase);
+  } catch (err) {
+    console.error("cron match-sweep: signup reminders failed", err);
+  }
   await notifyMentoringRequests(supabase);
 
   // Invitation sending has its own hourly job (/api/cron/invite-topup) so it gets its own time allowance.
