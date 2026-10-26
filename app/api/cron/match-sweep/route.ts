@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { runClub2CoachMatchSweep, runCoach2MentorMatchSweep } from "@/lib/matching/sweep";
-import { closeUsedActivations, notifyApprovedShares, sendCoachIntroChecks } from "@/lib/server/notifyMatches";
+import { closeUsedActivations, notifyApprovedShares, sendCoachIntroChecks, sendClubOutcomeNudges } from "@/lib/server/notifyMatches";
 import { notifyMentoringRequests } from "@/lib/server/notifyMentoring";
 import { APP_URL, sendEmail } from "@/lib/server/sendEmail";
 import { sendAdminEmail } from "@/lib/server/sendAdminEmail";
@@ -125,6 +125,7 @@ export async function GET(req: Request) {
 
   await notifyApprovedShares(supabase);
   await sendCoachIntroChecks(supabase);
+  await sendClubOutcomeNudges(supabase);
   await notifyMentoringRequests(supabase);
 
   // Invitation sending has its own hourly job (/api/cron/invite-topup) so it gets its own time allowance.

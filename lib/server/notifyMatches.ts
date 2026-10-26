@@ -140,3 +140,41 @@ export async function sendCoachIntroChecks(supabase: SupabaseClient): Promise<nu
   }
   return sent;
 }
+
+// A week after an introduction, nudges the club by email if it hasn't yet said whether the role was filled (the app
+// also asks, and holds back further introductions until it does). Each share is emailed once.
+export async function sendClubOutcomeNudges(supabase: SupabaseClient): Promise<number> {
+  const cutoff = new Date(Date.now() - 7 * 86400000).toISOString();
+  const { data: shares } = await supabase
+    .from("club2coach_shares")
+    .select("id,coach_listing_id,club_vacancy_id")
+    .eq("status", "approved")
+    .eq("outcome", "pending")
+    .is("club_check_sent_at", null)
+    .lt("shared_at", cutoff)
+    .limit(50);
+  let sent = 0;
+  for (const s of shares ?? []) {
+    const { data: claimed } = await supabase
+      .from("club2coach_shares")
+      .update({ club_check_sent_at: new Date().toISOString() })
+      .eq("id", s.id)
+      .is("club_check_sent_at", null)
+      .select("id");
+    if (!claimed || claimed.length === 0) continue;
+    const { data: vacancy } = await supabase.from("club2coach_club_vacancies").select("club_name,role_being_recruited,person_id").eq("id", s.club_vacancy_id).single();
+    const { data: person } = vacancy ? await supabase.from("people").select("full_name,email").eq("id", vacancy.person_id).single() : { data: null };
+    let ok = false;
+    if (person?.email && vacancy) {
+      const first = (person.full_name ?? "").trim().split(/\s+/)[0] || "there";
+      ok = await sendEmail({
+        to: person.email,
+        subject: `Did you fill the ${vacancy.role_being_recruited} role at ${vacancy.club_name}?`,
+        text: `Hi ${first},\n\nIt's been a week since we introduced a coach for ${vacancy.club_name}'s ${vacancy.role_being_recruited} vacancy. Did you appoint them? It takes one tap to let us know:\n${APP_URL}/club2coach/club\n\nWe ask so we can stop sending coaches once the role is filled, or find you a fresh match if it didn't work out. Honest answers keep the platform fair for every club and coach.\n\nThe Coach In Mind team`,
+      });
+    }
+    if (ok) sent += 1;
+    else await supabase.from("club2coach_shares").update({ club_check_sent_at: null }).eq("id", s.id);
+  }
+  return sent;
+}

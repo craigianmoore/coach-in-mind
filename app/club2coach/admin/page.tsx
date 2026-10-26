@@ -1848,6 +1848,11 @@ function Club2CoachAdmin() {
                             {shareRow?.coach_response === "hired" && shareRow.outcome === "filled" && (
                               <span className="text-xs text-gray-500">Coach confirms hired</span>
                             )}
+                            {shareRow?.coach_response === "not_hired" && shareRow.outcome === "filled" && (
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800" title="The club marked this role filled, but the coach says they did not take it. The club may have appointed someone else.">
+                                ⚠ Club says filled — coach says not hired
+                              </span>
+                            )}
                             <span className="text-xs text-green-600">✓ Shared</span>
                             <button
                               onClick={() => shareRow && revokeShare(shareRow.id)}
