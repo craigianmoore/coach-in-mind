@@ -498,7 +498,7 @@ function Coach2MentorAdmin() {
       listings: maxTime(coachListings.map((l) => l.created_at), mentorListings.map((l) => l.created_at)),
       payments: maxTime(payments.map((p) => p.created_at)),
     },
-    "cim_admin_tab_seen_c2m"
+    "c2m"
   );
 
   const filteredRequests = requests.filter(

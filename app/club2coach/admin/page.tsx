@@ -1156,7 +1156,7 @@ function Club2CoachAdmin() {
       people: maxTime(allPeople.map((p) => p.created_at)),
       payments: maxTime(payments.map((p) => p.created_at)),
     },
-    "cim_admin_tab_seen_c2c"
+    "c2c"
   );
 
   function passesListingsFilter(l: { paid: boolean; deleted_at: string | null }) {
