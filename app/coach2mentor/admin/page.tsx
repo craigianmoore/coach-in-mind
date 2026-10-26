@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { notifyMentoring } from "@/lib/notify";
 import { scoreCoach2MentorMatch } from "@/lib/scoring";
 import { useTabActivity, maxTime } from "@/lib/useTabActivity";
+import OtherProductLink from "@/components/OtherProductLink";
 import QrCodeButton from "@/components/QrCodeButton";
 import { copyShareBlurbToClipboard, shareJoinByText, shareFlyer } from "@/lib/shareBlurb";
 import { getEmbedUrl, safeHttpsUrl } from "@/lib/videoEmbed";
@@ -560,6 +561,8 @@ function Coach2MentorAdmin() {
         <QrCodeButton />
         </div>
       </div>
+
+      <div className="mt-3"><OtherProductLink other="c2c" /></div>
 
       <EmailFailureBanner />
 

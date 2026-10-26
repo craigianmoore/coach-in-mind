@@ -19,6 +19,7 @@ import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
 import { scoreClub2CoachMatch, type Club2CoachScoreBreakdown } from "@/lib/scoring";
 import { useTabActivity, maxTime } from "@/lib/useTabActivity";
+import OtherProductLink from "@/components/OtherProductLink";
 import QrCodeButton from "@/components/QrCodeButton";
 import { copyShareBlurbToClipboard, shareJoinByText, shareFlyer } from "@/lib/shareBlurb";
 import { CLUB2COACH_COACH_PACKAGES, CLUB2COACH_CLUB_PACKAGES, STATE_LABELS } from "@/lib/constants";
@@ -1349,6 +1350,8 @@ function Club2CoachAdmin() {
         <QrCodeButton />
         </div>
       </div>
+
+      <div className="mt-3"><OtherProductLink other="c2m" /></div>
 
       <EmailFailureBanner />
 
