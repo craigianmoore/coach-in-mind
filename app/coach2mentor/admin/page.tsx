@@ -9,6 +9,7 @@ import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
 import { notifyMentoring } from "@/lib/notify";
 import { scoreCoach2MentorMatch } from "@/lib/scoring";
+import { useTabActivity, maxTime } from "@/lib/useTabActivity";
 import QrCodeButton from "@/components/QrCodeButton";
 import { copyShareBlurbToClipboard, shareJoinByText, shareFlyer } from "@/lib/shareBlurb";
 import { getEmbedUrl, safeHttpsUrl } from "@/lib/videoEmbed";
@@ -487,6 +488,19 @@ function Coach2MentorAdmin() {
   const unpaidMentors = mentorListings.filter((l) => !l.paid && !l.deleted_at);
   const topupRequests = coachListings.filter((l) => l.topup_requested != null && !l.deleted_at);
 
+  // Bold tab names: something new has happened in that tab since this admin last looked at it.
+  const { hasNew } = useTabActivity(
+    tab,
+    ["unpaid", "requests", "listings", "payments"],
+    {
+      unpaid: maxTime(unpaidCoaches.map((l) => l.created_at), unpaidMentors.map((l) => l.created_at), topupRequests.map((l) => l.updated_at)),
+      requests: maxTime(requests.map((r) => r.created_at), requests.map((r) => r.responded_at)),
+      listings: maxTime(coachListings.map((l) => l.created_at), mentorListings.map((l) => l.created_at)),
+      payments: maxTime(payments.map((p) => p.created_at)),
+    },
+    "cim_admin_tab_seen_c2m"
+  );
+
   const filteredRequests = requests.filter(
     (r) => r.status !== "suggested" && (requestsFilter === "all" || r.status === requestsFilter)
   );
@@ -554,11 +568,11 @@ function Coach2MentorAdmin() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className="flex-shrink-0 px-2.5 py-2 text-sm font-medium capitalize"
+            className={`flex-shrink-0 px-2.5 py-2 text-sm capitalize ${hasNew(t) ? "font-extrabold" : "font-medium"}`}
             style={
               tab === t
                 ? { borderBottom: "2px solid var(--accent-dark)", color: "var(--accent-dark)" }
-                : { color: "#9ca3af" }
+                : { color: hasNew(t) ? "#ffffff" : "#9ca3af" }
             }
           >
             {t === "unpaid"

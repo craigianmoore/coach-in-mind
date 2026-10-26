@@ -18,6 +18,7 @@ import AdminOverview from "@/components/AdminOverview";
 import EmptyState from "@/components/EmptyState";
 import { createClient } from "@/lib/supabase/client";
 import { scoreClub2CoachMatch, type Club2CoachScoreBreakdown } from "@/lib/scoring";
+import { useTabActivity, maxTime } from "@/lib/useTabActivity";
 import QrCodeButton from "@/components/QrCodeButton";
 import { copyShareBlurbToClipboard, shareJoinByText, shareFlyer } from "@/lib/shareBlurb";
 import { CLUB2COACH_COACH_PACKAGES, CLUB2COACH_CLUB_PACKAGES, STATE_LABELS } from "@/lib/constants";
@@ -1143,6 +1144,21 @@ function Club2CoachAdmin() {
     (p) => Date.now() - new Date(p.created_at).getTime() < 24 * 60 * 60 * 1000
   ).length;
 
+  // Bold tab names: something new has happened in that tab since this admin last looked at it.
+  const { hasNew } = useTabActivity(
+    tab,
+    ["unpaid", "matches", "listings", "support", "people", "payments"],
+    {
+      unpaid: maxTime(unpaidCoaches.map((l) => l.created_at), unpaidVacancies.map((v) => v.created_at), topupRequests.map((l) => l.updated_at)),
+      matches: maxTime(shares.map((s) => s.shared_at), shares.map((s) => s.coach_responded_at)),
+      listings: maxTime(coachListings.map((l) => l.created_at), vacancies.map((v) => v.created_at), c2mCoachListings.map((l) => l.created_at), c2mMentorListings.map((l) => l.created_at)),
+      support: maxTime(supportQueries.map((q) => q.created_at)),
+      people: maxTime(allPeople.map((p) => p.created_at)),
+      payments: maxTime(payments.map((p) => p.created_at)),
+    },
+    "cim_admin_tab_seen_c2c"
+  );
+
   function passesListingsFilter(l: { paid: boolean; deleted_at: string | null }) {
     if (listingsDeletedFilter === "active" && l.deleted_at) return false;
     if (listingsPaidFilter === "paid" && !l.paid) return false;
@@ -1353,8 +1369,8 @@ function Club2CoachAdmin() {
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`flex-shrink-0 px-2.5 py-2 text-sm font-medium capitalize ${
-                  tab === t ? "border-b-2 border-accent text-accent" : "text-gray-500"
+                className={`flex-shrink-0 px-2.5 py-2 text-sm capitalize ${hasNew(t) ? "font-extrabold text-gray-900" : "font-medium"} ${
+                  tab === t ? "border-b-2 border-accent text-accent" : hasNew(t) ? "" : "text-gray-500"
                 }`}
                 style={tab === t ? { borderColor: "var(--accent-dark)", color: "var(--accent-dark)" } : {}}
               >
