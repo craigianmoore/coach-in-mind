@@ -143,8 +143,9 @@ story.append(bullets([
 story.append(Paragraph("After an introduction", h3_style))
 story.append(bullets([
     "No further coach is offered for a vacancy until the club says whether the last introduction worked out (filled or not filled). The card shows \"Waiting on the club\" until then.",
-    "About a week after an introduction the coach is asked \"Did you take the role?\" by email and in the app.",
+    "About a week after an introduction the coach is asked \"Did you take the role?\" and the club is asked \"Did you fill the role?\", both by email and in the app. Each is emailed once.",
     "<b>Red flag:</b> \"Coach says hired — club says not filled\" means the two answers disagree. Look into it before approving more.",
+    "<b>Amber flag:</b> \"Club says filled — coach says not hired\" is the reverse mismatch (the club may have appointed someone else). Neither flag blocks anything; they point you at cases to look into.",
     "<b>Amber flag:</b> a club that has said \"not filled\" twice or more. Check before approving another.",
     "An advert and its introductions are for the one role advertised (see the Terms). You may decline further introductions where an introduction looks misused.",
 ]))

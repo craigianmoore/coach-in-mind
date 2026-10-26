@@ -155,7 +155,8 @@ story.append(bullets([
     "Pay on your advert is <b>indicative only</b> — it helps with matching but isn't an offer or a contract. Any "
     "agreement is made directly between you and the coach. \"Pay negotiable\" can only be ticked once you've entered a figure.",
     "Your advert and its introductions are for the one role advertised. Please tell us honestly after each introduction "
-    "whether the role was filled.",
+    "whether the role was filled. About a week after an introduction we'll email you a one-tap question; "
+    "we won't offer another coach until you've answered.",
     "Didn't find your match, or want to tweak the ad? Use Repost on your vacancy to re-advertise "
     "with a few changes instead of starting from scratch. The original moves into your history so "
     "two live posts never compete for the same coaches.",
