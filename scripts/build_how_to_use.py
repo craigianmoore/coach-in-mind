@@ -152,7 +152,7 @@ story.append(bullets([
     "advertise again with a new credit.",
     "Enter your club's postcode (where the club plays). We use it to find coaches near you, and keep one postcode "
     "on record for your club. If a different postcode is entered for the same club we may check it with you.",
-    "Pay on your advert is <b>indicative only</b> — it helps with matching but isn't an offer or a contract. Any "
+    "Pay on your advert is <b>indicative only</b> — enter the <b>total for the whole season</b>, not a weekly or per-session rate. It helps with matching but isn't an offer or a contract. Any "
     "agreement is made directly between you and the coach. \"Pay negotiable\" can only be ticked once you've entered a figure.",
     "Your advert and its introductions are for the one role advertised. Please tell us honestly after each introduction "
     "whether the role was filled. About a week after an introduction we'll email you a one-tap question; "
@@ -183,7 +183,7 @@ story.append(CondPageBreak(40 * mm))
 story.append(Paragraph("If you're a coach", h3_style))
 story.append(bullets([
     "Sign up, then press <b>Let clubs know I'm looking</b> and describe the kind of role you're looking for — signing up creates your account; this step is what puts you in front of clubs.",
-    "Choose up to <b>two</b> age groups (or \"No preference\" if you're open to any). Pay is <b>indicative only</b> — it "
+    "Choose up to <b>two</b> age groups (or \"No preference\" if you're open to any). Pay is <b>indicative only</b> — enter the <b>total for the whole season</b>, not a weekly rate — it "
     "helps with matching but isn't an offer or a contract — and \"Pay negotiable\" can only be ticked once you've entered a figure.",
     "Buy a package of 1–3 credits — or, if you're one of the first 100 coaches to sign up, your free "
     "founding credit is already in your credit balance (see below). Credits never expire until you use them.",

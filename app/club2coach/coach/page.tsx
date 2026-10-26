@@ -895,13 +895,13 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
         <div>
           <p className="text-xs font-semibold uppercase text-gray-500">Indicative pay</p>
           <p className="mt-1 text-xs text-gray-500">
-            This is only indicative and is not an offer or a contract: actual pay varies a lot by club and level, and this figure is more relevant to NSW &amp; VIC than other states.
+            Enter the <strong>total for the whole season</strong> (not a weekly or per-session rate), for example 6000 to 9000. This is only indicative and is not an offer or a contract: actual pay varies a lot by club and level, and this figure is more relevant to NSW &amp; VIC than other states.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">
-              Indicative pay min (AUD)
+              Indicative pay min, season total (AUD)
             </label>
             <input
               type="number"
@@ -912,7 +912,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           </div>
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">
-              Indicative pay max (AUD)
+              Indicative pay max, season total (AUD)
             </label>
             <input
               type="number"
