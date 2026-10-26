@@ -5,6 +5,7 @@ import { closeUsedActivations, notifyApprovedShares, sendCoachIntroChecks, sendC
 import { notifyMentoringRequests } from "@/lib/server/notifyMentoring";
 import { APP_URL, sendEmail } from "@/lib/server/sendEmail";
 import { sendAdminEmail } from "@/lib/server/sendAdminEmail";
+import { sendPayClarifications } from "@/lib/server/payClarifications";
 import { sendSignupReminders } from "@/lib/server/signupReminders";
 import { retryQueuedEmails } from "@/lib/server/emailRetry";
 
@@ -128,6 +129,7 @@ export async function GET(req: Request) {
   await sendCoachIntroChecks(supabase);
   await sendClubOutcomeNudges(supabase);
   try {
+    await sendPayClarifications(supabase);
     await sendSignupReminders(supabase);
   } catch (err) {
     console.error("cron match-sweep: signup reminders failed", err);
