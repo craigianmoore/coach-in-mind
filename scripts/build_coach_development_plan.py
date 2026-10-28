@@ -36,12 +36,12 @@ W = A4[0] - 30 * mm  # usable width
 
 
 def band(letter, name, question):
-    """Section header bar for one GRIP step."""
-    t = Table([[Paragraph(letter, band_letter), Paragraph(f"<b>{name}</b> &nbsp;&nbsp; <font size=8.5>{question}</font>", hdr_white)]],
-              colWidths=[12 * mm, W - 12 * mm])
-    t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), NAVY), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                           ("ALIGN", (0, 0), (0, 0), "CENTER"), ("LEFTPADDING", (0, 0), (0, 0), 0), ("RIGHTPADDING", (0, 0), (0, 0), 0),
-                           ("LEFTPADDING", (1, 0), (1, 0), 8), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
+    """Section header for one GRIP step: the FV tile (icon + word) with the guiding question beside it."""
+    fname = {"G": "goals", "R": "reflect", "I": "input", "P": "plan"}[letter]
+    q = P("bq", fontName="Helvetica-Bold", fontSize=11.5, leading=15, textColor=NAVY)
+    t = Table([[tile_img(fname, 26 * mm), Paragraph(question, q)]], colWidths=[30 * mm, W - 30 * mm])
+    t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0),
+                           ("BOTTOMPADDING", (0, 0), (-1, -1), 2), ("LEFTPADDING", (1, 0), (1, 0), 6), ("LINEBELOW", (0, 0), (-1, 0), 1.2, NAVY)]))
     return t
 
 
