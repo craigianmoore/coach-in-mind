@@ -28,6 +28,7 @@ lab = P("l", fontName="Helvetica-Bold", fontSize=8.5, leading=11, textColor=NAVY
 cell = P("c", fontName="Helvetica", fontSize=9, leading=12, textColor=INK)
 hdr_white = P("hw", fontName="Helvetica-Bold", fontSize=9, leading=11, textColor=colors.white)
 ctr = P("ctr", fontName="Helvetica-Bold", fontSize=8, leading=10, textColor=NAVY, alignment=TA_CENTER)
+band_letter = P("bl", fontName="Helvetica-Bold", fontSize=15, leading=18, textColor=colors.white, alignment=TA_CENTER)
 tile_t = P("tt", fontName="Helvetica-Bold", fontSize=12, leading=14, textColor=colors.white, alignment=TA_CENTER)
 tile_b = P("tb", fontName="Helvetica", fontSize=8.5, leading=11, textColor=colors.white, alignment=TA_CENTER)
 
@@ -36,10 +37,11 @@ W = A4[0] - 30 * mm  # usable width
 
 def band(letter, name, question):
     """Section header bar for one GRIP step."""
-    t = Table([[Paragraph(f"<font size=16>{letter}</font>", hdr_white), Paragraph(f"<b>{name}</b> &nbsp;&nbsp; <font size=8.5>{question}</font>", hdr_white)]],
+    t = Table([[Paragraph(letter, band_letter), Paragraph(f"<b>{name}</b> &nbsp;&nbsp; <font size=8.5>{question}</font>", hdr_white)]],
               colWidths=[12 * mm, W - 12 * mm])
     t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), NAVY), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                           ("LEFTPADDING", (0, 0), (-1, -1), 8), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
+                           ("ALIGN", (0, 0), (0, 0), "CENTER"), ("LEFTPADDING", (0, 0), (0, 0), 0), ("RIGHTPADDING", (0, 0), (0, 0), 0),
+                           ("LEFTPADDING", (1, 0), (1, 0), 8), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
     return t
 
 
@@ -69,15 +71,26 @@ def grid(headers, widths, rows, row_h=9 * mm, first_col_text=None):
     return t
 
 
+TILE_FILES = ["goals", "reflect", "input", "plan"]
+
+
+def tile_img(name, width):
+    return Image(f"scripts/assets/grip/{name}.png", width=width, height=width * 316 / 400)
+
+
 def tiles():
-    items = [("G", "Goals", "What am I working towards?"), ("R", "Reflect / Review", "Where am I now, and what is working?"),
-             ("I", "Input", "What can help me get there?"), ("P", "Plan", "What will I do, and by when?")]
-    w = W / 4
-    cells = [[Paragraph(f"<font size=20>{a}</font><br/>{b}", tile_t), Paragraph(c, tile_b)] for a, b, c in items]
-    t = Table([[c[0] for c in cells], [c[1] for c in cells]], colWidths=[w] * 4, rowHeights=[16 * mm, 14 * mm])
-    t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), NAVY), ("LINEAFTER", (0, 0), (-2, -1), 3, colors.white), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                           ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
-    return t
+    """The four official FV GRIP tiles (cropped from the FV graphics), in a row."""
+    gap = 3 * mm
+    w = (W - 3 * gap) / 4
+    row = []
+    for i, n in enumerate(TILE_FILES):
+        row += [tile_img(n, w)] + ([""] if i < 3 else [])
+    t = Table([row], colWidths=[w, gap, w, gap, w, gap, w])
+    t.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
+    cap = Table([[Paragraph(c, small) for c in ["What am I working towards?", "Where am I now, and what is working?", "What can help me get there?", "What will I do, and by when?"]]],
+                colWidths=[w + gap / 3] * 4)
+    cap.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER"), ("LEFTPADDING", (0, 0), (-1, -1), 2), ("RIGHTPADDING", (0, 0), (-1, -1), 2), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+    return KeepTogether([t, Spacer(1, 3), cap])
 
 
 def about_me():
@@ -175,10 +188,10 @@ qs = [("G", "Goals", ["What do you want to get out of this season?", "Where woul
       ("R", "Reflect / Review", ["What is going well in your coaching right now?", "What would you change about a recent session or match?"]),
       ("I", "Input", ["What would help most: a mentor, a course, someone to observe you, more time, feedback?", "What can the club offer?"]),
       ("P", "Plan", ["What is the first step, who owns it, and by when?", "When will we check in again?"])]
-for l, n, items in qs:
-    t = Table([[Paragraph(f"<font size=16>{l}</font>", hdr_white), [Paragraph(f"<b>{n}</b>", lab)] + [Paragraph("- " + x, cell) for x in items]]], colWidths=[12 * mm, W - 12 * mm])
-    t.setStyle(TableStyle([("BACKGROUND", (0, 0), (0, 0), NAVY), ("BOX", (0, 0), (-1, -1), 0.6, LINE), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("ALIGN", (0, 0), (0, 0), "CENTER"),
-                           ("LEFTPADDING", (0, 0), (-1, -1), 8), ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))
+for (l, n, items), fname in zip(qs, TILE_FILES):
+    t = Table([[tile_img(fname, 26 * mm), [Paragraph(f"<b>{n}</b>", lab)] + [Paragraph("- " + x, cell) for x in items]]], colWidths=[30 * mm, W - 30 * mm])
+    t.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 0.6, LINE), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("ALIGN", (0, 0), (0, 0), "CENTER"),
+                           ("LEFTPADDING", (0, 0), (-1, -1), 8), ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
     story += [t, Spacer(1, 4)]
 story += [Spacer(1, 4), Paragraph("What our club will do", P("h3", fontName="Helvetica-Bold", fontSize=12, textColor=NAVY, spaceAfter=4))]
 commit = ["Give the coach protected time for the catch-up and for their development",
