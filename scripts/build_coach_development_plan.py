@@ -8,7 +8,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak, KeepTogether
+from reportlab.platypus import HRFlowable, SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak, KeepTogether
 from reportlab.lib import colors
 
 NAVY = colors.HexColor("#191B41")
@@ -189,18 +189,18 @@ qs = [("G", "Goals", ["What do you want to get out of this season?", "Where woul
       ("I", "Input", ["What would help most: a mentor, a course, someone to observe you, more time, feedback?", "What can the club offer?"]),
       ("P", "Plan", ["What is the first step, who owns it, and by when?", "When will we check in again?"])]
 for (l, n, items), fname in zip(qs, TILE_FILES):
-    t = Table([[tile_img(fname, 26 * mm), [Paragraph("- " + x, cell) for x in items]]], colWidths=[30 * mm, W - 30 * mm])
+    t = Table([[tile_img(fname, 26 * mm), [f for x in items for f in ([Paragraph("- " + x, cell)] + [Spacer(1, 5 * mm), HRFlowable(width="100%", thickness=0.4, color=LINE, spaceBefore=0, spaceAfter=0)] * 2 + [Spacer(1, 2 * mm)])]]], colWidths=[30 * mm, W - 30 * mm])
     t.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 0.6, LINE), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("ALIGN", (0, 0), (0, 0), "CENTER"),
-                           ("LEFTPADDING", (0, 0), (-1, -1), 8), ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
-    story += [t, Spacer(1, 4)]
+                           ("LEFTPADDING", (0, 0), (-1, -1), 8), ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
+    story += [t, Spacer(1, 3)]
 story += [Spacer(1, 4), Paragraph("What our club will do", P("h3", fontName="Helvetica-Bold", fontSize=12, textColor=NAVY, spaceAfter=4))]
 commit = ["Give the coach protected time for the catch-up and for their development",
           "Name one club contact who checks in with them", "Contribute to course or licence fees (all or part)",
           "Connect them with a mentor (for example through Coach 2 Mentor)", "Let them observe, or be observed by, another coach",
           "Agree a date for the next catch-up"]
-ct = Table([[Paragraph("[  ] " + c, cell)] for c in commit], colWidths=[W], rowHeights=[8 * mm] * len(commit))
+ct = Table([[Paragraph("[  ] " + c, cell)] for c in commit], colWidths=[W], rowHeights=[6.5 * mm] * len(commit))
 ct.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 0.6, LINE), ("LINEBELOW", (0, 0), (-1, -2), 0.3, LINE), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 8)]))
-story += [ct, Spacer(1, 6), box("Notes and what we agreed", 22 * mm)]
+story += [ct, Spacer(1, 6), box("Notes and what we agreed", 14 * mm)]
 
 doc = SimpleDocTemplate("private/resources/coach-development-plan.pdf", pagesize=A4, leftMargin=15 * mm, rightMargin=15 * mm, topMargin=14 * mm, bottomMargin=16 * mm,
                         title="Coach Development Plan (GRIP)", author="Coach In Mind")
