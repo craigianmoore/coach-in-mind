@@ -189,7 +189,7 @@ qs = [("G", "Goals", ["What do you want to get out of this season?", "Where woul
       ("I", "Input", ["What would help most: a mentor, a course, someone to observe you, more time, feedback?", "What can the club offer?"]),
       ("P", "Plan", ["What is the first step, who owns it, and by when?", "When will we check in again?"])]
 for (l, n, items), fname in zip(qs, TILE_FILES):
-    t = Table([[tile_img(fname, 26 * mm), [Paragraph(f"<b>{n}</b>", lab)] + [Paragraph("- " + x, cell) for x in items]]], colWidths=[30 * mm, W - 30 * mm])
+    t = Table([[tile_img(fname, 26 * mm), [Paragraph("- " + x, cell) for x in items]]], colWidths=[30 * mm, W - 30 * mm])
     t.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 0.6, LINE), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("ALIGN", (0, 0), (0, 0), "CENTER"),
                            ("LEFTPADDING", (0, 0), (-1, -1), 8), ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
     story += [t, Spacer(1, 4)]
