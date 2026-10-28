@@ -87,9 +87,13 @@ def tiles():
         row += [tile_img(n, w)] + ([""] if i < 3 else [])
     t = Table([row], colWidths=[w, gap, w, gap, w, gap, w])
     t.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
-    cap = Table([[Paragraph(c, small) for c in ["What am I working towards?", "Where am I now, and what is working?", "What can help me get there?", "What will I do, and by when?"]]],
-                colWidths=[w + gap / 3] * 4)
-    cap.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER"), ("LEFTPADDING", (0, 0), (-1, -1), 2), ("RIGHTPADDING", (0, 0), (-1, -1), 2), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+    cap_style = P("cap", fontName="Helvetica", fontSize=8.5, leading=11.5, textColor=MUTED, alignment=TA_CENTER)
+    texts = ["What am I working towards?", "Where am I now, and what is working?", "What can help me get there?", "What will I do, and by when?"]
+    caprow = []
+    for i, c in enumerate(texts):
+        caprow += [Paragraph(c, cap_style)] + ([""] if i < 3 else [])
+    cap = Table([caprow], colWidths=[w, gap, w, gap, w, gap, w])  # same columns as the tiles, so each caption sits centred under its tile
+    cap.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
     return KeepTogether([t, Spacer(1, 3), cap])
 
 
