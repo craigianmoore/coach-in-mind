@@ -51,6 +51,11 @@ export default function ResourcesBox() {
         )}
       </p>
       <p className="mt-3 text-sm text-gray-600">
+        <Title href="/api/resources/coach-development-plan.pdf" external ok={acc?.manual === true}>Coach Development Plan (GRIP)</Title>{" "}
+        — a printable plan built on the GRIP model (Goals, Reflect/Review, Input, Plan) for a coach to set goals, take stock, choose
+        what will help and plan the next steps, with a one-page companion for clubs to use in a catch-up with their coach.
+      </p>
+      <p className="mt-3 text-sm text-gray-600">
         <Title href="/api/resources/coach-interview-checklist.pdf" external ok={acc?.checklist === true}>Interviewing a Coach — Checklist for Clubs</Title>{" "}
         — a one-page checklist to work through when interviewing a coach: sighting their current Licence/Diploma,
         confirming a valid WWCC, checking Play Football registration, and asking about any disciplinary history.

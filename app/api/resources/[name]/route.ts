@@ -7,7 +7,7 @@ import { resourceAccess } from "@/lib/server/resourceAccess";
 
 export const dynamic = "force-dynamic";
 
-const FILES = { "coach-influence-manual.pdf": "manual", "coach-interview-checklist.pdf": "checklist" } as const;
+const FILES = { "coach-influence-manual.pdf": "manual", "coach-interview-checklist.pdf": "checklist", "coach-development-plan.pdf": "manual" } as const;
 
 export async function GET(_req: Request, { params }: { params: Promise<{ name: string }> }) {
   const { name } = await params;
