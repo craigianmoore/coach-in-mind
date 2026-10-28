@@ -390,8 +390,8 @@ export async function sendClubInviteBatch(service: SupabaseClient, n: number, re
   return { sent, failed, paused };
 }
 
-// One scheduled batch: clubs get their share (when switched on), the rest goes to coaches (new invitations first,
-// then reminders). If a group has nobody left to send to, its unused places go to the other.
+// One scheduled batch: clubs get their share (when switched on), the rest goes to coaches (half reminders, half new
+// invitations, when both are available). If a group has nobody left to send to, its unused places go to the other.
 export async function sendScheduledBatch(service: SupabaseClient, want: number) {
   const c = await inviteCounts(service);
   const room = c.dailyCap - c.sentLast24h;
@@ -407,6 +407,9 @@ export async function sendScheduledBatch(service: SupabaseClient, want: number) 
   };
   const used = () => sent + failed;
   if (c.clubEnabled && c.clubShare > 0) add(await sendClubInviteBatch(service, Math.round((n * c.clubShare) / 100), c.clubRegions));
+  // The coach share is a mix: up to half goes to reminders that are due (when switched on), the rest to new invitations.
+  // Reminders used to get only what new invitations left over, which in practice was nothing.
+  if (!paused && c.remindersEnabled && n - used() > 0) add(await sendReminderBatch(service, Math.ceil((n - used()) / 2)));
   if (!paused && n - used() > 0) {
     const r = await sendInviteBatch(service, n - used(), { ignoreRollingCap: true });
     add({ sent: r.sent, failed: r.failed, paused: r.paused });
