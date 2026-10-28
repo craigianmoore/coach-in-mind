@@ -20,6 +20,7 @@ export const REGIONS_BY_STATE: Record<string, readonly string[]> = {
     "Shepparton",
     "South West",
     "Sunraysia",
+    "Border",
   ],
   TAS: ["North", "North-West", "South"],
   // Northern NSW Football's actual catchment — the Hunter Region.
