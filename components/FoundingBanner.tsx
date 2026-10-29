@@ -24,13 +24,6 @@ export default function FoundingBanner({
   }, []);
   if (!s || !s.enabled || s.used >= s.lim) return null;
   const left = s.lim - s.used;
-  const pct = Math.max(4, Math.round((s.used / s.lim) * 100));
-
-  const bar = (
-    <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-black/20">
-      <div className="h-3 rounded-full bg-white/90" style={{ width: `${pct}%` }} />
-    </div>
-  );
 
   if (variant === "hero") {
     return (
@@ -39,12 +32,11 @@ export default function FoundingBanner({
       >
         <p className="text-sm font-extrabold uppercase tracking-[0.2em]">⭐ Founding member offer</p>
         <p className="mt-2 text-3xl font-extrabold leading-tight sm:text-4xl">
-          First {s.lim} coaches get a FREE credit
+          Founding coaches get a FREE credit
         </p>
         <p className="mt-2 text-lg font-semibold">
           Sign up as a coach and your free credit is added to your account straight away — press Activate whenever you&apos;re ready. Use your credit for Club 2 Coach (30 days in front of clubs) or Coach 2 Mentor (60 days of mentor matching) — you choose, and the clock only starts when you press Activate. Completing your profile doesn&apos;t spend it. Only {left} spot{left === 1 ? "" : "s"} left.
         </p>
-        {bar}
         <p className="mt-4 text-lg font-extrabold">Sign up free below ↓</p>
       </div>
     );
@@ -56,12 +48,11 @@ export default function FoundingBanner({
     >
       <p className="text-xs font-extrabold uppercase tracking-widest">⭐ Founding member offer</p>
       <p className="mt-1 text-xl font-extrabold leading-snug sm:text-2xl">
-        First {s.lim} coaches get a FREE credit
+        Founding coaches get a FREE credit
       </p>
       <p className="mt-1 text-sm font-semibold">
-        Only {left} of {s.lim} left — open your coach page (Club 2 Coach or Coach 2 Mentor) to claim your free credit — it&apos;s added to your credit balance straight away, and you press Activate whenever you&apos;re ready. It buys 30 days in front of clubs, or 60 days of mentor matching. Completing your profile doesn&apos;t spend it.
+        Only {left} founding credit{left === 1 ? "" : "s"} left — open your coach page (Club 2 Coach or Coach 2 Mentor) to claim your free credit — it&apos;s added to your credit balance straight away, and you press Activate whenever you&apos;re ready. It buys 30 days in front of clubs, or 60 days of mentor matching. Completing your profile doesn&apos;t spend it.
       </p>
-      {bar}
     </div>
   );
 }

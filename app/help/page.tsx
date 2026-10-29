@@ -107,7 +107,7 @@ export default function HelpPage() {
             <div>
               <p className="font-medium text-gray-800">What's the founding member offer?</p>
               <p className="mt-1 text-gray-600">
-                The first 100 coaches to sign up get one free credit, to use on either
+                Founding coaches get one free credit while places last, to use on either
                 Club 2 Coach or Coach 2 Mentor (you choose — one per coach, and not for mentor
                 profiles). The credit is added to your credit balance as soon as you open your coach page
                 (Club 2 Coach or Coach 2 Mentor), and you press Activate there whenever you're ready.
