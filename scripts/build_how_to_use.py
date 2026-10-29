@@ -217,9 +217,9 @@ story.append(callout(
         "Founding coaches get one free credit while places last. It is added to your credit balance as soon as you "
         "open your coach page (Club 2 Coach or Coach 2 Mentor) — you don't need to save a listing first. Use it on "
         "either service (you choose); it can't be used on a mentor profile, and mentors and clubs don't take up one of "
-        "the 100 places. Press <b>Activate</b> whenever you're ready; the clock (30 days on Club 2 Coach, up to 3 "
-        "introductions, or 60 days on Coach 2 Mentor) only starts then. It's one free credit per coach, and it "
-        "ends once all 100 places are taken. Clubs keep their own free first introduction.",
+        "the founding places. Press <b>Activate</b> whenever you're ready; the clock (30 days on Club 2 Coach, up to 3 "
+        "introductions, or 60 days on Coach 2 Mentor) only starts then. Completing your profile doesn't spend the credit. It's one free credit per coach, and it "
+        "ends once all the founding places are taken. Clubs keep their own free first introduction.",
     ],
 ))
 story.append(Spacer(1, 4))
