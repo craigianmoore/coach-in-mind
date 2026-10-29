@@ -35,8 +35,12 @@ export default function FoundingBanner({
           Founding coaches get a FREE credit
         </p>
         <p className="mt-2 text-lg font-semibold">
-          Sign up as a coach and your free credit is added to your account straight away — press Activate whenever you&apos;re ready. Use your credit for Club 2 Coach (30 days in front of clubs) or Coach 2 Mentor (60 days of mentor matching) — you choose, and the clock only starts when you press Activate. Completing your profile doesn&apos;t spend it. Only {left} spot{left === 1 ? "" : "s"} left.
+          Sign up as a coach and your free credit is added to your account straight away.
         </p>
+        <p className="mt-3 text-base font-semibold">
+          Use it for <strong>Club 2 Coach</strong> (30 days in front of clubs) or <strong>Coach 2 Mentor</strong> (60 days of mentor matching). You choose, and your time only starts when you press Activate. Completing your profile doesn&apos;t spend it.
+        </p>
+        <p className="mt-3 text-lg font-extrabold">Only {left} spot{left === 1 ? "" : "s"} left.</p>
         <p className="mt-4 text-lg font-extrabold">Sign up free below ↓</p>
       </div>
     );
