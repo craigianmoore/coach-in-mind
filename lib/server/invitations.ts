@@ -55,7 +55,7 @@ Finding your next club often comes down to chance: word of mouth, a post in a gr
 
 Coach In Mind starts with alignment instead. You tell us what you're looking for (role, age group, ability, competition level and area), clubs tell us what they need, and we match the two, so the fit is closer from the start. If you're after a Ford, we won't send you to a Toyota showroom.
 
-We also connect coaches with mentors who can help you develop. We're opening to coaches first and bringing clubs in shortly, so coaches who join now will be in place when clubs arrive. The first 100 coaches get a free founding credit, so it costs nothing to try.
+We also connect coaches with mentors who can help you develop. We're opening to coaches first and bringing clubs in shortly, so coaches who join now will be in place when clubs arrive. The first 100 coaches get a free founding credit, so it costs nothing to try. Signing up and completing your profile doesn't spend it; it's only used when you choose to activate.
 
 Sign up here: https://www.coachinmind.com.au/signup
 
@@ -137,7 +137,7 @@ Most clubs find coaches through word of mouth, a social media post, or whoever p
 
 Coach In Mind starts with alignment instead. You tell us what you need (role, age group, ability, competition level and area), coaches tell us what they're looking for, and we match the two, so the fit is closer from the start. If you're after a Ford, we won't send you to a Toyota showroom.
 
-Your first introduction is free, with no obligation.
+Your first introduction is free, with no obligation. Setting up your account and vacancy doesn't spend it.
 
 Advertise a vacancy here: https://www.coachinmind.com.au/signup
 
