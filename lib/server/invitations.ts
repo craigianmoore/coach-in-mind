@@ -117,7 +117,7 @@ Sign up here: https://www.coachinmind.com.au/signup
 This is the only reminder we'll send. If you'd rather not hear from us again, just reply "no thanks" and we'll remove you.`;
 }
 
-export const CLUB_INVITE_SUBJECT = "Finding a coach shouldn't be a lottery (get a free introduction)";
+export const CLUB_INVITE_SUBJECT = "Hiring a coach shouldn't be a lottery. Skip the guesswork.";
 
 // Written in the "we" voice, signed by the standard Coach In Mind footer. Deliberately no mention of any
 // governing body or Football Victoria.
@@ -129,11 +129,13 @@ export function clubInviteText(clubName: string, state?: string | null) {
 
 You're receiving this one-off note because ${club}, and clubs often need to find coaches.
 
+Hiring a coach shouldn't be a lottery. Skip the guesswork. Get introduced to a coach who suits your club.
+
 Most clubs find coaches through word of mouth, a social media post, or whoever puts their hand up. It's hit and miss. How well has that worked for you?
 
 Coach In Mind starts with alignment instead. You tell us what you need (role, age group, ability, competition level and area), coaches tell us what they're looking for, and we match the two, so the fit is closer from the start. If you're after a Ford, we won't send you to a Toyota showroom.
 
-Your first introduction is free, so it costs nothing to try.
+Your first introduction is free, with no obligation.
 
 Advertise a vacancy here: https://www.coachinmind.com.au/signup
 
