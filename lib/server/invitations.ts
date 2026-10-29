@@ -1,5 +1,5 @@
 // The one-off coach invitation email, and helpers for the admin send tool.
-export const INVITE_SUBJECT = "Finding a club shouldn't be a lottery (free for the first 100 coaches)";
+export const INVITE_SUBJECT = "Finding a club shouldn't be a lottery. Skip the guesswork.";
 
 // Default for how many emails (invitations, reminders and club invitations together) may go out in any rolling 24
 // hours. The admin can change it on the Invites tab (platform_settings.invite_daily_limit). Sending is spread across
@@ -49,6 +49,8 @@ export function inviteText(first: string, state?: string | null) {
 
 You’re receiving this one-off invitation because, as ${who}, you may be interested to hear about football coaching opportunities.
 
+Finding a club shouldn't be a lottery. Skip the guesswork. Get introduced to a club that suits you.
+
 Finding your next club often comes down to chance: word of mouth, a post in a group, or applying and hoping. How well has that worked for you?
 
 Coach In Mind starts with alignment instead. You tell us what you're looking for (role, age group, ability, competition level and area), clubs tell us what they need, and we match the two, so the fit is closer from the start. If you're after a Ford, we won't send you to a Toyota showroom.
@@ -95,7 +97,7 @@ export function firstNameOf(full: string) {
 }
 
 // ---- Reminder and club emails ----
-export const REMINDER_SUBJECT = "A quick follow-up: finding a club shouldn't be a lottery (free for the first 100 coaches)";
+export const REMINDER_SUBJECT = "A quick follow-up: finding a club shouldn't be a lottery. Skip the guesswork.";
 
 // Sent once only, to people invited a few days earlier who have not signed up and have not said no thanks.
 export function reminderText(first: string, state?: string | null) {
