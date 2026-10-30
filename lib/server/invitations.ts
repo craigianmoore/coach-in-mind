@@ -55,7 +55,7 @@ Finding your next club often comes down to chance: word of mouth, a post in a gr
 
 Coach In Mind starts with alignment instead. You tell us what you're looking for (role, age group, ability, competition level and area), clubs tell us what they need, and we match the two, so the fit is closer from the start. If you're after a Ford, we won't send you to a Toyota showroom.
 
-We also connect coaches with mentors who can help you develop. We're opening to coaches first and bringing clubs in shortly, so coaches who join now will be in place when clubs arrive. Founding coaches get a free credit while places last, so it costs nothing to try. Signing up and completing your profile doesn't spend it; it's only used when you choose to activate.
+We also connect coaches with mentors who can help you develop. We're opening to coaches first and bringing clubs in shortly, so coaches who join now will be in place when clubs arrive. Founding coaches get a free credit while places last, so it costs nothing to try. Signing up and completing your profile doesn't use it; it's only used when you choose to activate.
 
 Sign up here: https://www.coachinmind.com.au/signup
 
@@ -119,7 +119,7 @@ Sign up here: https://www.coachinmind.com.au/signup
 This is the only reminder we'll send. If you'd rather not hear from us again, just reply "no thanks" and we'll remove you.`;
 }
 
-export const CLUB_INVITE_SUBJECT = "Hiring a coach shouldn't be a lottery. Skip the guesswork.";
+export const CLUB_INVITE_SUBJECT = "Have you filled all your coaching roles?";
 
 // Written in the "we" voice, signed by the standard Coach In Mind footer. Deliberately no mention of any
 // governing body or Football Victoria.
@@ -131,13 +131,13 @@ export function clubInviteText(clubName: string, state?: string | null) {
 
 You're receiving this one-off note because ${club}, and clubs often need to find coaches.
 
-Hiring a coach shouldn't be a lottery. Skip the guesswork. Get introduced to a coach who suits your club.
+Have you filled all your coaching roles for next season?
 
-Most clubs find coaches through word of mouth, a social media post, or whoever puts their hand up. It's hit and miss. How well has that worked for you?
+If not, you're not alone. Most clubs find coaches through word of mouth, a social media post, or whoever puts their hand up, and it's hit and miss. Hiring a coach shouldn't be a lottery. Skip the guesswork. Get introduced to a coach who suits your club.
 
-Coach In Mind starts with alignment instead. You tell us what you need (role, age group, ability, competition level and area), coaches tell us what they're looking for, and we match the two, so the fit is closer from the start. If you're after a Ford, we won't send you to a Toyota showroom.
+Coach In Mind matches on fit instead. You tell us the role, age group, ability, competition level and area, coaches tell us what they're looking for, and we match the two. If you're after a Ford, we won't send you to a Toyota showroom.
 
-Your first introduction is free, with no obligation. Setting up your account and vacancy doesn't spend it.
+Your first introduction is free, with no obligation. Setting up your account and vacancy doesn't use it.
 
 Advertise a vacancy here: https://www.coachinmind.com.au/signup
 

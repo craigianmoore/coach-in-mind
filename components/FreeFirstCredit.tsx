@@ -56,7 +56,7 @@ export default function FreeFirstCredit({ listingTable, listingId, onClaimed }: 
     <div className="mb-3 rounded-lg border border-green-200 bg-green-50 p-3">
       <p className="text-sm font-semibold text-green-900">Your first introduction is free</p>
       <p className="mt-0.5 text-xs text-green-800">
-        Activate this listing with 1 free introduction — no payment needed. Completing your profile doesn't use it; it's only spent when you press the button. Anything after that is charged as normal.
+        Activate this listing with 1 free introduction — no payment needed. Completing your profile doesn't use it; it's only used when you press the button. Anything after that is charged as normal.
       </p>
       <button
         type="button"
