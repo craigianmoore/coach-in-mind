@@ -3,6 +3,7 @@ import { Fraunces } from "next/font/google";
 import TopNav from "@/components/TopNav";
 import ScrollToTop from "@/components/ScrollToTop";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
+import ProfileGate from "@/components/ProfileGate";
 import "./globals.css";
 
 // A single distinctive heading typeface, loaded once here and applied
@@ -52,6 +53,7 @@ export default function RootLayout({
       <body>
         <ScrollToTop />
         <TopNav />
+        <ProfileGate />
         <AnnouncementBanner />
         {children}
       </body>
