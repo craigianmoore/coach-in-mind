@@ -98,6 +98,17 @@ export function firstNameOf(full: string) {
   return f === f.toLowerCase() || f === f.toUpperCase() ? f.charAt(0).toUpperCase() + f.slice(1).toLowerCase() : f;
 }
 
+// ---- "No thanks" confirmation (sent once, when an admin records someone's no thanks) ----
+export const OPTOUT_SUBJECT = "You're off our list";
+export function optoutConfirmText(kind: "coach" | "club") {
+  const wish = kind === "club" ? "We wish you and your club all the best for the season ahead." : "We wish you all the best for the season ahead.";
+  return `Hi there,
+
+Thanks for letting us know. We've taken you off our list, so you won't hear from us again.
+
+${wish} You know where we are if you change your mind.`;
+}
+
 // ---- Reminder and club emails ----
 export const REMINDER_SUBJECT = "Still looking for a coaching position?";
 

@@ -179,7 +179,7 @@ story.append(Paragraph("Marketing &amp; tools", h3_style))
 story.append(bullets([
     "<b>Promos</b> — free first introductions and referral rewards.",
     "<b>Invites</b> — the coach invitation mail-out (sent a few at a time, with a daily limit and a one-off reminder to coaches who haven't responded) and club invitations (off at present). "
-    "Emails are in the CIM voice and signed by the Coach In Mind team.",
+    "Emails are in the CIM voice and signed by the Coach In Mind team. When someone replies \"no thanks\", enter their address in the \"Never email\" box (coaches or clubs): they are removed and sent one short confirmation (\"You're off our list\"). It is never sent twice.",
     "<b>Announcements</b> — banners shown to users.",
     "<b>Map</b> — hot spots by postcode (coaches, clubs, mentors in three colours). Above the map, \"Clubs with different postcodes\": "
     "pick the right postcode or type another, then confirm. <b>Once confirmed, a club's postcode is locked</b> and the app can never change it again; "

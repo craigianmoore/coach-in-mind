@@ -74,6 +74,7 @@ export default function InvitationsPanel() {
     setBusy(true);
     const j = await call({ action, email });
     if (j.ok) {
+      if (action === "optout") setMsg(`${email} will not be emailed.${j.confirmationSent ? " A confirmation email was sent." : ""}`);
       if (j.pending !== undefined) setCounts(j);
       setRows((rs) => rs && rs.map((r) => (r.email === email ? { ...r, status: action === "optout" ? "optout" : r.sent_at ? "sent" : "pending" } : r)));
     } else setMsg(j.error ?? "Failed");
@@ -244,7 +245,7 @@ export default function InvitationsPanel() {
           />
           <button
             disabled={busy || !optout.includes("@")}
-            onClick={() => run({ action: "optout", email: optout }, () => `${optout} will not be emailed.`).then(() => setOptout(""))}
+            onClick={() => run({ action: "optout", email: optout }, (j) => `${optout} will not be emailed.${j.confirmationSent ? " A confirmation email was sent." : ""}`).then(() => setOptout(""))}
             className="rounded-lg border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             Never email

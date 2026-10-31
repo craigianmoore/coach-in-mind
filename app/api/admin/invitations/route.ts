@@ -30,6 +30,8 @@ import {
   firstNameOf,
   inviteCounts,
   inviteText,
+  OPTOUT_SUBJECT,
+  optoutConfirmText,
   normaliseState,
   parseCsv,
   reminderText,
@@ -142,11 +144,14 @@ export async function POST(req: Request) {
   if (body.action === "optout") {
     const e = (body.email ?? "").trim().toLowerCase();
     if (!e) return NextResponse.json({ ok: false, error: "Missing email." }, { status: 400 });
+    const { data: before } = await service.from("invite_recipients").select("status").eq("email", e).maybeSingle();
     const { error } = await service
       .from("invite_recipients")
       .upsert({ email: e, status: "optout" }, { onConflict: "email" });
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true, ...(await counts()) });
+    // Confirm once, and never if they were already opted out.
+    const confirmed = before?.status === "optout" ? false : await sendEmail({ to: e, subject: OPTOUT_SUBJECT, text: optoutConfirmText("coach") });
+    return NextResponse.json({ ok: true, confirmationSent: confirmed, ...(await counts()) });
   }
 
   if (body.action === "clear_pending") {
@@ -268,10 +273,14 @@ export async function POST(req: Request) {
   if (body.action === "club_optout") {
     const e = (body.email ?? "").trim().toLowerCase();
     if (!e) return NextResponse.json({ ok: false, error: "Missing email." }, { status: 400 });
+    const { data: before } = await service.from("club_contacts").select("club_id, do_not_contact").ilike("email", e);
     const { data, error } = await service.from("club_contacts").update({ do_not_contact: true }).ilike("email", e).select("club_id");
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     if (!data || data.length === 0) return NextResponse.json({ ok: false, error: "No club contact has that email." }, { status: 404 });
-    return NextResponse.json({ ok: true, ...(await counts()) });
+    // Confirm once, and never if they were already marked do-not-contact.
+    const already = (before ?? []).length > 0 && (before ?? []).every((b) => b.do_not_contact);
+    const confirmed = already ? false : await sendEmail({ to: e, subject: OPTOUT_SUBJECT, text: optoutConfirmText("club") });
+    return NextResponse.json({ ok: true, confirmationSent: confirmed, ...(await counts()) });
   }
 
   if (body.action === "send") {

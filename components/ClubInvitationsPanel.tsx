@@ -157,7 +157,7 @@ export default function ClubInvitationsPanel() {
           <input type="email" value={optout} onChange={(e) => setOptout(e.target.value)} placeholder="their@email.com" className="w-64 rounded border border-gray-300 px-2 py-1" />
           <button
             disabled={busy || !optout.includes("@")}
-            onClick={() => run({ action: "club_optout", email: optout }, () => `${optout} will not be emailed.`).then(() => setOptout(""))}
+            onClick={() => run({ action: "club_optout", email: optout }, (j) => `${optout} will not be emailed.${j.confirmationSent ? " A confirmation email was sent." : ""}`).then(() => setOptout(""))}
             className="rounded-lg border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             Never email
