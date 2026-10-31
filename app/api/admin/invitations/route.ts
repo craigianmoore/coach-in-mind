@@ -11,6 +11,7 @@
 //   POST { action: "reminders", on }      -> switch the one-off reminder to non-responders on or off
 //   POST { action: "daily_limit", limit } -> emails allowed per rolling 24 hours (all kinds together)
 //   POST { action: "reminder_test" }      -> send the reminder to the signed-in admin only
+//   POST { action: "optout_test" }      -> send the "no thanks" confirmation to the signed-in admin only
 //   POST { action: "club_test" }          -> send the club invitation to the signed-in admin only
 //   POST { action: "club_settings", enabled, share, regions } -> club invitations on/off, % of each day, regions
 //   POST { action: "club_list" }          -> Victorian clubs with their region and invite status (for a CSV to fill in)
@@ -198,6 +199,12 @@ export async function POST(req: Request) {
   if (body.action === "reminder_test") {
     if (!auth.email) return NextResponse.json({ ok: false, error: "No admin email on this session." }, { status: 400 });
     const ok = await sendEmail({ to: auth.email, subject: `TEST: ${REMINDER_SUBJECT}`, text: reminderText("Aaron", "VIC") });
+    return NextResponse.json({ ok, to: auth.email });
+  }
+
+  if (body.action === "optout_test") {
+    if (!auth.email) return NextResponse.json({ ok: false, error: "No admin email on this session." }, { status: 400 });
+    const ok = await sendEmail({ to: auth.email, subject: `TEST: ${OPTOUT_SUBJECT}`, text: optoutConfirmText("coach") });
     return NextResponse.json({ ok, to: auth.email });
   }
 
