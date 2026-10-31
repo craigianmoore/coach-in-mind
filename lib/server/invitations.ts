@@ -1,5 +1,5 @@
 // The one-off coach invitation email, and helpers for the admin send tool.
-export const INVITE_SUBJECT = "Finding a club shouldn't be a lottery. Skip the guesswork.";
+export const INVITE_SUBJECT = "Have you found a coaching role for next season?";
 
 // Default for how many emails (invitations, reminders and club invitations together) may go out in any rolling 24
 // hours. The admin can change it on the Invites tab (platform_settings.invite_daily_limit). Sending is spread across
@@ -49,13 +49,15 @@ export function inviteText(first: string, state?: string | null) {
 
 You’re receiving this one-off invitation because, as ${who}, you may be interested to hear about football coaching opportunities.
 
-Finding a club shouldn't be a lottery. Skip the guesswork. Get introduced to a club that suits you.
+Have you found a coaching role for next season, or are you still looking?
 
-Finding your next club often comes down to chance: word of mouth, a post in a group, or applying and hoping. How well has that worked for you?
+If you're still looking, you're not alone. Finding your next club often comes down to chance: word of mouth, a post in a group, or applying and hoping. Finding a club shouldn't be a lottery. Skip the guesswork. Get introduced to a club that suits you.
 
-Coach In Mind starts with alignment instead. You tell us what you're looking for (role, age group, ability, competition level and area), clubs tell us what they need, and we match the two, so the fit is closer from the start. If you're after a Ford, we won't send you to a Toyota showroom.
+Coach In Mind matches on fit instead. You tell us what you're looking for (role, age group, ability, competition level and area), clubs tell us what they need, and we match the two. If you're after a Ford, we won't send you to a Toyota showroom.
 
-We also connect coaches with mentors who can help you develop. We're opening to coaches first and bringing clubs in shortly, so coaches who join now will be in place when clubs arrive. Founding coaches get a free credit while places last, so it costs nothing to try. Signing up and completing your profile doesn't start the clock or touch your credit; that only happens when you choose to activate.
+Many of the best coaches had a mentor along the way. If you're not ready for one, that's fine. If you think you are, sign up and we'll connect you with one.
+
+Founding coaches get a free credit while places last. Signing up and completing your profile doesn't start the clock or touch your credit; that only happens when you choose to activate.
 
 Sign up here: https://www.coachinmind.com.au/signup
 
@@ -97,22 +99,22 @@ export function firstNameOf(full: string) {
 }
 
 // ---- Reminder and club emails ----
-export const REMINDER_SUBJECT = "A quick follow-up: finding a club shouldn't be a lottery. Skip the guesswork.";
+export const REMINDER_SUBJECT = "Still looking for a coaching position?";
 
 // Sent once only, to people invited a few days earlier who have not signed up and have not said no thanks.
 export function reminderText(first: string, state?: string | null) {
   const hi = first ? `Hi ${first},` : "Hi there,";
-  const adj = STATE_ADJECTIVE[state ?? ""];
-  const who = adj ? `a ${adj} football coach` : "a football coach";
   return `${hi}
 
 Just a quick follow-up to our note a few days ago, in case it got buried.
 
-As ${who}, you'll know that finding your next club often comes down to chance: word of mouth, a post in a group, or applying and hoping. How well has that worked for you?
+Are you still looking for a coaching position for next season? If so, finding a club shouldn't be a lottery. Skip the guesswork. Get introduced to a club that suits you.
 
-Coach In Mind starts with alignment instead. You tell us what you're looking for (role, age group, ability, competition level and area), clubs tell us what they need, and we match the two, so the fit is closer from the start. If you're after a Ford, we won't send you to a Toyota showroom.
+You tell us what you're looking for (role, age group, ability, competition level and area), clubs tell us what they need, and we match the two. If you're after a Ford, we won't send you to a Toyota showroom.
 
-We also connect coaches with mentors who can help you develop. We're opening to coaches first and bringing clubs in shortly, so coaches who join now will be in place when clubs arrive. Founding coaches get a free credit while places last, so it costs nothing to try.
+Many of the best coaches had a mentor along the way. If you're not ready for one, that's fine. If you think you are, we can connect you with one.
+
+Founding coaches get a free credit while places last, and completing your profile doesn't touch it.
 
 Sign up here: https://www.coachinmind.com.au/signup
 
