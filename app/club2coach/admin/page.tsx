@@ -2723,7 +2723,7 @@ function Club2CoachAdmin() {
             if (c2mCoachListings.some((l) => l.person_id === p.id && !l.deleted_at)) roleBadges.push({ label: "Seeking mentor", cls: "bg-sky-100 text-sky-700", border: "#0ea5e9" });
             if (vacancies.some((v) => v.person_id === p.id && !v.deleted_at)) roleBadges.push({ label: "Club", cls: "bg-orange-100 text-orange-700", border: "#ea580c" });
             if (c2mMentorListings.some((m) => m.person_id === p.id && !m.deleted_at)) roleBadges.push({ label: "Mentor", cls: "bg-green-100 text-green-700", border: "#16a34a" });
-            if (roleBadges.length === 0) roleBadges.push({ label: "No profile yet", cls: "bg-amber-100 text-amber-800", border: "#d97706" });
+            if (roleBadges.length === 0) roleBadges.push({ label: "No profile yet", cls: "bg-gray-200 text-gray-600", border: "#9ca3af" });
             const isNew = Date.now() - new Date(p.created_at).getTime() < 24 * 60 * 60 * 1000;
             const isExpanded = expandedPersonId === p.id;
             const activity = isExpanded ? activityForPerson(p.id) : null;
