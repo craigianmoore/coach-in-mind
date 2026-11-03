@@ -178,7 +178,7 @@ function Club2CoachAdmin() {
   const [supportQueries, setSupportQueries] = useState<SupportQuery[]>([]);
 
   const [supportFilter, setSupportFilter] = useState<"open" | "resolved" | "all">("open");
-  const [peopleFilter, setPeopleFilter] = useState<"all" | "coach" | "club" | "mentor" | "none">("all");
+  const [peopleFilter, setPeopleFilter] = useState<"all" | "coach" | "club" | "mentor" | "none" | "deleted">("all");
   const [listingsPaidFilter, setListingsPaidFilter] = useState<"all" | "paid" | "unpaid">("all");
   const [listingsDeletedFilter, setListingsDeletedFilter] = useState<"active" | "all">("active");
   const [matchesFilter, setMatchesFilter] = useState<"all" | "unshared" | "shared">("all");
@@ -2681,11 +2681,17 @@ function Club2CoachAdmin() {
               club: vacancies.some((v) => v.person_id === id && !v.deleted_at),
               mentor: c2mMentorListings.some((m) => m.person_id === id && !m.deleted_at),
             });
+            const hadDeleted = (id: string) =>
+              coachListings.some((l) => l.person_id === id && l.deleted_at) ||
+              c2mCoachListings.some((l) => l.person_id === id && l.deleted_at) ||
+              vacancies.some((v) => v.person_id === id && v.deleted_at) ||
+              c2mMentorListings.some((m) => m.person_id === id && m.deleted_at);
             const kinds = (id: string) => {
               const r = rolesOf(id);
-              return { coach: r.coach || r.seeker, club: r.club, mentor: r.mentor, none: !(r.coach || r.seeker || r.club || r.mentor) };
+              const live = r.coach || r.seeker || r.club || r.mentor;
+              return { coach: r.coach || r.seeker, club: r.club, mentor: r.mentor, deleted: !live && hadDeleted(id), none: !live && !hadDeleted(id) };
             };
-            const count = (k: "coach" | "club" | "mentor" | "none") => allPeople.filter((p) => kinds(p.id)[k]).length;
+            const count = (k: "coach" | "club" | "mentor" | "none" | "deleted") => allPeople.filter((p) => kinds(p.id)[k]).length;
             return (
               <div className="flex flex-wrap gap-2">
                 {([
@@ -2694,6 +2700,7 @@ function Club2CoachAdmin() {
                   ["club", `Clubs (${count("club")})`],
                   ["mentor", `Mentors (${count("mentor")})`],
                   ["none", `No profile yet (${count("none")})`],
+                  ["deleted", `Deleted profile (${count("deleted")})`],
                 ] as const).map(([v, label]) => (
                   <button
                     key={v}
@@ -2716,14 +2723,27 @@ function Club2CoachAdmin() {
             if (peopleFilter === "coach") return coach;
             if (peopleFilter === "club") return club;
             if (peopleFilter === "mentor") return mentor;
-            return !(coach || club || mentor);
+            const live = coach || club || mentor;
+            const hadDel =
+              coachListings.some((l) => l.person_id === p.id && l.deleted_at) ||
+              c2mCoachListings.some((l) => l.person_id === p.id && l.deleted_at) ||
+              vacancies.some((v) => v.person_id === p.id && v.deleted_at) ||
+              c2mMentorListings.some((m) => m.person_id === p.id && m.deleted_at);
+            return peopleFilter === "deleted" ? !live && hadDel : !live && !hadDel;
           }).map((p) => {
             const roleBadges: { label: string; cls: string; border: string }[] = [];
             if (coachListings.some((l) => l.person_id === p.id && !l.deleted_at)) roleBadges.push({ label: "Coach", cls: "bg-blue-100 text-blue-700", border: "#2563eb" });
             if (c2mCoachListings.some((l) => l.person_id === p.id && !l.deleted_at)) roleBadges.push({ label: "Seeking mentor", cls: "bg-sky-100 text-sky-700", border: "#0ea5e9" });
             if (vacancies.some((v) => v.person_id === p.id && !v.deleted_at)) roleBadges.push({ label: "Club", cls: "bg-orange-100 text-orange-700", border: "#ea580c" });
             if (c2mMentorListings.some((m) => m.person_id === p.id && !m.deleted_at)) roleBadges.push({ label: "Mentor", cls: "bg-green-100 text-green-700", border: "#16a34a" });
-            if (roleBadges.length === 0) roleBadges.push({ label: "No profile yet", cls: "bg-gray-200 text-gray-600", border: "#9ca3af" });
+            if (roleBadges.length === 0) {
+              const hadDel =
+                coachListings.some((l) => l.person_id === p.id && l.deleted_at) ||
+                c2mCoachListings.some((l) => l.person_id === p.id && l.deleted_at) ||
+                vacancies.some((v) => v.person_id === p.id && v.deleted_at) ||
+                c2mMentorListings.some((m) => m.person_id === p.id && m.deleted_at);
+              roleBadges.push(hadDel ? { label: "Deleted profile", cls: "bg-gray-800 text-white", border: "#111827" } : { label: "No profile yet", cls: "bg-gray-200 text-gray-600", border: "#9ca3af" });
+            }
             const isNew = Date.now() - new Date(p.created_at).getTime() < 24 * 60 * 60 * 1000;
             const isExpanded = expandedPersonId === p.id;
             const activity = isExpanded ? activityForPerson(p.id) : null;
