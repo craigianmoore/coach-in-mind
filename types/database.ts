@@ -132,6 +132,8 @@ export interface Club2CoachShare {
   // happened at match time regardless of outcome; this only gates
   // whether another (also-chargeable) match can be offered.
   outcome: "pending" | "filled" | "not_filled";
+  // Optional reason the club gave with its answer. Admin-only; the coach never sees it.
+  outcome_note?: string | null;
   // The coach's own answer to "did you take this role?" (asked ~7 days after the introduction).
   coach_response?: "hired" | "not_hired" | null;
   coach_responded_at?: string | null;

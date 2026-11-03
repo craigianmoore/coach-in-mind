@@ -180,6 +180,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   const stripeEnabled = useStripePaymentsEnabled();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [outcomeNote, setOutcomeNote] = useState("");
   const [dirty, setDirty] = useState(false); // true once a detail has been changed since the last save/open
   const [error, setError] = useState<string | null>(null);
 
@@ -358,7 +359,9 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   // — it doesn't refund or extend anything, the club simply pays for
   // their next introduction same as any other.
   async function confirmShareOutcome(v: Club2CoachClubVacancy, share: Club2CoachShare, outcome: "filled" | "not_filled") {
-    await supabase.from("club2coach_shares").update({ outcome }).eq("id", share.id);
+    const note = outcomeNote.trim();
+    await supabase.from("club2coach_shares").update({ outcome, ...(note ? { outcome_note: note } : {}) }).eq("id", share.id);
+    setOutcomeNote("");
     if (outcome === "filled") {
       await supabase
         .from("club2coach_club_vacancies")
@@ -877,6 +880,17 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 We won't put forward another coach for this vacancy until you let us know —
                 your next introduction (if you need one) will be a fresh match, same as this one.
               </p>
+              <label className="mt-2 block text-xs font-semibold text-amber-900">
+                Anything to add? (optional)
+                <textarea
+                  value={outcomeNote}
+                  onChange={(e) => setOutcomeNote(e.target.value)}
+                  maxLength={500}
+                  rows={2}
+                  placeholder="For example, why it did or didn't work out. Only Coach In Mind sees this; the coach won't."
+                  className="mt-1 w-full rounded border border-amber-300 bg-white px-2 py-1 text-sm font-normal text-gray-800"
+                />
+              </label>
               <div className="mt-2 flex gap-2">
                 <button
                   type="button"

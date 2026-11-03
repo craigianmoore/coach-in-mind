@@ -1872,6 +1872,11 @@ function Club2CoachAdmin() {
                                 ⚠ Club says filled — coach says not hired
                               </span>
                             )}
+                            {shareRow?.outcome_note && (
+                              <span className="max-w-xs text-xs italic text-gray-600" title="Optional note from the club (admin only)">
+                                Club note: {shareRow.outcome_note}
+                              </span>
+                            )}
                             <span className="text-xs text-green-600">✓ Shared</span>
                             <button
                               onClick={() => shareRow && revokeShare(shareRow.id)}
