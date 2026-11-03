@@ -40,3 +40,26 @@ export async function sendSignupReminders(supabase: SupabaseClient): Promise<num
   }
   return sent;
 }
+
+// A second, one-off nudge to people who already had the "finish your profile" reminder and still have no profile. It
+// answers the usual hesitations (can't change it, it's shared straight away, didn't realise it was needed).
+export async function sendSignupFollowups(supabase: SupabaseClient): Promise<number> {
+  const { data, error } = await supabase.rpc("signup_followups_due", { max_rows: 40 });
+  if (error) {
+    console.error("cron match-sweep: signup_followups_due failed", error.message);
+    return 0;
+  }
+  let sent = 0;
+  for (const row of (data as { reminder_person_id: string }[] | null) ?? []) {
+    const { data: p } = await supabase.from("people").select("full_name,email").eq("id", row.reminder_person_id).maybeSingle();
+    let ok = false;
+    if (p?.email) {
+      const first = (p.full_name ?? "").trim().split(/\s+/)[0] || "there";
+      const text = `Hi ${first},\n\nYou signed up to Coach In Mind, but your profile isn't set up yet, and without one we can't match you with a club, coach or mentor. It takes about five minutes.\n\nA few things people often wonder about:\n\n- You can change it any time. Nothing you enter is locked in.\n- Nothing goes live until you activate it. Your time and your live profile only start then, and completing your profile doesn't use your credit. Even when it's live, your contact details stay private until we've approved an introduction.\n\nFinish your profile here: ${APP_URL}/profile\n\nIf you've decided it's not for you, just reply "no thanks" and we'll leave you alone.`;
+      ok = await sendEmail({ to: p.email, subject: "Quick question about your Coach In Mind profile", text });
+    }
+    if (ok) sent += 1;
+    else await supabase.from("signup_reminders").delete().eq("person_id", row.reminder_person_id).eq("kind", "no_profile_2");
+  }
+  return sent;
+}

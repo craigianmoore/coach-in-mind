@@ -6,7 +6,7 @@ import { notifyMentoringRequests } from "@/lib/server/notifyMentoring";
 import { APP_URL, sendEmail } from "@/lib/server/sendEmail";
 import { sendAdminEmail } from "@/lib/server/sendAdminEmail";
 import { sendPayClarifications } from "@/lib/server/payClarifications";
-import { sendSignupReminders } from "@/lib/server/signupReminders";
+import { sendSignupFollowups, sendSignupReminders } from "@/lib/server/signupReminders";
 import { retryQueuedEmails } from "@/lib/server/emailRetry";
 
 // Safety-net sweep: runs the same matching logic admin triggers by hand
@@ -130,6 +130,7 @@ export async function GET(req: Request) {
   await sendClubOutcomeNudges(supabase);
   try {
     await sendPayClarifications(supabase);
+    await sendSignupFollowups(supabase);
     await sendSignupReminders(supabase);
   } catch (err) {
     console.error("cron match-sweep: signup reminders failed", err);
