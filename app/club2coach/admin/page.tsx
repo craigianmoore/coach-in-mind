@@ -178,6 +178,7 @@ function Club2CoachAdmin() {
   const [supportQueries, setSupportQueries] = useState<SupportQuery[]>([]);
 
   const [supportFilter, setSupportFilter] = useState<"open" | "resolved" | "all">("open");
+  const [peopleFilter, setPeopleFilter] = useState<"all" | "coach" | "club" | "mentor" | "none">("all");
   const [listingsPaidFilter, setListingsPaidFilter] = useState<"all" | "paid" | "unpaid">("all");
   const [listingsDeletedFilter, setListingsDeletedFilter] = useState<"active" | "all">("active");
   const [matchesFilter, setMatchesFilter] = useState<"all" | "unshared" | "shared">("all");
@@ -2673,7 +2674,56 @@ function Club2CoachAdmin() {
           <p className="text-sm text-gray-600">
             {allPeople.length} total · {newSignupsCount} signed up in the last 24 hours
           </p>
-          {allPeople.map((p) => {
+          {(() => {
+            const rolesOf = (id: string) => ({
+              coach: coachListings.some((l) => l.person_id === id && !l.deleted_at),
+              seeker: c2mCoachListings.some((l) => l.person_id === id && !l.deleted_at),
+              club: vacancies.some((v) => v.person_id === id && !v.deleted_at),
+              mentor: c2mMentorListings.some((m) => m.person_id === id && !m.deleted_at),
+            });
+            const kinds = (id: string) => {
+              const r = rolesOf(id);
+              return { coach: r.coach || r.seeker, club: r.club, mentor: r.mentor, none: !(r.coach || r.seeker || r.club || r.mentor) };
+            };
+            const count = (k: "coach" | "club" | "mentor" | "none") => allPeople.filter((p) => kinds(p.id)[k]).length;
+            return (
+              <div className="flex flex-wrap gap-2">
+                {([
+                  ["all", `All (${allPeople.length})`],
+                  ["coach", `Coaches (${count("coach")})`],
+                  ["club", `Clubs (${count("club")})`],
+                  ["mentor", `Mentors (${count("mentor")})`],
+                  ["none", `No profile yet (${count("none")})`],
+                ] as const).map(([v, label]) => (
+                  <button
+                    key={v}
+                    onClick={() => setPeopleFilter(v)}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      peopleFilter === v ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
+          {allPeople.filter((p) => {
+            if (peopleFilter === "all") return true;
+            const coach = coachListings.some((l) => l.person_id === p.id && !l.deleted_at) || c2mCoachListings.some((l) => l.person_id === p.id && !l.deleted_at);
+            const club = vacancies.some((v) => v.person_id === p.id && !v.deleted_at);
+            const mentor = c2mMentorListings.some((m) => m.person_id === p.id && !m.deleted_at);
+            if (peopleFilter === "coach") return coach;
+            if (peopleFilter === "club") return club;
+            if (peopleFilter === "mentor") return mentor;
+            return !(coach || club || mentor);
+          }).map((p) => {
+            const roleBadges: { label: string; cls: string; border: string }[] = [];
+            if (coachListings.some((l) => l.person_id === p.id && !l.deleted_at)) roleBadges.push({ label: "Coach", cls: "bg-blue-100 text-blue-700", border: "#2563eb" });
+            if (c2mCoachListings.some((l) => l.person_id === p.id && !l.deleted_at)) roleBadges.push({ label: "Seeking mentor", cls: "bg-sky-100 text-sky-700", border: "#0ea5e9" });
+            if (vacancies.some((v) => v.person_id === p.id && !v.deleted_at)) roleBadges.push({ label: "Club", cls: "bg-orange-100 text-orange-700", border: "#ea580c" });
+            if (c2mMentorListings.some((m) => m.person_id === p.id && !m.deleted_at)) roleBadges.push({ label: "Mentor", cls: "bg-green-100 text-green-700", border: "#16a34a" });
+            if (roleBadges.length === 0) roleBadges.push({ label: "No profile yet", cls: "bg-amber-100 text-amber-800", border: "#d97706" });
             const isNew = Date.now() - new Date(p.created_at).getTime() < 24 * 60 * 60 * 1000;
             const isExpanded = expandedPersonId === p.id;
             const activity = isExpanded ? activityForPerson(p.id) : null;
@@ -2683,7 +2733,7 @@ function Club2CoachAdmin() {
               c2mCoachListings.some((l) => l.person_id === p.id) ||
               c2mMentorListings.some((m) => m.person_id === p.id);
             return (
-              <div key={p.id} className="rounded-lg border bg-white">
+              <div key={p.id} className="rounded-lg border border-l-4 bg-white" style={{ borderLeftColor: roleBadges[0].border }}>
                 <div className="flex w-full items-center justify-between p-3">
                   <button
                     type="button"
@@ -2694,8 +2744,13 @@ function Club2CoachAdmin() {
                     <div>
                       <p className="text-sm font-medium">
                         {p.full_name}
+                        {roleBadges.map((b) => (
+                          <span key={b.label} className={`ml-2 rounded-full px-2 py-0.5 text-xs font-semibold ${b.cls}`}>
+                            {b.label}
+                          </span>
+                        ))}
                         {isNew && (
-                          <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                          <span className="ml-2 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700">
                             New
                           </span>
                         )}
