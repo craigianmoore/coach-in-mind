@@ -89,6 +89,9 @@ export default function ClubInvitationsPanel() {
         <div className="rounded-lg border border-gray-200 bg-white p-3">
           <div>Ready to invite (ticked regions): <strong>{counts.clubsEligible}</strong></div>
           <div>Already invited: <strong>{counts.clubsSent}</strong></div>
+          <div>
+            Reminders: <strong>{counts.clubRemindersSent}</strong> sent · <strong>{counts.clubRemindersDue}</strong> due now · <strong>{counts.clubRemindersWaiting}</strong> not due yet
+          </div>
           <div>Not yet given a region: <strong>{counts.clubsNoRegion}</strong>. These are never invited until a region is set.</div>
         </div>
       )}
@@ -148,6 +151,13 @@ export default function ClubInvitationsPanel() {
           className="w-fit rounded-lg border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
         >
           Send club test to me
+        </button>
+        <button
+          disabled={busy}
+          onClick={() => run({ action: "club_reminder_test" }, (j) => `Club reminder test sent to ${j.to}.`)}
+          className="w-fit rounded-lg border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          Send club reminder test to me
         </button>
       </div>
 

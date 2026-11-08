@@ -157,6 +157,24 @@ Advertise a vacancy here: https://www.coachinmind.com.au/signup
 This isn't a regular newsletter. If you'd rather not hear from us again, just reply "no thanks" and we'll remove you.`;
 }
 
+export const CLUB_REMINDER_SUBJECT = "Quick follow-up: have you filled your coaching roles?";
+
+// Sent once only, to clubs invited a few days earlier that have not signed up and have not said no thanks.
+export function clubReminderText(clubName: string) {
+  const where = clubName.trim() ? ` at ${clubName.trim()}` : "";
+  return `Hi there,
+
+Just a quick follow-up to our note a few days ago, in case it got buried.
+
+Have you filled all your coaching roles${where} for next season? If not, hiring a coach shouldn't be a lottery. Skip the guesswork. Get introduced to a coach who suits your club.
+
+Advertising a vacancy takes about five minutes. Tell us the role, age group, ability level and area, and we match you with coaches whose profiles fit. Nothing goes live until you activate it, and your first introduction is free, with no obligation.
+
+Advertise a vacancy here: https://www.coachinmind.com.au/signup
+
+This is the only reminder we'll send. If you'd rather not hear from us again, just reply "no thanks" and we'll remove you.`;
+}
+
 // ---- Sending (shared by the admin tool and the hourly cron) ----
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmailDetailed } from "./sendEmail";
@@ -245,7 +263,7 @@ export async function inviteCounts(service: SupabaseClient) {
     const { count: n } = await build(eligibleClubQuery(service, "club_id, clubs!inner(state, region)", { head: true }));
     return n ?? 0;
   };
-  const [pending, sent, failed, optout, sending, coachSentLast24h, remindersSent, remindersLast24h, remindersWaiting, due, clubsLast24h, clubsSent, clubsEligible, clubsNoRegion] =
+  const [pending, sent, failed, optout, sending, coachSentLast24h, remindersSent, remindersLast24h, remindersWaiting, due, clubsLast24h, clubsSent, clubsEligible, clubsNoRegion, clubRemindersDue, clubRemindersSent, clubRemindersLast24h, clubRemindersWaiting] =
     await Promise.all([
       count((q) => q.eq("status", "pending")),
       count((q) => q.eq("status", "sent")),
@@ -261,6 +279,10 @@ export async function inviteCounts(service: SupabaseClient) {
       service.from("club_contacts").select("*", { count: "exact", head: true }).not("invite_sent_at", "is", null).then((r) => r.count ?? 0),
       st.clubRegions.length ? clubCount((q) => q.in("clubs.region", st.clubRegions)) : Promise.resolve(0),
       clubCount((q) => q.is("clubs.region", null)),
+      clubReminderCandidates(service),
+      service.from("club_contacts").select("*", { count: "exact", head: true }).not("reminder_sent_at", "is", null).then((r) => r.count ?? 0),
+      service.from("club_contacts").select("*", { count: "exact", head: true }).gt("reminder_sent_at", since).then((r) => r.count ?? 0),
+      service.from("club_contacts").select("*", { count: "exact", head: true }).not("invite_sent_at", "is", null).is("reminder_sent_at", null).gt("invite_sent_at", cutoff).then((r) => r.count ?? 0),
     ]);
   return {
     pending,
@@ -269,7 +291,7 @@ export async function inviteCounts(service: SupabaseClient) {
     optout,
     sending,
     // Everything that has gone out in the last 24 hours counts towards the daily limit.
-    sentLast24h: coachSentLast24h + remindersLast24h + clubsLast24h,
+    sentLast24h: coachSentLast24h + remindersLast24h + clubsLast24h + clubRemindersLast24h,
     dailyCap: st.dailyLimit,
     perRun: perRunFor(st.dailyLimit),
     autoSend: st.autoSend,
@@ -284,6 +306,9 @@ export async function inviteCounts(service: SupabaseClient) {
     clubsEligible,
     clubsSent,
     clubsNoRegion,
+    clubRemindersDue: clubRemindersDue.length,
+    clubRemindersSent,
+    clubRemindersWaiting,
   };
 }
 type Counts = Awaited<ReturnType<typeof inviteCounts>>;
@@ -366,6 +391,64 @@ export async function sendReminderBatch(service: SupabaseClient, n: number): Pro
   return { sent, failed, paused };
 }
 
+type ClubReminderRow = { club_id: string; email: string; invite_sent_at: string; clubs: { name: string } };
+
+// Clubs invited at least REMINDER_AFTER_DAYS ago, not yet reminded, not marked do-not-contact, and not already signed up
+// (a person with the same email, or a vacancy under the club's name). Longest-waiting first.
+async function clubReminderCandidates(service: SupabaseClient): Promise<ClubReminderRow[]> {
+  const cutoff = new Date(Date.now() - REMINDER_AFTER_DAYS * 86400_000).toISOString();
+  const rows = await fetchAll<ClubReminderRow>((a, b) =>
+    (service
+      .from("club_contacts")
+      .select("club_id, email, invite_sent_at, clubs!inner(name)")
+      .not("invite_sent_at", "is", null)
+      .is("reminder_sent_at", null)
+      .eq("do_not_contact", false)
+      .lte("invite_sent_at", cutoff)
+      .order("invite_sent_at", { ascending: true })
+      .order("club_id", { ascending: true })
+      .range(a, b) as unknown) as PromiseLike<{ data: ClubReminderRow[] | null }>
+  );
+  if (rows.length === 0) return [];
+  const signed = await signedUpEmails(service);
+  const vac = await fetchAll<{ club_name: string | null }>((a, b) =>
+    service.from("club2coach_club_vacancies").select("club_name").is("deleted_at", null).order("id").range(a, b)
+  );
+  const hasVacancy = new Set(vac.map((v) => (v.club_name ?? "").trim().toLowerCase()).filter(Boolean));
+  return rows.filter((r) => !signed.has(r.email.trim().toLowerCase()) && !hasVacancy.has((r.clubs?.name ?? "").trim().toLowerCase()));
+}
+
+// One reminder to each club invited a few days ago that hasn't signed up. Claimed before sending, so never twice.
+export async function sendClubReminderBatch(service: SupabaseClient, n: number): Promise<BatchResult> {
+  if (n <= 0) return NONE;
+  const todo = (await clubReminderCandidates(service)).slice(0, n);
+  let sent = 0;
+  let failed = 0;
+  let paused = false;
+  for (const r of todo) {
+    const { data: claimed } = await service
+      .from("club_contacts")
+      .update({ reminder_sent_at: new Date().toISOString() })
+      .eq("club_id", r.club_id)
+      .eq("do_not_contact", false)
+      .is("reminder_sent_at", null)
+      .select("club_id");
+    if (!claimed || claimed.length === 0) continue;
+    const res = await sendEmailDetailed({ to: r.email, subject: CLUB_REMINDER_SUBJECT, text: clubReminderText(r.clubs?.name ?? "") }, { record: false });
+    if (res.ok) sent++;
+    else if (res.transient) {
+      paused = true;
+      await service.from("club_contacts").update({ reminder_sent_at: null }).eq("club_id", r.club_id);
+      break;
+    } else {
+      failed++; // stays marked so it is not retried every hour
+      await service.from("club_contacts").update({ invite_error: "Reminder failed: Resend refused or errored" }).eq("club_id", r.club_id);
+    }
+    await pause();
+  }
+  return { sent, failed, paused };
+}
+
 type ClubRow = { club_id: string; email: string; clubs: { name: string; state: string; region: string | null } };
 
 // Invitations to Victorian clubs, only in the regions the admin has switched on.
@@ -423,7 +506,13 @@ export async function sendScheduledBatch(service: SupabaseClient, want: number) 
     paused = paused || r.paused;
   };
   const used = () => sent + failed;
-  if (c.clubEnabled && c.clubShare > 0) add(await sendClubInviteBatch(service, Math.round((n * c.clubShare) / 100), c.clubRegions));
+  if (c.clubEnabled && c.clubShare > 0) {
+    // The club share is a mix too: up to half to club reminders that are due, the rest to new club invitations.
+    const clubN = Math.round((n * c.clubShare) / 100);
+    const rem = c.remindersEnabled ? await sendClubReminderBatch(service, Math.ceil(clubN / 2)) : NONE;
+    add(rem);
+    if (!rem.paused) add(await sendClubInviteBatch(service, clubN - rem.sent - rem.failed, c.clubRegions));
+  }
   // The coach share is a mix: up to half goes to reminders that are due (when switched on), the rest to new invitations.
   // Reminders used to get only what new invitations left over, which in practice was nothing.
   if (!paused && c.remindersEnabled && n - used() > 0) add(await sendReminderBatch(service, Math.ceil((n - used()) / 2)));
@@ -432,6 +521,7 @@ export async function sendScheduledBatch(service: SupabaseClient, want: number) 
     add({ sent: r.sent, failed: r.failed, paused: r.paused });
   }
   if (!paused && c.remindersEnabled && n - used() > 0) add(await sendReminderBatch(service, n - used()));
+  if (!paused && c.remindersEnabled && c.clubEnabled && n - used() > 0) add(await sendClubReminderBatch(service, n - used()));
   if (!paused && c.clubEnabled && n - used() > 0) add(await sendClubInviteBatch(service, n - used(), c.clubRegions));
   return { sent, failed, paused, atCeiling: false, counts: await inviteCounts(service) };
 }
@@ -441,9 +531,9 @@ export function melbourneHour(d = new Date()) {
 }
 
 const workLeft = (c: Counts) =>
-  c.pending + (c.remindersEnabled ? c.remindersDue : 0) + (c.clubEnabled ? c.clubsEligible : 0);
+  c.pending + (c.remindersEnabled ? c.remindersDue + c.clubRemindersDue : 0) + (c.clubEnabled ? c.clubsEligible : 0);
 // Reminders still to become due (invited too recently) also keep automatic sending switched on.
-const allDone = (c: Counts) => workLeft(c) === 0 && (!c.remindersEnabled || c.remindersWaiting === 0);
+const allDone = (c: Counts) => workLeft(c) === 0 && (!c.remindersEnabled || (c.remindersWaiting === 0 && c.clubRemindersWaiting === 0));
 
 // Automatic sending: each hourly run between 9am and 5pm Melbourne sends a small batch (the daily limit spread over
 // the 9 runs), emails the admin inbox a daily summary at 5pm, an alert on any failure, and switches itself off with a

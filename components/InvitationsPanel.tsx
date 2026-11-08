@@ -23,6 +23,9 @@ export type Counts = {
   clubsEligible: number;
   clubsSent: number;
   clubsNoRegion: number;
+  clubRemindersDue: number;
+  clubRemindersSent: number;
+  clubRemindersWaiting: number;
 };
 
 // Admin tool for the one-off coach invitation mail-out. Needs a master-admin session; all sending happens

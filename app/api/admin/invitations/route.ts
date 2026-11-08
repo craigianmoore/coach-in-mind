@@ -11,6 +11,7 @@
 //   POST { action: "reminders", on }      -> switch the one-off reminder to non-responders on or off
 //   POST { action: "daily_limit", limit } -> emails allowed per rolling 24 hours (all kinds together)
 //   POST { action: "reminder_test" }      -> send the reminder to the signed-in admin only
+//   POST { action: "club_reminder_test" } -> send the club reminder to the signed-in admin only
 //   POST { action: "optout_test" }      -> send the "no thanks" confirmation to the signed-in admin only
 //   POST { action: "club_test" }          -> send the club invitation to the signed-in admin only
 //   POST { action: "club_settings", enabled, share, regions } -> club invitations on/off, % of each day, regions
@@ -32,6 +33,8 @@ import {
   inviteCounts,
   inviteText,
   OPTOUT_SUBJECT,
+  CLUB_REMINDER_SUBJECT,
+  clubReminderText,
   optoutConfirmText,
   normaliseState,
   parseCsv,
@@ -199,6 +202,12 @@ export async function POST(req: Request) {
   if (body.action === "reminder_test") {
     if (!auth.email) return NextResponse.json({ ok: false, error: "No admin email on this session." }, { status: 400 });
     const ok = await sendEmail({ to: auth.email, subject: `TEST: ${REMINDER_SUBJECT}`, text: reminderText("Aaron", "VIC") });
+    return NextResponse.json({ ok, to: auth.email });
+  }
+
+  if (body.action === "club_reminder_test") {
+    if (!auth.email) return NextResponse.json({ ok: false, error: "No admin email on this session." }, { status: 400 });
+    const ok = await sendEmail({ to: auth.email, subject: `TEST: ${CLUB_REMINDER_SUBJECT}`, text: clubReminderText("Sample United FC") });
     return NextResponse.json({ ok, to: auth.email });
   }
 
