@@ -19,6 +19,7 @@ interface PayWithCardButtonProps {
   mode?: "new" | "topup" | "peak_topup";
   label?: string;
   disabled?: boolean;
+  ack?: boolean; // the club ticked the discounted-price terms (club packs only; the server insists on it)
 }
 
 export default function PayWithCardButton({
@@ -28,6 +29,7 @@ export default function PayWithCardButton({
   mode = "new",
   label = "Pay with card",
   disabled = false,
+  ack = false,
 }: PayWithCardButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +76,7 @@ export default function PayWithCardButton({
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ listingTable, listingId, packageSize, mode }),
+        body: JSON.stringify({ listingTable, listingId, packageSize, mode, ack }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) {

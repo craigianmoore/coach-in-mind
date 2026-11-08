@@ -10,8 +10,8 @@ export default function ClubPriceNotice({ className = "" }: { className?: string
     <div className={`rounded-lg border border-brand-navy/30 bg-brand-navy/5 p-3 text-xs text-gray-800 ${className}`}>
       <p className="font-semibold text-brand-navy">The price depends on the month an introduction is made, not the month you pay.</p>
       <ul className="mt-1 list-disc space-y-0.5 pl-4">
-        <li>Introductions made 1 February – 31 July: {CLUB_PACK_SIZE} for ${low} (40% off)</li>
-        <li>Introductions made 1 August – 31 January: {CLUB_PACK_SIZE} for ${full}</li>
+        <li>Introductions made 1 February – 31 July: {CLUB_PACK_SIZE} for ${low} (40% off). Aimed at community clubs, whose season and hiring happen in this window.</li>
+        <li>Introductions made 1 August – 31 January: {CLUB_PACK_SIZE} for ${full}. Suited to NPL and VPL clubs recruiting higher-accredited coaches ahead of their season.</li>
       </ul>
       {discounted && (
         <p className="mt-1">

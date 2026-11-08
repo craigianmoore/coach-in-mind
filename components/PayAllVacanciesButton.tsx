@@ -19,7 +19,7 @@ export default function PayAllVacanciesButton({ listingIds, pricePer }: { listin
       const res = await fetch("/api/stripe/checkout-bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ listingIds }),
+        body: JSON.stringify({ listingIds, ack }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) {

@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
   const listingTable = body.listingTable as ListingTable;
   const listingId = body.listingId as string;
   const packageSize = Number(body.packageSize);
+  const acknowledged = body.ack === true;
   const mode: "new" | "topup" | "peak_topup" = body.mode === "topup" ? "topup" : body.mode === "peak_topup" ? "peak_topup" : "new";
 
   if (!TABLE_INFO[listingTable] || !listingId || !packageSize) {
@@ -142,6 +143,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "There's nothing to top up on this advert right now." }, { status: 409 });
     }
   }
+  // A discounted club pack needs the club's tick that the price follows the month an introduction is made.
+  const needsAck = listingTable === "club2coach_club_vacancies" && mode === "new" && inClubDiscountWindow();
+  if (needsAck && !acknowledged) {
+    return NextResponse.json({ error: "Please tick the box confirming you understand how the discounted price works." }, { status: 400 });
+  }
   let amount = mode === "peak_topup" ? clubPeakTopupPrice() : lookupAmount(listingTable, packageSize);
   if (amount == null) {
     return NextResponse.json({ error: "Not a valid package size for this listing type." }, { status: 400 });
@@ -197,6 +203,7 @@ export async function POST(req: NextRequest) {
       role,
       personId: listing.person_id,
       ...(foundingMentor ? { foundingMentor: "1" } : {}),
+      ...(needsAck ? { priceTermsAcceptedAt: new Date().toISOString() } : {}),
     },
     success_url: `${origin}/${product === "club2coach" ? "club2coach" : "coach2mentor"}/${role}?paid=1`,
     cancel_url: `${origin}/${product === "club2coach" ? "club2coach" : "coach2mentor"}/${role}?paid=0`,

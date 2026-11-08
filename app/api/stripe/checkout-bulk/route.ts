@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
-import { clubPackagesNow, CLUB_PACK_SIZE } from "@/lib/constants";
+import { clubPackagesNow, CLUB_PACK_SIZE, inClubDiscountWindow } from "@/lib/constants";
 
 const MAX_ADVERTS = 10;
 
@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
+  const ackBody = body.ack;
   const ids = Array.isArray(body.listingIds) ? Array.from(new Set(body.listingIds.map(String))) : [];
   if (ids.length < 2 || ids.length > MAX_ADVERTS) {
     return NextResponse.json({ error: `Choose between 2 and ${MAX_ADVERTS} adverts to pay for together.` }, { status: 400 });
@@ -51,6 +52,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const discountedNow = inClubDiscountWindow();
+  if (discountedNow && ackBody !== true) {
+    return NextResponse.json({ error: "Please tick the box confirming you understand how the discounted price works." }, { status: 400 });
+  }
   const price = clubPackagesNow()[CLUB_PACK_SIZE];
   if (price == null) return NextResponse.json({ error: "Package not available." }, { status: 400 });
 
@@ -78,6 +83,7 @@ export async function POST(req: NextRequest) {
         product: "club2coach",
         role: "club",
         personId: me.id,
+        ...(discountedNow ? { priceTermsAcceptedAt: new Date().toISOString() } : {}),
       },
       success_url: `${origin}/club2coach/club?paid=1`,
       cancel_url: `${origin}/club2coach/club?paid=0`,

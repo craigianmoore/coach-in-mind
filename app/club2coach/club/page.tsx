@@ -804,6 +804,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 packageSize={selectedVacancyPackage}
                 mode="new"
                 disabled={clubPackPrice().discounted && !ackPeak}
+                ack={ackPeak}
               />
             </div>
           ) : (
@@ -858,6 +859,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           <ul className="mt-3 flex flex-col gap-1.5 text-sm text-gray-600">
             <li>Advertised: {formatDate(existing.created_at)}</li>
             <li>Payment confirmed: {existing.paid ? formatDate(existing.paid_at) : "Not yet paid"}</li>
+            {existing.price_terms_accepted_at && <li>Discounted-price terms accepted: {formatDate(existing.price_terms_accepted_at)}</li>}
             {existing.paid && existing.paid_at ? (
               <li>
                 Advert runs until: {formatDate(advertEndsAt(existing)!.toISOString())} (90 days from going live)

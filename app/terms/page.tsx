@@ -119,7 +119,8 @@ export default function TermsPage() {
         Club pack pricing follows the month an introduction is made. A pack bought at the discounted price (February to July) covers
         introductions made up to 31 July. From 1 August it covers 2 introductions, unless the club pays the difference to the full price ($40)
         to keep all 3. Nothing is taken from a club without this choice, and introductions already made are never affected. The discounted
-        price is shown, with this condition, before payment.
+        price is shown, with this condition, before payment, and we record the date the club confirmed it. The discounted price is aimed at
+        community clubs during their main hiring season; the full price suits clubs recruiting higher-accredited coaches ahead of their season.
       </p>
       <p className="mt-2">
         Fees paid for introduction packages cover our effort in

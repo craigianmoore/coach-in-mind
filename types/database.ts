@@ -104,6 +104,7 @@ export interface Club2CoachClubVacancy {
   included_introductions: number | null; // package size (2, 3, or 5) set when marked paid — how many coach introductions this payment covers
   is_charity: boolean; // true when gifted for free rather than actually paid
   pack_discounted?: boolean; // bought at the Feb–Jul discount: only 2 introductions once the full-price months start, unless topped up
+  price_terms_accepted_at?: string | null; // when the club ticked that the discounted price follows the month an introduction is made
   peak_topped_up?: boolean; // the club paid the difference to keep all 3 introductions in the full-price months
   deleted_at: string | null; // soft-delete: set instead of removing the row, so payment history stays intact
   created_at: string;

@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
       const id = ids[i];
       const { data: done, error: upErr } = await supabase
         .from("club2coach_club_vacancies")
-        .update({ paid: true, paid_at: nowIso, price_aud: unitPrice, included_introductions: each, status: "active", pack_discounted: clubPackPrice().discounted, peak_topped_up: false })
+        .update({ paid: true, paid_at: nowIso, price_aud: unitPrice, included_introductions: each, status: "active", pack_discounted: clubPackPrice().discounted, peak_topped_up: false, price_terms_accepted_at: metadata.priceTermsAcceptedAt || null })
         .eq("id", id)
         .eq("person_id", metadata.personId)
         .select("id");
@@ -322,6 +322,7 @@ export async function POST(req: NextRequest) {
     // Remember a pack bought at the discount: after 31 July it covers 2 introductions unless the club tops up.
     updatePayload.pack_discounted = clubPackPrice().discounted;
     updatePayload.peak_topped_up = false;
+    updatePayload.price_terms_accepted_at = metadata.priceTermsAcceptedAt || null;
   }
   if (usesIntroductions) {
     updatePayload.included_introductions = introductionsToSet;
