@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
-import { CLUB2COACH_CLUB_PACKAGES, CLUB_PACK_SIZE } from "@/lib/constants";
+import { clubPackagesNow, CLUB_PACK_SIZE } from "@/lib/constants";
 
 const MAX_ADVERTS = 10;
 
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const price = CLUB2COACH_CLUB_PACKAGES[CLUB_PACK_SIZE];
+  const price = clubPackagesNow()[CLUB_PACK_SIZE];
   if (price == null) return NextResponse.json({ error: "Package not available." }, { status: 400 });
 
   const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL ?? "https://www.coachinmind.com.au";

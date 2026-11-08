@@ -355,6 +355,22 @@ export const CLUB2COACH_CLUB_PACKAGES: Record<number, number> = {
 };
 export const CLUB_PACK_SIZE = 3;
 
+// Seasonal club pricing (set 8 Nov 2026): full price from August to January, 40% off from February to July
+// (the Melbourne calendar month decides). Community clubs hire later in the year than NPL/VPL clubs, so the discount
+// lands mainly on them. CLUB2COACH_CLUB_PACKAGES above is the full price; always charge via clubPackPrice().
+export const CLUB_PACK_DISCOUNT = 0.4;
+export const CLUB_DISCOUNT_MONTHS = [2, 3, 4, 5, 6, 7]; // February to July
+export function clubPackPrice(date: Date = new Date()): { price: number; full: number; discounted: boolean } {
+  const full = CLUB2COACH_CLUB_PACKAGES[CLUB_PACK_SIZE];
+  const month = Number(new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Melbourne", month: "numeric" }).format(date));
+  const discounted = CLUB_DISCOUNT_MONTHS.includes(month);
+  return { price: discounted ? Math.round(full * (1 - CLUB_PACK_DISCOUNT)) : full, full, discounted };
+}
+// The packages a club can buy right now, at today's price.
+export function clubPackagesNow(date: Date = new Date()): Record<number, number> {
+  return { [CLUB_PACK_SIZE]: clubPackPrice(date).price };
+}
+
 // Coach2Mentor mentor capacity — how many mentees a mentor can take on
 // determines what they pay, since more capacity unlocks more potential
 // revenue for them (mentors typically recoup this within a session or

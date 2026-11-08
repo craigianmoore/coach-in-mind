@@ -22,7 +22,7 @@ import { useTabActivity, maxTime } from "@/lib/useTabActivity";
 import OtherProductLink from "@/components/OtherProductLink";
 import QrCodeButton from "@/components/QrCodeButton";
 import { copyShareBlurbToClipboard, shareJoinByText, shareFlyer } from "@/lib/shareBlurb";
-import { CLUB2COACH_COACH_PACKAGES, CLUB2COACH_CLUB_PACKAGES, STATE_LABELS } from "@/lib/constants";
+import { CLUB2COACH_COACH_PACKAGES, clubPackagesNow, STATE_LABELS } from "@/lib/constants";
 import type {
   Club2CoachCoachListing,
   Club2CoachClubVacancy,
@@ -587,7 +587,7 @@ function Club2CoachAdmin() {
     supabase.rpc("refresh_admin_session"); // keep the idle-timeout session alive
     setStatus(null);
     const introductions = vacancyPackage[id] ?? 3;
-    const amount = Number(vacancyAmount[id] ?? CLUB2COACH_CLUB_PACKAGES[introductions] ?? 0);
+    const amount = Number(vacancyAmount[id] ?? clubPackagesNow()[introductions] ?? 0);
     const { error } = await supabase.rpc("mark_club2coach_club_paid", {
       target_listing_id: id,
       amount,
@@ -1556,7 +1556,7 @@ function Club2CoachAdmin() {
                         onChange={(e) => {
                           const n = Number(e.target.value);
                           setVacancyPackage((prev) => ({ ...prev, [v.id]: n }));
-                          setVacancyAmount((prev) => ({ ...prev, [v.id]: String(CLUB2COACH_CLUB_PACKAGES[n] ?? "") }));
+                          setVacancyAmount((prev) => ({ ...prev, [v.id]: String(clubPackagesNow()[n] ?? "") }));
                         }}
                         className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
                       >
@@ -1568,7 +1568,7 @@ function Club2CoachAdmin() {
                       </select>
                       <input
                         type="number"
-                        placeholder={CLUB2COACH_CLUB_PACKAGES[vacancyPackage[v.id] ?? 3] ? `$${CLUB2COACH_CLUB_PACKAGES[vacancyPackage[v.id] ?? 3]}` : "$"}
+                        placeholder={clubPackagesNow()[vacancyPackage[v.id] ?? 3] ? `$${clubPackagesNow()[vacancyPackage[v.id] ?? 3]}` : "$"}
                         value={vacancyAmount[v.id] ?? ""}
                         onChange={(e) => setVacancyAmount((prev) => ({ ...prev, [v.id]: e.target.value }))}
                         className="w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-sm"

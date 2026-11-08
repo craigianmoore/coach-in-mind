@@ -25,7 +25,8 @@ import {
   GENDER_OPTIONS,
   TEAM_GENDER_OPTIONS,
   ACCREDITATION_LEVELS,
-  CLUB2COACH_CLUB_PACKAGES,
+  clubPackagesNow,
+  clubPackPrice,
   STATE_LABELS,
   MEMBER_FEDERATIONS,
 } from "@/lib/constants";
@@ -568,7 +569,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
         {(() => {
           const payable = vacancies.filter((v) => !v.paid && v.status !== "filled" && v.status !== "expired" && v.status !== "superseded" && v.status !== "refunded");
           return stripeEnabled && payable.length >= 2 ? (
-            <PayAllVacanciesButton listingIds={payable.map((v) => v.id)} pricePer={CLUB2COACH_CLUB_PACKAGES[3]} />
+            <PayAllVacanciesButton listingIds={payable.map((v) => v.id)} pricePer={clubPackagesNow()[3]} />
           ) : null;
         })()}
 
@@ -716,7 +717,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             <>✓ Your vacancy is active and included in matching{existing.paid_at ? ` until ${formatDate(advertEndsAt(existing)!.toISOString())}` : ""}. If no coach is introduced in 90 days, your credit is returned.</>
           ) : (
             <>
-              <strong>Payment required (${CLUB2COACH_CLUB_PACKAGES[3]} AUD for 3 introductions):</strong> your
+              <strong>Payment required (${clubPackagesNow()[3]} AUD for 3 introductions):</strong> your
               vacancy is saved but won't be included in matching until
               payment is confirmed. Coach In Mind will be in touch about
               how to pay, or pick a package below and pay now to activate immediately.
@@ -732,7 +733,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             Your pack
           </p>
           <div className="mt-2 grid grid-cols-1 gap-2 sm:max-w-xs">
-            {Object.entries(CLUB2COACH_CLUB_PACKAGES)
+            {Object.entries(clubPackagesNow())
               .map(([count, price]) => (
                 <label
                   key={count}
@@ -752,7 +753,9 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                   <p className="font-semibold">
                     {count} coach introductions
                   </p>
-                  <p className="text-sm text-gray-500">${price} AUD · advert runs 90 days</p>
+                  <p className="text-sm text-gray-500">
+                    ${price} AUD{clubPackPrice().discounted ? ` (usual $${clubPackPrice().full})` : ""} · advert runs 90 days
+                  </p>
                 </label>
               ))}
           </div>

@@ -1,6 +1,10 @@
 import FoundingBanner from "@/components/FoundingBanner";
 import Link from "next/link";
 import CoachInMindLogo from "@/components/CoachInMindLogo";
+import { clubPackPrice } from "@/lib/constants";
+
+// The club price changes with the calendar month, so refresh this page hourly rather than freezing it at build time.
+export const revalidate = 3600;
 
 // Flip to true once there is a real placement story to show; the
 // section markup further down is kept ready to go.
@@ -303,7 +307,7 @@ export default function HomePage() {
             <h3 className="text-lg font-bold text-brand-navy">Clubs</h3>
             <p className="mt-1 text-sm text-gray-600">Coaching vacancy adverts</p>
             <ul className="mt-3 space-y-1 text-sm text-gray-700">
-              <li>3 coach introductions — $100</li>
+              <li>3 coach introductions — ${clubPackPrice().price}{clubPackPrice().discounted ? ` (usual $${clubPackPrice().full})` : ""}</li>
               <li>Your first introduction is free</li>
             </ul>
             <p className="mt-3 text-xs text-gray-500">

@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server"; // ASSUMPTION — see note
 import { stripe } from "@/lib/stripe";
 import {
   CLUB2COACH_COACH_PACKAGES,
-  CLUB2COACH_CLUB_PACKAGES,
+  clubPackagesNow,
   COACH2MENTOR_MENTOR_CAPACITY_PACKAGES,
   MENTOR_FOUNDING_PRICE_AUD,
 } from "@/lib/constants";
@@ -45,7 +45,7 @@ function lookupAmount(listingTable: ListingTable, packageSize: number): number |
     listingTable === "club2coach_coach_listings"
       ? CLUB2COACH_COACH_PACKAGES
       : listingTable === "club2coach_club_vacancies"
-      ? CLUB2COACH_CLUB_PACKAGES
+      ? clubPackagesNow()
       : listingTable === "coach2mentor_coach_listings"
       ? CLUB2COACH_COACH_PACKAGES // Coach2Mentor's coach side reuses the same package numbers, same as the existing UI does
       : COACH2MENTOR_MENTOR_CAPACITY_PACKAGES; // coach2mentor_mentor_listings
