@@ -11,6 +11,8 @@ import { stripe } from "@/lib/stripe";
 import {
   CLUB2COACH_COACH_PACKAGES,
   clubPackagesNow,
+  clubPeakTopupPrice,
+  inClubDiscountWindow,
   COACH2MENTOR_MENTOR_CAPACITY_PACKAGES,
   MENTOR_FOUNDING_PRICE_AUD,
 } from "@/lib/constants";
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
   const listingTable = body.listingTable as ListingTable;
   const listingId = body.listingId as string;
   const packageSize = Number(body.packageSize);
-  const mode: "new" | "topup" = body.mode === "topup" ? "topup" : "new";
+  const mode: "new" | "topup" | "peak_topup" = body.mode === "topup" ? "topup" : body.mode === "peak_topup" ? "peak_topup" : "new";
 
   if (!TABLE_INFO[listingTable] || !listingId || !packageSize) {
     return NextResponse.json({ error: "Missing or invalid listingTable, listingId, or packageSize." }, { status: 400 });
@@ -95,7 +97,7 @@ export async function POST(req: NextRequest) {
   // access, full stop.
   const { data: listing, error: listingError } = await supabase
     .from(listingTable)
-    .select("id, person_id, paid, status, deleted_at")
+    .select("*")
     .eq("id", listingId)
     .maybeSingle();
 
@@ -133,7 +135,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "This is already paid for — use the top-up option to add more." }, { status: 409 });
   }
 
-  let amount = lookupAmount(listingTable, packageSize);
+  // Club pack bought at the discount: after the discounted months end, pay the difference to keep all 3 introductions.
+  if (mode === "peak_topup") {
+    const l = listing as { paid?: boolean; pack_discounted?: boolean; peak_topped_up?: boolean };
+    if (listingTable !== "club2coach_club_vacancies" || !l.paid || !l.pack_discounted || l.peak_topped_up || inClubDiscountWindow()) {
+      return NextResponse.json({ error: "There's nothing to top up on this advert right now." }, { status: 409 });
+    }
+  }
+  let amount = mode === "peak_topup" ? clubPeakTopupPrice() : lookupAmount(listingTable, packageSize);
   if (amount == null) {
     return NextResponse.json({ error: "Not a valid package size for this listing type." }, { status: 400 });
   }
@@ -165,8 +174,12 @@ export async function POST(req: NextRequest) {
           unit_amount: Math.round(amount * 100), // Stripe expects cents
           product_data: {
             name:
-              mode === "topup"
+              mode === "peak_topup"
+                ? `${label} — top-up to keep all 3 introductions (full-price months)`
+                : mode === "topup"
                 ? `${label} — top-up (${packageSize} more)`
+                : listingTable === "club2coach_club_vacancies" && inClubDiscountWindow()
+                ? `${label} — ${packageSize} package (discounted price: introductions made after 31 July count as 2 unless topped up)`
                 : foundingMentor
                 ? `${label} — founding mentor price (1 mentee introduction)`
                 : `${label} — ${packageSize} package`,

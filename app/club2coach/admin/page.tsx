@@ -22,7 +22,7 @@ import { useTabActivity, maxTime } from "@/lib/useTabActivity";
 import OtherProductLink from "@/components/OtherProductLink";
 import QrCodeButton from "@/components/QrCodeButton";
 import { copyShareBlurbToClipboard, shareJoinByText, shareFlyer } from "@/lib/shareBlurb";
-import { CLUB2COACH_COACH_PACKAGES, clubPackagesNow, STATE_LABELS } from "@/lib/constants";
+import { CLUB2COACH_COACH_PACKAGES, clubEntitlement, clubPackagesNow, STATE_LABELS } from "@/lib/constants";
 import type {
   Club2CoachCoachListing,
   Club2CoachClubVacancy,
@@ -640,10 +640,11 @@ function Club2CoachAdmin() {
 
     const targets = activeVacancies.filter((v) => {
       if (vacancyIds && !vacancyIds.includes(v.id)) return false;
-      if (v.included_introductions == null) return false;
+      const entitledNow = clubEntitlement(v);
+      if (entitledNow == null) return false;
       if (awaitingOutcome.has(v.id)) return false;
       const usedSlots = shares.filter((s) => s.club_vacancy_id === v.id).length;
-      return usedSlots < v.included_introductions;
+      return usedSlots < entitledNow;
     });
 
     // Counts approvals made in this run, so a coach can't go past the cap between reloads.
@@ -651,7 +652,7 @@ function Club2CoachAdmin() {
     let totalNew = 0;
     for (const vacancy of targets) {
       const usedSlots = shares.filter((s) => s.club_vacancy_id === vacancy.id).length;
-      const remaining = (vacancy.included_introductions ?? 0) - usedSlots;
+      const remaining = (clubEntitlement(vacancy) ?? 0) - usedSlots;
       if (remaining <= 0) continue;
 
       const candidates = activeCoaches
@@ -1108,7 +1109,7 @@ function Club2CoachAdmin() {
       const approvedCount = vacancyShares.filter((s) => s.status === "approved").length;
       const suggestedCount = vacancyShares.filter((s) => s.status === "suggested").length;
       const usedSlots = approvedCount + suggestedCount; // a pending suggestion still reserves its slot
-      const entitled = vacancy.included_introductions;
+      const entitled = clubEntitlement(vacancy);
       const remaining = entitled != null ? Math.max(0, entitled - usedSlots) : null;
       const vacancyWeights = weights ? vacancy.personal_weights ?? weights : undefined;
       const candidates = vacancyWeights

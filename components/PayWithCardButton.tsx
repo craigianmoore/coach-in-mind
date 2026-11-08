@@ -16,7 +16,7 @@ interface PayWithCardButtonProps {
     | "coach2mentor_mentor_listings";
   listingId: string;
   packageSize: number;
-  mode?: "new" | "topup";
+  mode?: "new" | "topup" | "peak_topup";
   label?: string;
 }
 

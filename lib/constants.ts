@@ -366,6 +366,26 @@ export function clubPackPrice(date: Date = new Date()): { price: number; full: n
   const discounted = CLUB_DISCOUNT_MONTHS.includes(month);
   return { price: discounted ? Math.round(full * (1 - CLUB_PACK_DISCOUNT)) : full, full, discounted };
 }
+// "The price follows the delivery date": a pack bought at the discount covers only PEAK_CONVERTED_INTROS introductions
+// once the full-price months start, unless the club pays the difference (clubPeakTopupPrice) to keep all 3.
+export const PEAK_CONVERTED_INTROS = 2;
+export function clubPeakTopupPrice(): number {
+  const full = CLUB2COACH_CLUB_PACKAGES[CLUB_PACK_SIZE];
+  return full - Math.round(full * (1 - CLUB_PACK_DISCOUNT)); // $40
+}
+export function inClubDiscountWindow(date: Date = new Date()): boolean {
+  return clubPackPrice(date).discounted;
+}
+// How many introductions a vacancy can be given right now. Only cards bought at the discount (pack_discounted) are
+// affected, only while the full-price months are running, and only until the club pays the top-up (peak_topped_up).
+export function clubEntitlement(
+  v: { included_introductions: number | null; pack_discounted?: boolean | null; peak_topped_up?: boolean | null },
+  date: Date = new Date()
+): number | null {
+  if (v.included_introductions == null) return null;
+  if (v.pack_discounted && !v.peak_topped_up && !inClubDiscountWindow(date)) return Math.min(v.included_introductions, PEAK_CONVERTED_INTROS);
+  return v.included_introductions;
+}
 // The packages a club can buy right now, at today's price.
 export function clubPackagesNow(date: Date = new Date()): Record<number, number> {
   return { [CLUB_PACK_SIZE]: clubPackPrice(date).price };

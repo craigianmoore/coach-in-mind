@@ -27,6 +27,9 @@ import {
   ACCREDITATION_LEVELS,
   clubPackagesNow,
   clubPackPrice,
+  clubPeakTopupPrice,
+  inClubDiscountWindow,
+  PEAK_CONVERTED_INTROS,
   STATE_LABELS,
   MEMBER_FEDERATIONS,
 } from "@/lib/constants";
@@ -723,6 +726,30 @@ function Club2CoachClubForm({ person }: { person: Person }) {
               how to pay, or pick a package below and pay now to activate immediately.
             </>
           )}
+          {existing.paid && existing.pack_discounted && !existing.peak_topped_up && (existing.included_introductions ?? 0) > PEAK_CONVERTED_INTROS && existing.status !== "filled" && existing.status !== "expired" ? (
+            <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              {inClubDiscountWindow() ? (
+                <>
+                  This pack was bought at the discounted price. Introductions made from 1 August are at the full price, so from then it covers
+                  {" "}{PEAK_CONVERTED_INTROS} introductions unless you pay the ${clubPeakTopupPrice()} difference to keep all {existing.included_introductions}.
+                </>
+              ) : (
+                <>
+                  <strong>Keep your third introduction:</strong> this pack was bought at the discounted price, which covers {PEAK_CONVERTED_INTROS} introductions
+                  now that the full-price months have started. Pay the ${clubPeakTopupPrice()} difference to keep all {existing.included_introductions}.
+                  <div className="mt-2">
+                    <PayWithCardButton
+                      listingTable="club2coach_club_vacancies"
+                      listingId={existing.id}
+                      packageSize={1}
+                      mode="peak_topup"
+                      label={`Keep all ${existing.included_introductions} — pay $${clubPeakTopupPrice()}`}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -759,6 +786,12 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 </label>
               ))}
           </div>
+          {clubPackPrice().discounted && (
+            <p className="mt-2 text-xs text-gray-600">
+              Discounted price: it covers introductions made up to 31 July. Any introduction made from 1 August is at the
+              full price, so a discounted pack then covers 2 introductions, or you can pay the ${clubPeakTopupPrice()} difference to keep all 3.
+            </p>
+          )}
           {existing ? (
             <div className="mt-3">
               <ClubRecredit vacancyId={existing.id} personId={person.id} onUsed={() => load()} />

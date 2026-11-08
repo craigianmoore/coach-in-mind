@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
+import { clubPackPrice } from "@/lib/constants";
 import { createServiceClient } from "@/lib/supabase/service";
 import { runClub2CoachMatchSweep, runCoach2MentorMatchSweep } from "@/lib/matching/sweep";
 import { notifyApprovedShares } from "@/lib/server/notifyMatches";
@@ -197,7 +198,7 @@ export async function POST(req: NextRequest) {
       const id = ids[i];
       const { data: done, error: upErr } = await supabase
         .from("club2coach_club_vacancies")
-        .update({ paid: true, paid_at: nowIso, price_aud: unitPrice, included_introductions: each, status: "active" })
+        .update({ paid: true, paid_at: nowIso, price_aud: unitPrice, included_introductions: each, status: "active", pack_discounted: clubPackPrice().discounted, peak_topped_up: false })
         .eq("id", id)
         .eq("person_id", metadata.personId)
         .select("id");
@@ -245,6 +246,43 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, note: "missing metadata, skipped" });
   }
 
+  // A club paying the difference to keep all 3 introductions after the discounted months end. It only flips a flag
+  // (the pack size and the price paid on the advert stay as they were) and logs the payment.
+  if (mode === "peak_topup" && listingTable === "club2coach_club_vacancies") {
+    const { data: done, error: upErr } = await supabase
+      .from("club2coach_club_vacancies")
+      .update({ peak_topped_up: true })
+      .eq("id", listingId)
+      .eq("person_id", personId)
+      .select("id");
+    if (upErr || !done?.length) {
+      console.error("Stripe webhook: peak top-up update failed", listingId, upErr);
+      await releaseEvent();
+      return NextResponse.json({ error: "Failed to update the advert." }, { status: 500 });
+    }
+    const piId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id ?? null;
+    const { error: payErr } = await supabase.from("payments").insert({
+      person_id: personId,
+      product: "club2coach",
+      role: "club",
+      listing_table: "club2coach_club_vacancies",
+      listing_id: listingId,
+      amount_aud: amount,
+      stripe_session_id: session.id,
+      stripe_payment_intent_id: piId,
+      marked_by_person_id: null,
+      notes: "Top-up — keeps all 3 introductions after the discounted months",
+    });
+    if (payErr && payErr.code !== "23505") console.error("Stripe webhook: failed to log peak top-up payment", listingId, payErr);
+    try {
+      await runClub2CoachMatchSweep(supabase, { vacancyIds: [listingId] });
+      await notifyApprovedShares(supabase);
+    } catch (err) {
+      console.error("Stripe webhook: match sweep after peak top-up failed", err);
+    }
+    return NextResponse.json({ received: true });
+  }
+
   // coach2mentor_mentor_listings tracks capacity as max_mentees, not
   // included_introductions — every other table uses introductions.
   const usesIntroductions = listingTable !== "coach2mentor_mentor_listings";
@@ -280,6 +318,11 @@ export async function POST(req: NextRequest) {
     updatePayload.active_until = null;
   }
   if (!isCoachListing) updatePayload.status = "active"; // coach listings go live only via the Activate button
+  if (listingTable === "club2coach_club_vacancies" && mode !== "topup") {
+    // Remember a pack bought at the discount: after 31 July it covers 2 introductions unless the club tops up.
+    updatePayload.pack_discounted = clubPackPrice().discounted;
+    updatePayload.peak_topped_up = false;
+  }
   if (usesIntroductions) {
     updatePayload.included_introductions = introductionsToSet;
     updatePayload.topup_requested = null; // clears any pending top-up request now that it's fulfilled

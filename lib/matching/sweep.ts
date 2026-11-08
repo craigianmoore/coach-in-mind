@@ -11,6 +11,7 @@
 // the matching rules ever change there.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { introCapFor, isActivated } from "@/lib/coachPool";
+import { clubEntitlement } from "@/lib/constants";
 import { scoreClub2CoachMatch, scoreCoach2MentorMatch } from "@/lib/scoring";
 import { APP_URL } from "@/lib/server/sendEmail";
 import { sendAdminEmail } from "@/lib/server/sendAdminEmail";
@@ -147,10 +148,11 @@ export async function runClub2CoachMatchSweep(
 
   const targets = activeVacancies.filter((v) => {
     if (opts.vacancyIds && !opts.vacancyIds.includes(v.id)) return false;
-    if (v.included_introductions == null) return false;
+    const entitled = clubEntitlement(v);
+    if (entitled == null) return false;
     if (awaitingOutcome.has(v.id)) return false;
     const usedSlots = shares.filter((s) => s.club_vacancy_id === v.id).length;
-    return usedSlots < v.included_introductions;
+    return usedSlots < entitled;
   });
 
   // Counts approvals made in this run, so a coach can't go past the cap between database reads.
@@ -159,7 +161,7 @@ export async function runClub2CoachMatchSweep(
   const fresh: NewSuggestion[] = [];
   for (const vacancy of targets) {
     const usedSlots = shares.filter((s) => s.club_vacancy_id === vacancy.id).length;
-    const remaining = (vacancy.included_introductions ?? 0) - usedSlots;
+    const remaining = (clubEntitlement(vacancy) ?? 0) - usedSlots;
     if (remaining <= 0) continue;
 
     const candidates = activeCoaches

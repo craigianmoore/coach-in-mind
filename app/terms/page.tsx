@@ -116,6 +116,12 @@ export default function TermsPage() {
         introduction is made, whichever comes first, and a further credit is needed to be shown to clubs again. On Coach 2 Mentor, one credit covers 60 days in matching.
       </p>
       <p className="mt-2">
+        Club pack pricing follows the month an introduction is made. A pack bought at the discounted price (February to July) covers
+        introductions made up to 31 July. From 1 August it covers 2 introductions, unless the club pays the difference to the full price ($40)
+        to keep all 3. Nothing is taken from a club without this choice, and introductions already made are never affected. The discounted
+        price is shown, with this condition, before payment.
+      </p>
+      <p className="mt-2">
         Fees paid for introduction packages cover our effort in
         attempting to find and share suitable matches — see Section 2
         above regarding outcomes. A club's advert runs for 90 days from the day it goes live. If no
