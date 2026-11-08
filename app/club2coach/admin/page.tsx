@@ -22,7 +22,7 @@ import { useTabActivity, maxTime } from "@/lib/useTabActivity";
 import OtherProductLink from "@/components/OtherProductLink";
 import QrCodeButton from "@/components/QrCodeButton";
 import { copyShareBlurbToClipboard, shareJoinByText, shareFlyer } from "@/lib/shareBlurb";
-import { CLUB2COACH_COACH_PACKAGES, clubEntitlement, clubPackagesNow, STATE_LABELS } from "@/lib/constants";
+import { CLUB2COACH_COACH_PACKAGES, clubEntitlement, clubPackagesNow, clubPeakTopupPrice, PEAK_CONVERTED_INTROS, STATE_LABELS } from "@/lib/constants";
 import type {
   Club2CoachCoachListing,
   Club2CoachClubVacancy,
@@ -1719,6 +1719,17 @@ function Club2CoachAdmin() {
                       </span>
                     </div>
                   </div>
+                  {vacancy.pack_discounted && (
+                    <p className="mt-1 text-xs text-gray-600">
+                      Discounted pack (${vacancy.price_aud ?? "?"}).{" "}
+                      {vacancy.price_terms_accepted_at
+                        ? `Price terms accepted ${new Date(vacancy.price_terms_accepted_at).toLocaleDateString("en-GB")}.`
+                        : "No price-terms acceptance recorded."}{" "}
+                      {vacancy.peak_topped_up
+                        ? "Topped up — keeps all introductions."
+                        : `From 1 August covers ${PEAK_CONVERTED_INTROS} introductions unless topped up ($${clubPeakTopupPrice()}).`}
+                    </p>
+                  )}
                   {vacancy.notes && (
                     <p className="mt-1 text-xs italic text-gray-400">Club notes: {vacancy.notes}</p>
                   )}
@@ -2872,6 +2883,12 @@ function Club2CoachAdmin() {
                             label="Status"
                             value={`${vacancy.status}${vacancy.is_charity ? " · gifted" : vacancy.paid ? "" : " · unpaid"}`}
                           />
+                          {vacancy.pack_discounted && (
+                            <DetailLine
+                              label="Pricing"
+                              value={`Discounted pack · terms accepted ${vacancy.price_terms_accepted_at ? new Date(vacancy.price_terms_accepted_at).toLocaleDateString("en-GB") : "— not recorded"}${vacancy.peak_topped_up ? " · topped up" : ""}`}
+                            />
+                          )}
                           <DetailLine
                             label="Indicative pay"
                             value={formatSalaryRange(vacancy.salary_min, vacancy.salary_max, vacancy.salary_negotiable)}

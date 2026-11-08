@@ -104,7 +104,7 @@ story.append(header)
 story.append(Spacer(1, 6))
 story.append(Paragraph(
     "For the admin only. It covers a normal day, the Matches screen (the part that matters most), "
-    "and what each tab is for. Figures match the app: a club pack is 3 introductions for $100 from August to January and $60 (40% off) from February to July (a $60 pack covers 2 introductions from 1 August unless the club pays the $40 difference; the app enforces this when introductions are made), and the "
+    "and what each tab is for. Figures match the app: a club pack is 3 introductions for $100 from August to January and $60 (40% off) from February to July (a $60 pack covers 2 introductions from 1 August unless the club pays the $40 difference; the app enforces this when introductions are made; the club ticks a box to accept it when paying, the date is saved, and both show on the Matches screen and in the vacancy details under Pricing), and the "
     "club's first introduction is free; one coach credit is 30 days in front of clubs and up to 3 introductions; "
     "a club advert runs 90 days.", body_style))
 
