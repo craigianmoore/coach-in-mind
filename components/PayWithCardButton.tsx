@@ -18,6 +18,7 @@ interface PayWithCardButtonProps {
   packageSize: number;
   mode?: "new" | "topup" | "peak_topup";
   label?: string;
+  disabled?: boolean;
 }
 
 export default function PayWithCardButton({
@@ -26,6 +27,7 @@ export default function PayWithCardButton({
   packageSize,
   mode = "new",
   label = "Pay with card",
+  disabled = false,
 }: PayWithCardButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +97,7 @@ export default function PayWithCardButton({
       <button
         type="button"
         onClick={handleClick}
-        disabled={loading || settling}
+        disabled={loading || settling || disabled}
         className="rounded-lg border border-brand-navy bg-white px-4 py-2 text-sm font-semibold text-brand-navy hover:bg-brand-navy/5 disabled:opacity-50"
       >
         {loading ? "Redirecting to Stripe…" : settling ? "Payment received — updating…" : label}

@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
 import PayWithCardButton from "@/components/PayWithCardButton";
 import PayAllVacanciesButton from "@/components/PayAllVacanciesButton";
+import ClubPriceNotice from "@/components/ClubPriceNotice";
 import FreeFirstCredit from "@/components/FreeFirstCredit";
 import ClubRecredit from "@/components/ClubRecredit";
 import { useStripePaymentsEnabled } from "@/lib/useStripePaymentsEnabled";
@@ -199,6 +200,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   // payment — previously this grid was purely informational (admin
   // decided the tier manually), so this is new state, not a rename.
   const [selectedVacancyPackage, setSelectedVacancyPackage] = useState(3);
+  const [ackPeak, setAckPeak] = useState(false); // tick that the discounted price follows the month introductions are made
   const [openCountMessage, setOpenCountMessage] = useState<string | null>(null);
   const [activity, setActivity] = useState<Club2CoachShare[] | null>(null);
   // Coach name for each introduced share, keyed by coach_listing_id —
@@ -735,8 +737,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 </>
               ) : (
                 <>
-                  <strong>Keep your third introduction:</strong> this pack was bought at the discounted price, which covers {PEAK_CONVERTED_INTROS} introductions
-                  now that the full-price months have started. Pay the ${clubPeakTopupPrice()} difference to keep all {existing.included_introductions}.
+                  <strong>As explained when you bought it:</strong> the price follows the month an introduction is made. This pack was bought at the discounted price, which covers introductions made up to 31 July, so it now covers {PEAK_CONVERTED_INTROS}. Pay the ${clubPeakTopupPrice()} difference if you want all {existing.included_introductions}; otherwise nothing more is due.
                   <div className="mt-2">
                     <PayWithCardButton
                       listingTable="club2coach_club_vacancies"
@@ -786,11 +787,12 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 </label>
               ))}
           </div>
+          <ClubPriceNotice className="mt-3" />
           {clubPackPrice().discounted && (
-            <p className="mt-2 text-xs text-gray-600">
-              Discounted price: it covers introductions made up to 31 July. Any introduction made from 1 August is at the
-              full price, so a discounted pack then covers 2 introductions, or you can pay the ${clubPeakTopupPrice()} difference to keep all 3.
-            </p>
+            <label className="mt-2 flex items-start gap-2 text-xs text-gray-800">
+              <input type="checkbox" checked={ackPeak} onChange={(e) => setAckPeak(e.target.checked)} className="mt-0.5" />
+              <span>I understand the price follows the month each introduction is made: this pack covers introductions made up to 31 July, then 2 from 1 August unless I pay the ${clubPeakTopupPrice()} difference.</span>
+            </label>
           )}
           {existing ? (
             <div className="mt-3">
@@ -801,6 +803,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 listingId={existing.id}
                 packageSize={selectedVacancyPackage}
                 mode="new"
+                disabled={clubPackPrice().discounted && !ackPeak}
               />
             </div>
           ) : (

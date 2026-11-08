@@ -2,6 +2,7 @@ import FoundingBanner from "@/components/FoundingBanner";
 import Link from "next/link";
 import CoachInMindLogo from "@/components/CoachInMindLogo";
 import { clubPackPrice } from "@/lib/constants";
+import ClubPriceNotice from "@/components/ClubPriceNotice";
 
 // The club price changes with the calendar month, so refresh this page hourly rather than freezing it at build time.
 export const revalidate = 3600;
@@ -310,6 +311,7 @@ export default function HomePage() {
               <li>3 coach introductions — ${clubPackPrice().price}{clubPackPrice().discounted ? ` (usual $${clubPackPrice().full})` : ""}</li>
               <li>Your first introduction is free</li>
             </ul>
+            <ClubPriceNotice className="mt-3" />
             <p className="mt-3 text-xs text-gray-500">
               Your advert runs for 90 days. If no coach is introduced in
               that time, your credit is returned automatically.

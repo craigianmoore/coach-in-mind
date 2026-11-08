@@ -3,10 +3,14 @@
 // One card payment for several unpaid club adverts. Sends only the advert ids; the server works out
 // the price (one pack per advert) and checks every advert belongs to the signed-in club.
 import { useState } from "react";
+import ClubPriceNotice from "@/components/ClubPriceNotice";
+import { clubPackPrice, clubPeakTopupPrice } from "@/lib/constants";
 
 export default function PayAllVacanciesButton({ listingIds, pricePer }: { listingIds: string[]; pricePer: number }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ack, setAck] = useState(false);
+  const needAck = clubPackPrice().discounted;
 
   async function go() {
     setError(null);
@@ -37,10 +41,17 @@ export default function PayAllVacanciesButton({ listingIds, pricePer }: { listin
         You have <strong>{n} adverts</strong> waiting for payment. Pay for them all in one go: ${pricePer * n} AUD
         (${pricePer} each, 3 coach introductions per advert).
       </p>
+      <ClubPriceNotice className="mt-2 bg-white" />
+      {needAck && (
+        <label className="mt-2 flex items-start gap-2 text-xs">
+          <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="mt-0.5" />
+          <span>I understand the price follows the month each introduction is made: these packs cover introductions made up to 31 July, then 2 each from 1 August unless I pay the ${clubPeakTopupPrice()} difference per advert.</span>
+        </label>
+      )}
       <button
         type="button"
         onClick={go}
-        disabled={loading}
+        disabled={loading || (needAck && !ack)}
         className="mt-2 rounded-lg border border-brand-navy bg-white px-4 py-2 text-sm font-semibold text-brand-navy hover:bg-brand-navy/5 disabled:opacity-50"
       >
         {loading ? "Redirecting to Stripe…" : `Pay for all ${n} adverts ($${pricePer * n})`}
