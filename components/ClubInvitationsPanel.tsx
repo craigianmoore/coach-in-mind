@@ -141,7 +141,7 @@ export default function ClubInvitationsPanel() {
         <button
           disabled={busy}
           onClick={() => run({ action: "club_settings", enabled, share, regions }, () => "Saved.")}
-          className="w-fit rounded-lg bg-accent px-3 py-1.5 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+          className="w-fit rounded-lg bg-brand-navy px-3 py-1.5 font-semibold text-white hover:opacity-90 disabled:opacity-50"
         >
           Save
         </button>
@@ -181,7 +181,7 @@ export default function ClubInvitationsPanel() {
                 `${j.second ? "Second contact added. " : ""}${j.created ? "New club created. " : j.replaced ? "Contact email replaced. " : "Contact added. "}${j.noRegion ? "It has no region yet, so it won't be invited until you set one. " : ""}${j.doNotContact ? "This club is marked do not contact. " : ""}`.trim() || "Saved."
               ).then(() => { setAddClub(""); setAddEmail(""); setAddRegion(""); setAddSecond(false); loadClubs(); })
             }
-            className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            className="rounded-lg bg-brand-navy px-3 py-1.5 font-semibold text-white hover:opacity-90 disabled:opacity-50"
           >
             Save contact
           </button>

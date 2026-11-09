@@ -130,7 +130,7 @@ export default function InvitationsPanel() {
             onClick={() =>
               run({ action: "coach_add", email: addEmail, name: addName, state: addState }, () => `${addEmail} added. They will be emailed with the next batch.`).then(() => { setAddEmail(""); setAddName(""); })
             }
-            className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            className="rounded-lg bg-brand-navy px-3 py-1.5 font-semibold text-white hover:opacity-90 disabled:opacity-50"
           >
             Add coach
           </button>
@@ -192,7 +192,7 @@ export default function InvitationsPanel() {
               if (window.confirm(`Send the invitation to the next ${batch} people on the list?`))
                 run({ action: "send", count: batch }, (j) => `Sent ${j.sentNow}${j.failedNow ? `, ${j.failedNow} failed` : ""}${j.cappedByDailyCeiling ? " (stopped at the daily ceiling)" : ""}${j.paused ? " Paused: Resend temporarily refused, so the rest are still waiting. Try again later" : ""}.`);
             }}
-            className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            className="rounded-lg bg-brand-navy px-3 py-1.5 font-semibold text-white hover:opacity-90 disabled:opacity-50"
           >
             Send batch
           </button>

@@ -932,7 +932,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       />
 
       {existing?.paid && (
-        <div className="mt-8 rounded-xl border-2 border-accent bg-accent-soft p-5" style={{ borderColor: "var(--accent)" }}>
+        <div className="mt-8 rounded-xl border-2 border-accent bg-brand-navy-soft p-5" style={{ borderColor: "var(--accent)" }}>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold">Requests from coaches</h2>
             {requests.filter((r) => r.status === "pending").length > 0 && (
