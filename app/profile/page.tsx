@@ -1,6 +1,6 @@
 "use client";
 
-import { isValidEmail, isValidMobile, isValidName, cleanName, EMAIL_ERROR, MOBILE_ERROR, NAME_ERROR } from "@/lib/validate";
+import { isValidEmail, isValidMobile, isValidName, cleanName, tidyMobile, EMAIL_ERROR, MOBILE_ERROR, NAME_ERROR } from "@/lib/validate";
 import { safeNext } from "@/lib/safeNext";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -73,7 +73,7 @@ function ProfileForm() {
       const p = data as Person;
       setExisting(p);
       setFullName(p.full_name);
-      setMobile(p.mobile);
+      setMobile(tidyMobile(p.mobile)); // older numbers with spaces or +61 become 10 digits
       setEmail(p.email);
       setGender(p.gender ?? "");
       setRegion(p.region ?? "");
@@ -246,9 +246,10 @@ function ProfileForm() {
             <input
               value={mobile}
               type="tel"
-              inputMode="tel"
-              placeholder="e.g. 0412 345 678"
-              onChange={(e) => setMobile(e.target.value.replace(/[^\d\s+\-()]/g, ""))}
+              inputMode="numeric"
+              maxLength={11}
+              placeholder="10 digits, e.g. 0412345678"
+              onChange={(e) => setMobile(tidyMobile(e.target.value))}
               onBlur={(e) => checkMobile(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />

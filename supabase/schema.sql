@@ -4039,17 +4039,17 @@ begin
   end if;
 end $$;
 
--- people: name (English letters), mobile, email, postcode.
+-- people: name (English-style letters, accents allowed), mobile (exactly 10 digits), email, postcode.
 create or replace function validate_person_input() returns trigger language plpgsql as $$
 begin
   if tg_op = 'INSERT' or new.full_name is distinct from old.full_name then
-    if new.full_name is null or length(btrim(new.full_name)) < 2 or btrim(new.full_name) !~ '^[A-Za-z][A-Za-z ''’.-]*$' then
-      raise exception 'Name must use English letters only (spaces, hyphens, apostrophes and full stops are fine).' using errcode = 'check_violation';
+    if new.full_name is null or length(btrim(new.full_name)) < 2 or btrim(new.full_name) !~ '^[A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F][A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F ''’.-]*$' then
+      raise exception 'Name must use English-style letters (accents are fine). Spaces, hyphens, apostrophes and full stops are fine too.' using errcode = 'check_violation';
     end if;
   end if;
   if tg_op = 'INSERT' or new.mobile is distinct from old.mobile then
-    if new.mobile is null or btrim(new.mobile) !~ '^\+?[0-9 ()-]+$' or length(regexp_replace(new.mobile, '\D', '', 'g')) not between 8 and 15 then
-      raise exception 'Mobile must be 8 to 15 digits (spaces, +, hyphens and brackets allowed, no letters).' using errcode = 'check_violation';
+    if new.mobile is null or btrim(new.mobile) !~ '^\d{10}$' then
+      raise exception 'Mobile must be exactly 10 digits (digits only, no spaces or letters).' using errcode = 'check_violation';
     end if;
   end if;
   if tg_op = 'INSERT' or new.email is distinct from old.email then
@@ -4065,12 +4065,12 @@ end $$;
 drop trigger if exists validate_person_input_trg on people;
 create trigger validate_person_input_trg before insert or update on people for each row execute function validate_person_input();
 
--- Coach listings and club vacancies: pay is a whole-dollar season total, minimum not above maximum.
+-- Coach listings and club vacancies: pay is a whole-dollar season total up to $100,000 (shown as $100,000+), minimum not above maximum.
 create or replace function validate_c2c_input() returns trigger language plpgsql as $$
 begin
   if tg_op = 'INSERT' or new.salary_min is distinct from old.salary_min or new.salary_max is distinct from old.salary_max then
-    perform cim_check_amount(new.salary_min, 'Pay minimum');
-    perform cim_check_amount(new.salary_max, 'Pay maximum');
+    perform cim_check_amount(new.salary_min, 'Pay minimum', 100000);
+    perform cim_check_amount(new.salary_max, 'Pay maximum', 100000);
     if new.salary_min is not null and new.salary_max is not null and new.salary_min > new.salary_max then
       raise exception 'Pay minimum cannot be higher than the maximum.' using errcode = 'check_violation';
     end if;
@@ -4092,12 +4092,12 @@ end $$;
 drop trigger if exists validate_vacancy_postcode_trg on club2coach_club_vacancies;
 create trigger validate_vacancy_postcode_trg before insert or update on club2coach_club_vacancies for each row execute function validate_vacancy_postcode();
 
--- Mentees: meetings per year (0-365) and session budget.
+-- Mentees: meetings per year (0-52, about one a week) and session budget.
 create or replace function validate_c2m_coach_input() returns trigger language plpgsql as $$
 begin
   if tg_op = 'INSERT' or new.meet_min is distinct from old.meet_min or new.meet_max is distinct from old.meet_max then
-    perform cim_check_amount(new.meet_min, 'Meetings per year minimum', 365);
-    perform cim_check_amount(new.meet_max, 'Meetings per year maximum', 365);
+    perform cim_check_amount(new.meet_min, 'Meetings per year minimum', 52);
+    perform cim_check_amount(new.meet_max, 'Meetings per year maximum', 52);
     if new.meet_min is not null and new.meet_max is not null and new.meet_min > new.meet_max then
       raise exception 'Meetings per year minimum cannot be higher than the maximum.' using errcode = 'check_violation';
     end if;
@@ -4121,7 +4121,7 @@ begin
     raise exception 'FA# must be exactly 8 digits.' using errcode = 'check_violation';
   end if;
   if tg_op = 'INSERT' or new.meet_capacity_per_year is distinct from old.meet_capacity_per_year then
-    perform cim_check_amount(new.meet_capacity_per_year, 'Meetings per year', 365);
+    perform cim_check_amount(new.meet_capacity_per_year, 'Meetings per year', 52);
   end if;
   if tg_op = 'INSERT' or new.rate_amount is distinct from old.rate_amount then
     perform cim_check_amount(new.rate_amount, 'Rate');

@@ -1323,7 +1323,7 @@ function Club2CoachAdmin() {
   function formatSalaryRange(min: number | null, max: number | null, negotiable?: boolean) {
     const parts: string[] = [];
     if (min != null || max != null) {
-      if (min != null && max != null) parts.push(`$${min.toLocaleString()}–$${max.toLocaleString()}`);
+      if (min != null && max != null) parts.push(`$${min.toLocaleString()}–$${max.toLocaleString()}${max >= 100000 ? "+" : ""}`);
       else parts.push(`$${(min ?? max)!.toLocaleString()}`);
     }
     if (negotiable) parts.push("negotiable");

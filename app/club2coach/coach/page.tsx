@@ -1,6 +1,6 @@
 "use client";
 
-import { digitsOnly } from "@/lib/validate";
+import { clampDigits, MAX_PAY } from "@/lib/validate";
 import { useEffect, useState } from "react";
 import RequireProfile from "@/components/RequireProfile";
 import CheckboxGroup from "@/components/CheckboxGroup";
@@ -381,6 +381,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     if (!(stateNoPreference || competitionNoPreference || competitionLevels.length > 0))
       return issue("f-competition", "Please choose your preferred competition levels, or tick No preference.");
     if (!salaryMin && !salaryMax) return issue("f-pay", "Please enter a pay figure: a minimum, a maximum, or both for a range.");
+    if (Number(salaryMin) > MAX_PAY || Number(salaryMax) > MAX_PAY) return issue("f-pay", "Pay is capped at $100,000 (shown as $100,000+). Please enter 100000 or less.");
     if (salaryMin && salaryMax && Number(salaryMin) > Number(salaryMax)) return issue("f-pay", "The minimum pay can't be higher than the maximum.");
     if (!authoriseShare) return issue("f-authorise", "Please tick to authorise Coach In Mind to share your details with a matched club.");
     if (!agreedToTerms) return issue("f-terms", "Please agree to the Terms of Service and Privacy Policy to continue.");
@@ -930,6 +931,9 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           <p className="mt-1 text-xs text-gray-500">
             Enter the <strong>total for the whole season</strong> (not a weekly or per-session rate), for example 6000 to 9000. This is only indicative and is not an offer or a contract: actual pay varies a lot by club and level, and this figure is more relevant to NSW &amp; VIC than other states.
           </p>
+          {(salaryMin === String(MAX_PAY) || salaryMax === String(MAX_PAY)) && (
+            <p className="mt-1 text-xs font-medium text-amber-700">Pay is capped at $100,000. Anything above is shown as $100,000+.</p>
+          )}
           <FieldMsg missing={missing} id="f-pay" />
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -941,7 +945,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
               type="text"
               inputMode="numeric"
               value={salaryMin}
-              onChange={(e) => { setSalaryMin(digitsOnly(e.target.value)); if (!digitsOnly(e.target.value) && !salaryMax) setSalaryNegotiable(false); }}
+              onChange={(e) => { setSalaryMin(clampDigits(e.target.value, MAX_PAY)); if (!clampDigits(e.target.value, MAX_PAY) && !salaryMax) setSalaryNegotiable(false); }}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
           </div>
@@ -953,7 +957,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
               type="text"
               inputMode="numeric"
               value={salaryMax}
-              onChange={(e) => { setSalaryMax(digitsOnly(e.target.value)); if (!digitsOnly(e.target.value) && !salaryMin) setSalaryNegotiable(false); }}
+              onChange={(e) => { setSalaryMax(clampDigits(e.target.value, MAX_PAY)); if (!clampDigits(e.target.value, MAX_PAY) && !salaryMin) setSalaryNegotiable(false); }}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
           </div>

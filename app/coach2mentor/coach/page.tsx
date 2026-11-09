@@ -1,6 +1,6 @@
 "use client";
 
-import { digitsOnly } from "@/lib/validate";
+import { digitsOnly, clampDigits, MAX_MEETINGS_PER_YEAR } from "@/lib/validate";
 import { useEffect, useState } from "react";
 import RequireProfile from "@/components/RequireProfile";
 import CheckboxGroup from "@/components/CheckboxGroup";
@@ -259,6 +259,9 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
     if (supportAreas.length === 0) return issue("f-support", "Please choose at least one area you want support with.");
     if ((availability === "In-person" || availability === "Either") && !person.region)
       return issue("f-region", "Your home region is missing. Please add it on your profile (the Profile link at the top), then come back and save.");
+    if (Number(meetMin) > MAX_MEETINGS_PER_YEAR || Number(meetMax) > MAX_MEETINGS_PER_YEAR)
+      return issue("f-meetings", "Meetings per year can't be more than 52 (about one a week). Please enter 52 or fewer.");
+    if (meetMin && meetMax && Number(meetMin) > Number(meetMax)) return issue("f-meetings", "The minimum meetings per year can't be higher than the maximum.");
     if (!agreedToTerms) return issue("f-terms", "Please agree to the Terms of Service and Privacy Policy to continue.");
 
     setSaving(true);
@@ -691,31 +694,37 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
           <FieldMsg missing={missing} id="f-support" />
         </div>
 
+        <div id="f-meetings" className={`p-1 ${missingCls(missing, "f-meetings")}`}>
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">
-              Meetings per year — min
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={meetMin}
-              onChange={(e) => setMeetMin(digitsOnly(e.target.value))}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-            />
+            <div>
+              <label className="text-xs font-semibold uppercase text-gray-500">
+                Meetings per year — min
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={meetMin}
+                onChange={(e) => setMeetMin(clampDigits(e.target.value, MAX_MEETINGS_PER_YEAR))}
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase text-gray-500">
+                Meetings per year — max
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={meetMax}
+                onChange={(e) => setMeetMax(clampDigits(e.target.value, MAX_MEETINGS_PER_YEAR))}
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
+            </div>
           </div>
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">
-              Meetings per year — max
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={meetMax}
-              onChange={(e) => setMeetMax(digitsOnly(e.target.value))}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-            />
-          </div>
+          {(meetMin === "52" || meetMax === "52") && (
+            <p className="mt-1 text-xs font-medium text-amber-700">The most is 52 meetings a year (about one a week). Anything higher is set to 52.</p>
+          )}
+          <FieldMsg missing={missing} id="f-meetings" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">

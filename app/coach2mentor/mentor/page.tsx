@@ -1,6 +1,6 @@
 "use client";
 
-import { digitsOnly } from "@/lib/validate";
+import { digitsOnly, clampDigits, MAX_MEETINGS_PER_YEAR } from "@/lib/validate";
 import { safeHttpsUrl } from "@/lib/videoEmbed";
 
 import { useEffect, useState } from "react";
@@ -216,6 +216,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
     if (!careerStage) return issue("f-career", "Please choose your career stage.");
     if (!evidenceFile && !existingEvidenceFilename) return issue("f-evidence", "Please upload evidence of your accreditation (a photo or PDF of your certificate).");
     if (specialisms.length === 0) return issue("f-specialisms", "Please choose at least one area of expertise.");
+    if (Number(meetCapacity) > MAX_MEETINGS_PER_YEAR) return issue("f-meetings", "Meetings per year can't be more than 52 (about one a week). Please enter 52 or fewer.");
     if (!confirmAccurate) return issue("f-confirm", "Please tick to confirm the information you've provided is accurate.");
     if (!authoriseShare) return issue("f-authorise", "Please tick to confirm your profile can be visible to coaches.");
     if (!agreedToTerms) return issue("f-terms", "Please agree to the Terms of Service and Privacy Policy to continue.");
@@ -650,7 +651,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           <FieldMsg missing={missing} id="f-specialisms" />
         </div>
 
-        <div>
+        <div id="f-meetings" className={`p-1 ${missingCls(missing, "f-meetings")}`}>
           <label className="text-xs font-semibold uppercase text-gray-500">
             How many times a year are you able to meet with a mentee?
           </label>
@@ -658,13 +659,17 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
             type="text"
               inputMode="numeric"
             value={meetCapacity}
-            onChange={(e) => setMeetCapacity(digitsOnly(e.target.value))}
+            onChange={(e) => setMeetCapacity(clampDigits(e.target.value, MAX_MEETINGS_PER_YEAR))}
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
           />
           <p className="mt-1 text-xs text-gray-500">
             As a guide, most mentoring relationships run to around 6–12
             sessions a year (roughly every 1–2 months).
           </p>
+          {meetCapacity === "52" && (
+            <p className="mt-1 text-xs font-medium text-amber-700">The most is 52 meetings a year (about one a week). Anything higher is set to 52.</p>
+          )}
+          <FieldMsg missing={missing} id="f-meetings" />
         </div>
 
         {existing?.paid && (
