@@ -76,6 +76,9 @@ export async function POST(req: Request) {
     enabled?: boolean;
     share?: number;
     regions?: string[];
+    name?: string;
+    state?: string;
+    region?: string;
   };
   const service = createServiceClient();
 
@@ -284,6 +287,68 @@ export async function POST(req: Request) {
       out.updated += Math.min(100, toSet.length - i);
     }
     return NextResponse.json({ ok: true, ...out, ...(await counts()) });
+  }
+
+  // Add one coach by hand (same checks as the CSV load, and they join the normal queue).
+  if (body.action === "coach_add") {
+    const e = (body.email ?? "").trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return NextResponse.json({ ok: false, error: "That doesn't look like a valid email address." }, { status: 400 });
+    const [{ data: person }, { data: listed }] = await Promise.all([
+      service.from("people").select("id").ilike("email", e).limit(1),
+      service.from("invite_recipients").select("status").eq("email", e).maybeSingle(),
+    ]);
+    if (person?.length) return NextResponse.json({ ok: false, error: "That person has already signed up, so they don't need an invitation." }, { status: 409 });
+    if (listed) {
+      return NextResponse.json({ ok: false, error: `That email is already on the coach list (${listed.status === "optout" ? "marked no thanks" : listed.status}).` }, { status: 409 });
+    }
+    const { error } = await service.from("invite_recipients").insert({
+      email: e,
+      first_name: firstNameOf((body.name ?? "").trim()) || "",
+      state: normaliseState(body.state ?? "") ?? null,
+    });
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, ...(await counts()) });
+  }
+
+  // Add or fix one Victorian club contact by hand. Finds the club by name (case-insensitive) or creates it.
+  if (body.action === "club_add") {
+    const name = (body.name ?? "").trim();
+    const e = (body.email ?? "").trim().toLowerCase();
+    if (!name) return NextResponse.json({ ok: false, error: "Enter the club's name." }, { status: 400 });
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return NextResponse.json({ ok: false, error: "That doesn't look like a valid email address." }, { status: 400 });
+    const regionRaw = (body.region ?? "").trim();
+    const region = regionRaw ? (REGIONS_BY_STATE.VIC as readonly string[]).find((r) => r.toLowerCase() === regionRaw.toLowerCase()) : undefined;
+    if (regionRaw && !region) return NextResponse.json({ ok: false, error: "That region isn't on the list." }, { status: 400 });
+    const { data: found } = await service.from("clubs").select("id, name, region").eq("state", "VIC").ilike("name", name.replace(/[%_]/g, "")).limit(1);
+    let clubId = found?.[0]?.id as string | undefined;
+    let created = false;
+    if (!clubId) {
+      const { data: made, error: cErr } = await service.from("clubs").insert({ name, state: "VIC", ...(region ? { region } : {}) }).select("id").single();
+      if (cErr || !made) return NextResponse.json({ ok: false, error: cErr?.message ?? "Couldn't create the club." }, { status: 500 });
+      clubId = made.id;
+      created = true;
+    } else if (region && !found?.[0]?.region) {
+      await service.from("clubs").update({ region }).eq("id", clubId);
+    }
+    const { data: existing } = await service.from("club_contacts").select("email, do_not_contact").eq("club_id", clubId).maybeSingle();
+    if (existing?.email?.toLowerCase() === e) {
+      return NextResponse.json({ ok: false, error: `${name} already has that email.${existing.do_not_contact ? " It is marked do not contact." : ""}` }, { status: 409 });
+    }
+    // A club has one contact. A new address has never been emailed, so its sent stamps start clear.
+    const { error } = await service.from("club_contacts").upsert(
+      { club_id: clubId, email: e, source: "manual", confidence: "manual", invite_sent_at: null, reminder_sent_at: null, contacted_at: null },
+      { onConflict: "club_id" }
+    );
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    const noRegion = !region && !(found?.[0]?.region);
+    return NextResponse.json({
+      ok: true,
+      created,
+      replaced: !!existing,
+      doNotContact: !!existing?.do_not_contact,
+      noRegion,
+      ...(await counts()),
+    });
   }
 
   if (body.action === "club_optout") {

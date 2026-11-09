@@ -17,6 +17,9 @@ export default function ClubInvitationsPanel() {
   const [regions, setRegions] = useState<string[]>([]);
   const [rows, setRows] = useState<ClubRow[] | null>(null);
   const [optout, setOptout] = useState("");
+  const [addClub, setAddClub] = useState("");
+  const [addEmail, setAddEmail] = useState("");
+  const [addRegion, setAddRegion] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -159,6 +162,30 @@ export default function ClubInvitationsPanel() {
         >
           Send club reminder test to me
         </button>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <span className="font-semibold text-gray-700">Add or change a club contact by hand</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <input type="text" value={addClub} onChange={(e) => setAddClub(e.target.value)} placeholder="Club name" className="w-56 rounded border border-gray-300 px-2 py-1" />
+          <input type="email" value={addEmail} onChange={(e) => setAddEmail(e.target.value)} placeholder="secretary@club.com" className="w-56 rounded border border-gray-300 px-2 py-1" />
+          <select value={addRegion} onChange={(e) => setAddRegion(e.target.value)} className="rounded border border-gray-300 px-2 py-1">
+            <option value="">Region (keep existing)</option>
+            {regionsAll.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+          <button
+            disabled={busy || !addClub.trim() || !addEmail.includes("@")}
+            onClick={() =>
+              run({ action: "club_add", name: addClub, email: addEmail, region: addRegion }, (j) =>
+                `${j.created ? "New club created. " : j.replaced ? "Contact email replaced. " : "Contact added. "}${j.noRegion ? "It has no region yet, so it won't be invited until you set one. " : ""}${j.doNotContact ? "This club is marked do not contact. " : ""}`.trim() || "Saved."
+              ).then(() => { setAddClub(""); setAddEmail(""); setAddRegion(""); loadClubs(); })
+            }
+            className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+          >
+            Save contact
+          </button>
+        </div>
+        <span className="text-xs text-gray-500">Finds the club by name or creates it. A club has one contact, so a new email replaces the old one and the club can be invited at that address. It is emailed with the next club batch if its region is ticked.</span>
       </div>
 
       <div className="flex flex-col gap-1">

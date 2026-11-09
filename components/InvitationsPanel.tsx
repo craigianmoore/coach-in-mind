@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { STATE_LABELS } from "@/lib/constants";
 
 export type Counts = {
   autoSend?: boolean;
@@ -39,6 +40,9 @@ export default function InvitationsPanel() {
   const [rows, setRows] = useState<{ email: string; first_name: string | null; status: string; sent_at: string | null }[] | null>(null);
   const [q, setQ] = useState("");
   const [limit, setLimit] = useState(150);
+  const [addEmail, setAddEmail] = useState("");
+  const [addName, setAddName] = useState("");
+  const [addState, setAddState] = useState("VIC");
   const msgRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (msg) msgRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [msg]);
 
@@ -111,6 +115,28 @@ export default function InvitationsPanel() {
           </div>
         </div>
       )}
+
+      <div className="flex flex-col gap-1 rounded-lg border border-gray-200 bg-white p-3">
+        <span className="font-semibold text-gray-700">Add one coach by hand</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <input type="email" value={addEmail} onChange={(e) => setAddEmail(e.target.value)} placeholder="coach@email.com" className="w-60 rounded border border-gray-300 px-2 py-1" />
+          <input type="text" value={addName} onChange={(e) => setAddName(e.target.value)} placeholder="Name (optional)" className="w-40 rounded border border-gray-300 px-2 py-1" />
+          <select value={addState} onChange={(e) => setAddState(e.target.value)} className="rounded border border-gray-300 px-2 py-1">
+            <option value="">Any state</option>
+            {Object.entries(STATE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <button
+            disabled={busy || !addEmail.includes("@")}
+            onClick={() =>
+              run({ action: "coach_add", email: addEmail, name: addName, state: addState }, () => `${addEmail} added. They will be emailed with the next batch.`).then(() => { setAddEmail(""); setAddName(""); })
+            }
+            className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+          >
+            Add coach
+          </button>
+        </div>
+        <span className="text-xs text-gray-500">Skipped if they have already signed up or are already on the list. They join the normal queue.</span>
+      </div>
 
       <label className="flex flex-col gap-1">
         <span className="font-semibold text-gray-700">1. Load the list (CSV with ticket_name and email_address, plus an optional state column such as VIC, TAS or NSW; a blank state reads &ldquo;a football coach&rdquo;)</span>
