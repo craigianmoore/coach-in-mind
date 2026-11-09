@@ -237,9 +237,15 @@ async function reminderCandidates(service: SupabaseClient): Promise<Candidate[]>
 
 // Victorian club contacts that can be invited now: in a region the admin has switched on, never contacted,
 // not marked do-not-contact.
-function eligibleClubQuery(service: SupabaseClient, select: string, opts: { head?: boolean } = {}) {
+// A club's main contact lives in club_contacts (keyed by club_id); an optional second contact lives in
+// club_extra_contacts (keyed by its own id). Both are emailed and reminded once each, separately.
+type ClubTable = "club_contacts" | "club_extra_contacts";
+const CLUB_TABLES: ClubTable[] = ["club_contacts", "club_extra_contacts"];
+const keyCol = (t: ClubTable) => (t === "club_contacts" ? "club_id" : "id");
+
+function eligibleClubQuery(service: SupabaseClient, select: string, opts: { head?: boolean } = {}, table: ClubTable = "club_contacts") {
   return service
-    .from("club_contacts")
+    .from(table)
     .select(select, opts.head ? { count: "exact", head: true } : undefined)
     .in("clubs.state", CLUB_INVITE_STATES)
     .eq("do_not_contact", false)
@@ -260,8 +266,13 @@ export async function inviteCounts(service: SupabaseClient) {
   const st = await loadSettings(service);
 
   const clubCount = async (build: (q: any) => any) => {
-    const { count: n } = await build(eligibleClubQuery(service, "club_id, clubs!inner(state, region)", { head: true }));
-    return n ?? 0;
+    const rs = await Promise.all(CLUB_TABLES.map((tb) => build(eligibleClubQuery(service, `${keyCol(tb)}, clubs!inner(state, region)`, { head: true }, tb))));
+    return rs.reduce((s: number, r: { count: number | null }) => s + (r.count ?? 0), 0);
+  };
+  // Plain counts over both contact tables.
+  const clubBoth = async (build: (q: any) => any) => {
+    const rs = await Promise.all(CLUB_TABLES.map((tb) => build(service.from(tb).select("*", { count: "exact", head: true }))));
+    return rs.reduce((s: number, r: { count: number | null }) => s + (r.count ?? 0), 0);
   };
   const [pending, sent, failed, optout, sending, coachSentLast24h, remindersSent, remindersLast24h, remindersWaiting, due, clubsLast24h, clubsSent, clubsEligible, clubsNoRegion, clubRemindersDue, clubRemindersSent, clubRemindersLast24h, clubRemindersWaiting] =
     await Promise.all([
@@ -275,14 +286,14 @@ export async function inviteCounts(service: SupabaseClient) {
       count((q) => q.gt("reminder_sent_at", since)),
       count((q) => q.eq("status", "sent").is("reminder_sent_at", null).gt("sent_at", cutoff)),
       reminderCandidates(service),
-      service.from("club_contacts").select("*", { count: "exact", head: true }).gt("invite_sent_at", since).then((r) => r.count ?? 0),
-      service.from("club_contacts").select("*", { count: "exact", head: true }).not("invite_sent_at", "is", null).then((r) => r.count ?? 0),
+      clubBoth((q) => q.gt("invite_sent_at", since)),
+      clubBoth((q) => q.not("invite_sent_at", "is", null)),
       st.clubRegions.length ? clubCount((q) => q.in("clubs.region", st.clubRegions)) : Promise.resolve(0),
       clubCount((q) => q.is("clubs.region", null)),
       clubReminderCandidates(service),
-      service.from("club_contacts").select("*", { count: "exact", head: true }).not("reminder_sent_at", "is", null).then((r) => r.count ?? 0),
-      service.from("club_contacts").select("*", { count: "exact", head: true }).gt("reminder_sent_at", since).then((r) => r.count ?? 0),
-      service.from("club_contacts").select("*", { count: "exact", head: true }).not("invite_sent_at", "is", null).is("reminder_sent_at", null).gt("invite_sent_at", cutoff).then((r) => r.count ?? 0),
+      clubBoth((q) => q.not("reminder_sent_at", "is", null)),
+      clubBoth((q) => q.gt("reminder_sent_at", since)),
+      clubBoth((q) => q.not("invite_sent_at", "is", null).is("reminder_sent_at", null).gt("invite_sent_at", cutoff)),
     ]);
   return {
     pending,
@@ -391,28 +402,34 @@ export async function sendReminderBatch(service: SupabaseClient, n: number): Pro
   return { sent, failed, paused };
 }
 
-type ClubReminderRow = { club_id: string; email: string; invite_sent_at: string; clubs: { name: string } };
+type ClubReminderRow = { table: ClubTable; key: string; club_id: string; email: string; invite_sent_at: string; clubs: { name: string } };
 
-// Clubs invited at least REMINDER_AFTER_DAYS ago, not yet reminded, not marked do-not-contact, and not already signed up
-// (a person with the same email, or a vacancy under the club's name). Longest-waiting first.
+// Club contacts (main or second) invited at least REMINDER_AFTER_DAYS ago, not yet reminded, not marked do-not-contact, and
+// not already signed up (a person with the same email, or a vacancy under the club's name). Longest-waiting first.
 async function clubReminderCandidates(service: SupabaseClient): Promise<ClubReminderRow[]> {
   const cutoff = new Date(Date.now() - REMINDER_AFTER_DAYS * 86400_000).toISOString();
-  const rows = await fetchAll<ClubReminderRow>((a, b) =>
-    (service
-      .from("club_contacts")
-      .select("club_id, email, invite_sent_at, clubs!inner(name)")
-      .not("invite_sent_at", "is", null)
-      .is("reminder_sent_at", null)
-      .eq("do_not_contact", false)
-      .lte("invite_sent_at", cutoff)
-      .order("invite_sent_at", { ascending: true })
-      .order("club_id", { ascending: true })
-      .range(a, b) as unknown) as PromiseLike<{ data: ClubReminderRow[] | null }>
+  const groups = await Promise.all(
+    CLUB_TABLES.map(async (tb) => {
+      const rows = await fetchAll<{ club_id: string; id?: string; email: string; invite_sent_at: string; clubs: { name: string } }>((x, y) =>
+        (service
+          .from(tb)
+          .select(tb === "club_contacts" ? "club_id, email, invite_sent_at, clubs!inner(name)" : "id, club_id, email, invite_sent_at, clubs!inner(name)")
+          .not("invite_sent_at", "is", null)
+          .is("reminder_sent_at", null)
+          .eq("do_not_contact", false)
+          .lte("invite_sent_at", cutoff)
+          .order("invite_sent_at", { ascending: true })
+          .order("club_id", { ascending: true })
+          .range(x, y) as unknown) as PromiseLike<{ data: { club_id: string; id?: string; email: string; invite_sent_at: string; clubs: { name: string } }[] | null }>
+      );
+      return rows.map((r): ClubReminderRow => ({ table: tb, key: tb === "club_contacts" ? r.club_id : (r.id as string), club_id: r.club_id, email: r.email, invite_sent_at: r.invite_sent_at, clubs: r.clubs }));
+    })
   );
+  const rows = groups.flat().sort((p, q) => p.invite_sent_at.localeCompare(q.invite_sent_at));
   if (rows.length === 0) return [];
   const signed = await signedUpEmails(service);
-  const vac = await fetchAll<{ club_name: string | null }>((a, b) =>
-    service.from("club2coach_club_vacancies").select("club_name").is("deleted_at", null).order("id").range(a, b)
+  const vac = await fetchAll<{ club_name: string | null }>((x, y) =>
+    service.from("club2coach_club_vacancies").select("club_name").is("deleted_at", null).order("id").range(x, y)
   );
   const hasVacancy = new Set(vac.map((v) => (v.club_name ?? "").trim().toLowerCase()).filter(Boolean));
   return rows.filter((r) => !signed.has(r.email.trim().toLowerCase()) && !hasVacancy.has((r.clubs?.name ?? "").trim().toLowerCase()));
@@ -427,48 +444,56 @@ export async function sendClubReminderBatch(service: SupabaseClient, n: number):
   let paused = false;
   for (const r of todo) {
     const { data: claimed } = await service
-      .from("club_contacts")
+      .from(r.table)
       .update({ reminder_sent_at: new Date().toISOString() })
-      .eq("club_id", r.club_id)
+      .eq(keyCol(r.table), r.key)
       .eq("do_not_contact", false)
       .is("reminder_sent_at", null)
-      .select("club_id");
+      .select(keyCol(r.table));
     if (!claimed || claimed.length === 0) continue;
     const res = await sendEmailDetailed({ to: r.email, subject: CLUB_REMINDER_SUBJECT, text: clubReminderText(r.clubs?.name ?? "") }, { record: false });
     if (res.ok) sent++;
     else if (res.transient) {
       paused = true;
-      await service.from("club_contacts").update({ reminder_sent_at: null }).eq("club_id", r.club_id);
+      await service.from(r.table).update({ reminder_sent_at: null }).eq(keyCol(r.table), r.key);
       break;
     } else {
       failed++; // stays marked so it is not retried every hour
-      await service.from("club_contacts").update({ invite_error: "Reminder failed: Resend refused or errored" }).eq("club_id", r.club_id);
+      await service.from(r.table).update({ invite_error: "Reminder failed: Resend refused or errored" }).eq(keyCol(r.table), r.key);
     }
     await pause();
   }
   return { sent, failed, paused };
 }
 
-type ClubRow = { club_id: string; email: string; clubs: { name: string; state: string; region: string | null } };
+type ClubRow = { table: ClubTable; key: string; club_id: string; email: string; clubs: { name: string; state: string; region: string | null } };
 
-// Invitations to Victorian clubs, only in the regions the admin has switched on.
+// Invitations to Victorian club contacts (main first, then second contacts), only in the regions the admin has switched on.
 export async function sendClubInviteBatch(service: SupabaseClient, n: number, regions: string[]): Promise<BatchResult> {
   if (n <= 0 || regions.length === 0) return NONE;
-  const { data } = await eligibleClubQuery(service, "club_id, email, clubs!inner(name, state, region)")
-    .in("clubs.region", regions)
-    .order("club_id", { ascending: true })
-    .limit(n);
+  const todo: ClubRow[] = [];
+  for (const tb of CLUB_TABLES) {
+    const room = n - todo.length;
+    if (room <= 0) break;
+    const { data } = await eligibleClubQuery(service, `${keyCol(tb)}, club_id, email, clubs!inner(name, state, region)`, {}, tb)
+      .in("clubs.region", regions)
+      .order("club_id", { ascending: true })
+      .limit(room);
+    for (const r of (data ?? []) as unknown as { id?: string; club_id: string; email: string; clubs: ClubRow["clubs"] }[]) {
+      todo.push({ table: tb, key: tb === "club_contacts" ? r.club_id : (r.id as string), club_id: r.club_id, email: r.email, clubs: r.clubs });
+    }
+  }
   let sent = 0;
   let failed = 0;
   let paused = false;
-  for (const r of ((data ?? []) as unknown as ClubRow[])) {
+  for (const r of todo) {
     const { data: claimed } = await service
-      .from("club_contacts")
+      .from(r.table)
       .update({ invite_sent_at: new Date().toISOString() })
-      .eq("club_id", r.club_id)
+      .eq(keyCol(r.table), r.key)
       .eq("do_not_contact", false)
       .is("invite_sent_at", null)
-      .select("club_id");
+      .select(keyCol(r.table));
     if (!claimed || claimed.length === 0) continue;
     const res = await sendEmailDetailed(
       { to: r.email, subject: CLUB_INVITE_SUBJECT, text: clubInviteText(r.clubs.name, r.clubs.state) },
@@ -476,14 +501,14 @@ export async function sendClubInviteBatch(service: SupabaseClient, n: number, re
     );
     if (res.ok) {
       sent++;
-      await service.from("club_contacts").update({ contacted_at: new Date().toISOString(), invite_error: null }).eq("club_id", r.club_id);
+      await service.from(r.table).update({ contacted_at: new Date().toISOString(), invite_error: null }).eq(keyCol(r.table), r.key);
     } else if (res.transient) {
       paused = true;
-      await service.from("club_contacts").update({ invite_sent_at: null }).eq("club_id", r.club_id);
+      await service.from(r.table).update({ invite_sent_at: null }).eq(keyCol(r.table), r.key);
       break;
     } else {
       failed++; // stays marked so it is not retried every hour
-      await service.from("club_contacts").update({ invite_error: "Resend refused or errored" }).eq("club_id", r.club_id);
+      await service.from(r.table).update({ invite_error: "Resend refused or errored" }).eq(keyCol(r.table), r.key);
     }
     await pause();
   }

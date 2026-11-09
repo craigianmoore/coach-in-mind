@@ -20,6 +20,7 @@ export default function ClubInvitationsPanel() {
   const [addClub, setAddClub] = useState("");
   const [addEmail, setAddEmail] = useState("");
   const [addRegion, setAddRegion] = useState("");
+  const [addSecond, setAddSecond] = useState(false);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -176,16 +177,20 @@ export default function ClubInvitationsPanel() {
           <button
             disabled={busy || !addClub.trim() || !addEmail.includes("@")}
             onClick={() =>
-              run({ action: "club_add", name: addClub, email: addEmail, region: addRegion }, (j) =>
-                `${j.created ? "New club created. " : j.replaced ? "Contact email replaced. " : "Contact added. "}${j.noRegion ? "It has no region yet, so it won't be invited until you set one. " : ""}${j.doNotContact ? "This club is marked do not contact. " : ""}`.trim() || "Saved."
-              ).then(() => { setAddClub(""); setAddEmail(""); setAddRegion(""); loadClubs(); })
+              run({ action: "club_add", name: addClub, email: addEmail, region: addRegion, second: addSecond }, (j) =>
+                `${j.second ? "Second contact added. " : ""}${j.created ? "New club created. " : j.replaced ? "Contact email replaced. " : "Contact added. "}${j.noRegion ? "It has no region yet, so it won't be invited until you set one. " : ""}${j.doNotContact ? "This club is marked do not contact. " : ""}`.trim() || "Saved."
+              ).then(() => { setAddClub(""); setAddEmail(""); setAddRegion(""); setAddSecond(false); loadClubs(); })
             }
             className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white hover:opacity-90 disabled:opacity-50"
           >
             Save contact
           </button>
         </div>
-        <span className="text-xs text-gray-500">Finds the club by name or creates it. A club has one contact, so a new email replaces the old one and the club can be invited at that address. It is emailed with the next club batch if its region is ticked.</span>
+        <label className="flex items-center gap-2 text-xs text-gray-700">
+          <input type="checkbox" checked={addSecond} onChange={(e) => setAddSecond(e.target.checked)} />
+          <span>Add as a <strong>second contact</strong> (keep the main one)</span>
+        </label>
+        <span className="text-xs text-gray-500">Finds the club by name or creates it. Without the tick, a new email replaces the main contact and the club can be invited at that address. A second contact is emailed and reminded separately, once each, if the club&apos;s region is ticked. &quot;No thanks&quot; from either person stops both.</span>
       </div>
 
       <div className="flex flex-col gap-1">

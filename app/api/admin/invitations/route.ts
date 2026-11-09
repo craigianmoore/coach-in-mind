@@ -79,6 +79,7 @@ export async function POST(req: Request) {
     name?: string;
     state?: string;
     region?: string;
+    second?: boolean;
   };
   const service = createServiceClient();
 
@@ -254,6 +255,18 @@ export async function POST(req: Request) {
       const c = Array.isArray(r.clubs) ? r.clubs[0] : r.clubs;
       return { club: c?.name ?? "", region: c?.region ?? "", email: r.email, status: r.do_not_contact ? "do not contact" : r.invite_sent_at ? "invited" : r.contacted_at ? "contacted" : "not yet" };
     });
+    const extras = await fetchAll<{ email: string; do_not_contact: boolean; contacted_at: string | null; invite_sent_at: string | null; clubs: { name: string; region: string | null } | { name: string; region: string | null }[] }>((a, b) =>
+      service
+        .from("club_extra_contacts")
+        .select("email, do_not_contact, contacted_at, invite_sent_at, clubs!inner(name, state, region)")
+        .eq("clubs.state", "VIC")
+        .order("id")
+        .range(a, b)
+    );
+    for (const r of extras) {
+      const c = Array.isArray(r.clubs) ? r.clubs[0] : r.clubs;
+      out.push({ club: c?.name ?? "", region: c?.region ?? "", email: r.email, status: `second contact: ${r.do_not_contact ? "do not contact" : r.invite_sent_at ? "invited" : r.contacted_at ? "contacted" : "not yet"}` });
+    }
     return NextResponse.json({ ok: true, rows: out });
   }
 
@@ -331,8 +344,22 @@ export async function POST(req: Request) {
       await service.from("clubs").update({ region }).eq("id", clubId);
     }
     const { data: existing } = await service.from("club_contacts").select("email, do_not_contact").eq("club_id", clubId).maybeSingle();
-    if (existing?.email?.toLowerCase() === e) {
+    if (!body.second && existing?.email?.toLowerCase() === e) {
       return NextResponse.json({ ok: false, error: `${name} already has that email.${existing.do_not_contact ? " It is marked do not contact." : ""}` }, { status: 409 });
+    }
+    // Second contact: kept alongside the main one, emailed and reminded separately.
+    if (body.second && existing) {
+      if (existing.email?.toLowerCase() === e) {
+        return NextResponse.json({ ok: false, error: `That is already ${name}'s main contact.` }, { status: 409 });
+      }
+      const { error: sErr } = await service.from("club_extra_contacts").insert({ club_id: clubId, email: e, source: "manual", do_not_contact: !!existing.do_not_contact });
+      if (sErr) {
+        return NextResponse.json(
+          { ok: false, error: sErr.message.includes("duplicate") ? `${name} already has that second contact.` : sErr.message },
+          { status: sErr.message.includes("duplicate") ? 409 : 500 }
+        );
+      }
+      return NextResponse.json({ ok: true, created, second: true, replaced: false, doNotContact: !!existing.do_not_contact, noRegion: !region && !(found?.[0]?.region), ...(await counts()) });
     }
     // A club has one contact. A new address has never been emailed, so its sent stamps start clear.
     const { error } = await service.from("club_contacts").upsert(
@@ -354,12 +381,21 @@ export async function POST(req: Request) {
   if (body.action === "club_optout") {
     const e = (body.email ?? "").trim().toLowerCase();
     if (!e) return NextResponse.json({ ok: false, error: "Missing email." }, { status: 400 });
-    const { data: before } = await service.from("club_contacts").select("club_id, do_not_contact").ilike("email", e);
-    const { data, error } = await service.from("club_contacts").update({ do_not_contact: true }).ilike("email", e).select("club_id");
-    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-    if (!data || data.length === 0) return NextResponse.json({ ok: false, error: "No club contact has that email." }, { status: 404 });
+    const [{ data: m1 }, { data: m2 }] = await Promise.all([
+      service.from("club_contacts").select("club_id, do_not_contact").ilike("email", e),
+      service.from("club_extra_contacts").select("club_id, do_not_contact").ilike("email", e),
+    ]);
+    const before = [...(m1 ?? []), ...(m2 ?? [])];
+    if (before.length === 0) return NextResponse.json({ ok: false, error: "No club contact has that email." }, { status: 404 });
+    // "No thanks" is the club's answer, so it stops every contact the club has (main and second).
+    const clubIds = Array.from(new Set(before.map((b) => b.club_id)));
+    const [r1, r2] = await Promise.all([
+      service.from("club_contacts").update({ do_not_contact: true }).in("club_id", clubIds),
+      service.from("club_extra_contacts").update({ do_not_contact: true }).in("club_id", clubIds),
+    ]);
+    if (r1.error || r2.error) return NextResponse.json({ ok: false, error: (r1.error ?? r2.error)!.message }, { status: 500 });
     // Confirm once, and never if they were already marked do-not-contact.
-    const already = (before ?? []).length > 0 && (before ?? []).every((b) => b.do_not_contact);
+    const already = before.every((b) => b.do_not_contact);
     const confirmed = already ? false : await sendEmail({ to: e, subject: OPTOUT_SUBJECT, text: optoutConfirmText("club") });
     return NextResponse.json({ ok: true, confirmationSent: confirmed, ...(await counts()) });
   }

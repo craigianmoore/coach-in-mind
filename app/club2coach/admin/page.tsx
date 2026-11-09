@@ -343,6 +343,7 @@ function Club2CoachAdmin() {
 
   async function updateClubContact(c: ClubContactRow, patch: { contacted_at?: string | null; do_not_contact?: boolean }) {
     const { error } = await supabase.from("club_contacts").update(patch).eq("club_id", c.id);
+    if (!error) await supabase.from("club_extra_contacts").update(patch).eq("club_id", c.id); // second contacts follow the club
     if (error) {
       setStatus(`Couldn't update ${c.name}: ${error.message}`);
       return;
