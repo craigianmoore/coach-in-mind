@@ -48,6 +48,10 @@ interface ClubContactRow {
   confidence: string | null;
   contacted_at: string | null;
   do_not_contact: boolean;
+  // Optional second contact (club_extra_contacts): emailed and reminded separately from the main one.
+  email2?: string | null;
+  email2_id?: string | null;
+  email2_invited?: boolean;
   // Activity pills: only present when the club has advertised at least one role.
   activity?: { roles: number; paid: number; matched: number; filled: number };
 }
@@ -120,6 +124,8 @@ function Club2CoachAdmin() {
   const [newClub, setNewClub] = useState({ name: "", state: "VIC", email: "" });
   const [editingEmailId, setEditingEmailId] = useState<string | null>(null);
   const [draftEmail, setDraftEmail] = useState("");
+  const [editing2Id, setEditing2Id] = useState<string | null>(null);
+  const [draft2, setDraft2] = useState("");
 
   const [adminPins, setAdminPins] = useState<AdminPinRow[]>([]);
   const [newPin, setNewPin] = useState("");
@@ -294,7 +300,7 @@ function Club2CoachAdmin() {
   }
 
   async function loadClubContacts() {
-    const [cl, cc, vac, shr] = await Promise.all([
+    const [cl, cc, vac, shr, ex] = await Promise.all([
       fetchAll<{ id: string; name: string; state: string }>((a, b) =>
         supabase.from("clubs").select("id,name,state").order("name", { ascending: true }).order("id").range(a, b),
       ),
@@ -307,7 +313,12 @@ function Club2CoachAdmin() {
       fetchAll<{ club_vacancy_id: string }>((a, b) =>
         supabase.from("club2coach_shares").select("club_vacancy_id,id").eq("status", "approved").order("id").range(a, b),
       ),
+      fetchAll<{ id: string; club_id: string; email: string; invite_sent_at: string | null }>((a, b) =>
+        supabase.from("club_extra_contacts").select("id,club_id,email,invite_sent_at").order("id").range(a, b),
+      ),
     ]);
+    const extraByClub = new Map<string, { id: string; email: string; invite_sent_at: string | null }>();
+    ((ex as { id: string; club_id: string; email: string; invite_sent_at: string | null }[]) ?? []).forEach((x) => extraByClub.set(x.club_id, x));
     // Per-club activity from the vacancies each club advertised (linked through club_id).
     const matchesByVacancy = new Map<string, number>();
     ((shr as { club_vacancy_id: string }[]) ?? []).forEach((x) => matchesByVacancy.set(x.club_vacancy_id, (matchesByVacancy.get(x.club_vacancy_id) ?? 0) + 1));
@@ -335,6 +346,9 @@ function Club2CoachAdmin() {
           confidence: k?.confidence ?? null,
           contacted_at: k?.contacted_at ?? null,
           do_not_contact: k?.do_not_contact ?? false,
+          email2: extraByClub.get(c.id)?.email ?? null,
+          email2_id: extraByClub.get(c.id)?.id ?? null,
+          email2_invited: !!extraByClub.get(c.id)?.invite_sent_at,
           activity: activityByClub.get(c.id),
         };
       })
@@ -409,6 +423,44 @@ function Club2CoachAdmin() {
     }
     setClubRows((rows) => rows.filter((r) => r.id !== c.id));
     setStatus(`Deleted ${c.name}.`);
+  }
+
+  async function saveSecondContact(c: ClubContactRow) {
+    const email = draft2.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setStatus("That doesn't look like a valid email address.");
+      return;
+    }
+    if (email === (c.email ?? "").toLowerCase()) {
+      setStatus("That is already the main contact.");
+      return;
+    }
+    // Editing replaces the old second contact (a changed address is a new person, so it starts un-emailed).
+    if (c.email2_id) await supabase.from("club_extra_contacts").delete().eq("id", c.email2_id);
+    const { data, error } = await supabase
+      .from("club_extra_contacts")
+      .insert({ club_id: c.id, email, source: "manual", do_not_contact: c.do_not_contact })
+      .select("id")
+      .single();
+    if (error || !data) {
+      setStatus(`Couldn't save the second contact for ${c.name}: ${error?.message ?? "unknown error"}`);
+      return;
+    }
+    setClubRows((rows) => rows.map((r) => (r.id === c.id ? { ...r, email2: email, email2_id: data.id, email2_invited: false } : r)));
+    setEditing2Id(null);
+    setDraft2("");
+    setStatus(`Saved second contact for ${c.name}.`);
+  }
+
+  async function removeSecondContact(c: ClubContactRow) {
+    if (!c.email2_id || !window.confirm(`Remove ${c.name}'s second contact (${c.email2})?`)) return;
+    const { error } = await supabase.from("club_extra_contacts").delete().eq("id", c.email2_id);
+    if (error) {
+      setStatus(`Couldn't remove it: ${error.message}`);
+      return;
+    }
+    setClubRows((rows) => rows.map((r) => (r.id === c.id ? { ...r, email2: null, email2_id: null, email2_invited: false } : r)));
+    setStatus(`Removed ${c.name}'s second contact.`);
   }
 
   async function saveClubEmail(c: ClubContactRow) {
@@ -2126,7 +2178,7 @@ function Club2CoachAdmin() {
             (!q ||
               c.name.toLowerCase().split(/\s+/).some((w) => w.startsWith(q)) ||
               c.name.toLowerCase().startsWith(q) ||
-              (q.length >= 3 && (c.name.toLowerCase().includes(q) || (c.email ?? "").toLowerCase().includes(q))))
+              (q.length >= 3 && (c.name.toLowerCase().includes(q) || (c.email ?? "").toLowerCase().includes(q) || (c.email2 ?? "").toLowerCase().includes(q))))
         );
         const states = Array.from(new Set(clubRows.map((c) => c.state))).sort();
         const stateSummary = states.map((st) => {
@@ -2286,6 +2338,37 @@ function Club2CoachAdmin() {
                       >
                         {c.email ? "Edit email" : "+ Add email"}
                       </button>
+                    )}
+                    {c.email && editingEmailId !== c.id && (
+                      <div className="mt-0.5 text-xs text-gray-600">
+                        {editing2Id === c.id ? (
+                          <span className="flex items-center gap-1">
+                            <input
+                              type="email"
+                              autoFocus
+                              value={draft2}
+                              onChange={(e) => setDraft2(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveSecondContact(c);
+                                if (e.key === "Escape") setEditing2Id(null);
+                              }}
+                              placeholder="second contact email"
+                              className="w-56 rounded border border-gray-300 px-2 py-1 text-xs"
+                            />
+                            <button type="button" onClick={() => saveSecondContact(c)} className="rounded-lg bg-blue-700 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-800">Save</button>
+                            <button type="button" onClick={() => setEditing2Id(null)} className="rounded-lg border border-gray-300 px-2 py-1 text-xs text-gray-500 hover:bg-gray-50">Cancel</button>
+                          </span>
+                        ) : c.email2 ? (
+                          <span className="truncate">
+                            <span className="font-semibold text-gray-500">2nd:</span> {c.email2}
+                            {c.email2_invited && <span className="ml-2 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-800">invited</span>}
+                            <button type="button" onClick={() => { setEditing2Id(c.id); setDraft2(c.email2 ?? ""); }} className="ml-2 text-[11px] font-semibold text-blue-700 hover:underline">Edit</button>
+                            <button type="button" onClick={() => removeSecondContact(c)} className="ml-2 text-[11px] font-semibold text-red-600 hover:underline">Remove</button>
+                          </span>
+                        ) : (
+                          <button type="button" onClick={() => { setEditing2Id(c.id); setDraft2(""); }} className="text-[11px] font-semibold text-blue-700 hover:underline">+ Add 2nd contact</button>
+                        )}
+                      </div>
                     )}
                     {editingEmailId !== c.id && (
                       <button
