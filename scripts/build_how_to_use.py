@@ -116,7 +116,7 @@ story.append(Paragraph(
     "a coach looking for a role, a club with a coaching role to fill, or a mentor (or \"not sure yet\"). Confirm your "
     "email from the message we send, then log in and complete your profile. Signing up only creates your account: "
     "coaches then press <b>Let clubs know I'm looking</b>, clubs press <b>Advertise Coaching Role</b>, and mentors set up "
-    "their mentor profile, to go further.",
+    "their mentor profile, to go further. <b>Every question that affects matching must be answered</b> (including your accreditation, and pay for coaches and clubs, as a minimum, a maximum or a range). \"No preference\" counts as an answer. If something is missed, the page jumps back to that question and highlights it, so you can see exactly what is needed.",
     body_style,
 ))
 

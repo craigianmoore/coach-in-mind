@@ -32,6 +32,7 @@ import CoachRolePanel from "@/components/CoachRolePanel";
 import CoachIntroCheck from "@/components/CoachIntroCheck";
 import { isActivated, loadCoachBank } from "@/lib/coachPool";
 import ContactDetailsGlass from "@/components/ContactDetailsGlass";
+import { FieldMsg, missingCls, scrollToField, type Missing } from "@/components/FieldMsg";
 
 // A coach can advertise for at most two roles at once.
 const MAX_ROLE_LISTINGS = 2;
@@ -54,6 +55,8 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
   const [roleSought, setRoleSought] = useState<string>(COACHING_ROLES[0]);
   const [preferredTeamGender, setPreferredTeamGender] = useState("");
   const [abilityLevels, setAbilityLevels] = useState<string[]>([]);
+  const [abilityNoPreference, setAbilityNoPreference] = useState(false);
+  const [missing, setMissing] = useState<Missing>(null); // the first unanswered required question, after a failed save
   const [competitionLevels, setCompetitionLevels] = useState<string[]>([]);
   const [competitionNoPreference, setCompetitionNoPreference] = useState(false);
   const [ageGroups, setAgeGroups] = useState<string[]>([]);
@@ -94,6 +97,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
     setRoleSought(COACHING_ROLES[0]);
     setPreferredTeamGender("");
     setAbilityLevels([]);
+    setAbilityNoPreference(false);
     setCompetitionLevels([]);
     setCompetitionNoPreference(false);
     setAgeGroups([]);
@@ -137,6 +141,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       setRoleSought(l.role_sought);
       setPreferredTeamGender(l.preferred_team_gender ?? "");
       setAbilityLevels(l.ability_levels ?? []);
+      setAbilityNoPreference((l.ability_levels ?? []).length === 0); // an already-saved listing had its chance to answer
 
       // An existing (previously-saved) listing with an empty array
       // means the coach had already been through this field and
@@ -362,14 +367,22 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       setError("Please choose no more than two age groups (or tick \"No preference\" if you're open to any).");
       return;
     }
-    if (salaryNegotiable && !salaryMin && !salaryMax) {
-      setError("Please enter a pay figure (min or max) before ticking \"Indicative pay negotiable\".");
-      return;
-    }
-    if (!agreedToTerms) {
-      setError("Please agree to the Terms of Service and Privacy Policy to continue.");
-      return;
-    }
+    // Every question the matching score depends on must be answered ("No preference" counts as an answer).
+    const issue = (id: string, msg: string) => {
+      setMissing({ id, msg });
+      scrollToField(id);
+    };
+    if (!(abilityNoPreference || abilityLevels.length > 0)) return issue("f-ability", "Please choose at least one ability level, or tick No preference.");
+    if (!genderAnswered) return issue("f-gender", "Please choose the team gender you'd like to work with (or No preference).");
+    if (!stateAnswered) return issue("f-state", "Please choose the state(s) you're open to coaching in, or tick No preference.");
+    if (!regionAnswered) return issue("f-region", "Please choose your preferred regions, or tick No preference.");
+    if (!ageAnswered) return issue("f-age", "Please choose up to two age groups, or tick No preference.");
+    if (!(stateNoPreference || competitionNoPreference || competitionLevels.length > 0))
+      return issue("f-competition", "Please choose your preferred competition levels, or tick No preference.");
+    if (!salaryMin && !salaryMax) return issue("f-pay", "Please enter a pay figure: a minimum, a maximum, or both for a range.");
+    if (salaryMin && salaryMax && Number(salaryMin) > Number(salaryMax)) return issue("f-pay", "The minimum pay can't be higher than the maximum.");
+    if (!authoriseShare) return issue("f-authorise", "Please tick to authorise Coach In Mind to share your details with a matched club.");
+    if (!agreedToTerms) return issue("f-terms", "Please agree to the Terms of Service and Privacy Policy to continue.");
 
     setSaving(true);
 
@@ -377,7 +390,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
       person_id: person.id,
       role_sought: roleSought,
       preferred_team_gender: preferredTeamGender || null,
-      ability_levels: abilityLevels,
+      ability_levels: abilityNoPreference ? [] : abilityLevels,
       preferred_competition_levels: competitionLevels,
       preferred_age_groups: ageGroups,
       preferred_regions: regions,
@@ -643,7 +656,7 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} onChange={() => setDirty(true)} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
+      <form noValidate onSubmit={handleSubmit} onChange={() => { setDirty(true); setMissing(null); }} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
         <div>
           <label className="text-xs font-semibold uppercase text-gray-500">Coaching role sought</label>
           <select
@@ -659,20 +672,34 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           </select>
         </div>
 
-        <div>
+        <div id="f-ability" className={`p-1 ${missingCls(missing, "f-ability")}`}>
           <label className="text-xs font-semibold uppercase text-gray-500">
             Ability level — select all that apply
           </label>
-          <div className="mt-1">
-            <CheckboxGroup
-              options={ABILITY_LEVELS}
-              selected={abilityLevels}
-              onToggle={(v) => toggle(abilityLevels, setAbilityLevels, v)}
+          <label className="mt-2 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm font-medium text-brand-navy">
+            <input
+              type="checkbox"
+              checked={abilityNoPreference}
+              onChange={(e) => {
+                setAbilityNoPreference(e.target.checked);
+                if (e.target.checked) setAbilityLevels([]);
+              }}
             />
-          </div>
+            No preference — open to any ability level
+          </label>
+          {!abilityNoPreference && (
+            <div className="mt-2">
+              <CheckboxGroup
+                options={ABILITY_LEVELS}
+                selected={abilityLevels}
+                onToggle={(v) => toggle(abilityLevels, setAbilityLevels, v)}
+              />
+            </div>
+          )}
+          <FieldMsg missing={missing} id="f-ability" />
         </div>
 
-        <div>
+        <div id="f-gender" className={`p-1 ${missingCls(missing, "f-gender")}`}>
           <label className="text-xs font-semibold uppercase text-gray-500">
             Preferred team gender to work with
           </label>
@@ -698,10 +725,11 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
               </option>
             ))}
           </select>
+          <FieldMsg missing={missing} id="f-gender" />
         </div>
 
         {genderAnswered && (
-          <div>
+          <div id="f-state" className={`p-1 ${missingCls(missing, "f-state")}`}>
             <label className="text-xs font-semibold uppercase text-gray-500">
               Which state(s) are you open to coaching in?
             </label>
@@ -765,11 +793,12 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
                 </p>
               </>
             )}
+            <FieldMsg missing={missing} id="f-state" />
           </div>
         )}
 
         {genderAnswered && stateAnswered && !stateNoPreference && (
-          <div>
+          <div id="f-region" className={`p-1 ${missingCls(missing, "f-region")}`}>
             <label className="text-xs font-semibold uppercase text-gray-500">Preferred regions</label>
 
             <label className="mt-2 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm font-medium text-brand-navy">
@@ -817,11 +846,12 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
                 </label>
               </>
             )}
+            <FieldMsg missing={missing} id="f-region" />
           </div>
         )}
 
         {genderAnswered && stateAnswered && regionAnswered && (
-          <div>
+          <div id="f-age" className={`p-1 ${missingCls(missing, "f-age")}`}>
             <label className="text-xs font-semibold uppercase text-gray-500">Preferred age groups</label>
 
             <label className="mt-2 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm font-medium text-brand-navy">
@@ -847,11 +877,12 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
                 />
               </div>
             )}
+            <FieldMsg missing={missing} id="f-age" />
           </div>
         )}
 
         {genderAnswered && stateAnswered && ageAnswered && !stateNoPreference && (
-          <div>
+          <div id="f-competition" className={`p-1 ${missingCls(missing, "f-competition")}`}>
             <label className="text-xs font-semibold uppercase text-gray-500">
               Preferred competition levels
             </label>
@@ -889,14 +920,16 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
                 ))}
               </div>
             )}
+            <FieldMsg missing={missing} id="f-competition" />
           </div>
         )}
 
-        <div>
-          <p className="text-xs font-semibold uppercase text-gray-500">Indicative pay</p>
+        <div id="f-pay" className={`p-1 ${missingCls(missing, "f-pay")}`}>
+          <p className="text-xs font-semibold uppercase text-gray-500">Indicative pay (required: a minimum, a maximum, or a range)</p>
           <p className="mt-1 text-xs text-gray-500">
             Enter the <strong>total for the whole season</strong> (not a weekly or per-session rate), for example 6000 to 9000. This is only indicative and is not an offer or a contract: actual pay varies a lot by club and level, and this figure is more relevant to NSW &amp; VIC than other states.
           </p>
+          <FieldMsg missing={missing} id="f-pay" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -944,10 +977,9 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
           <WordLimitedTextarea value={notes} onChange={setNotes} maxWords={100} rows={2} />
         </div>
 
-        <label className="flex items-start gap-2 text-sm">
+        <label id="f-authorise" className={`flex items-start gap-2 p-1 text-sm ${missingCls(missing, "f-authorise")}`}>
           <input
             type="checkbox"
-            required
             checked={authoriseShare}
             onChange={(e) => setAuthoriseShare(e.target.checked)}
             className="mt-0.5"
@@ -958,11 +990,11 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
             are kept private and only shared once approved. *
           </span>
         </label>
+        <FieldMsg missing={missing} id="f-authorise" />
 
-        <div className="flex items-start gap-2 text-sm">
+        <div id="f-terms" className={`flex items-start gap-2 p-1 text-sm ${missingCls(missing, "f-terms")}`}>
           <input
             type="checkbox"
-            required
             checked={agreedToTerms}
             readOnly
             onClick={() => setShowTermsModal(true)}
@@ -975,13 +1007,14 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
             {" *"}
           </button>
         </div>
+        <FieldMsg missing={missing} id="f-terms" />
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <div className="flex items-center gap-3">
           <button
             type="submit"
-            disabled={saving || !agreedToTerms}
+            disabled={saving}
             className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
           >
             {saving ? "Saving…" : existing ? (dirty ? "Save details" : "✓ Details saved") : "Let clubs know I'm looking"}

@@ -11,6 +11,7 @@ import TermsModal from "@/components/TermsModal";
 import PayWithCardButton from "@/components/PayWithCardButton";
 import PayAllVacanciesButton from "@/components/PayAllVacanciesButton";
 import ClubPriceNotice from "@/components/ClubPriceNotice";
+import { FieldMsg, missingCls, scrollToField, type Missing } from "@/components/FieldMsg";
 import FreeFirstCredit from "@/components/FreeFirstCredit";
 import ClubRecredit from "@/components/ClubRecredit";
 import { useStripePaymentsEnabled } from "@/lib/useStripePaymentsEnabled";
@@ -81,14 +82,14 @@ function emptyForm(): FormState {
   return {
     clubName: "",
     roleBeingRecruited: COACHING_ROLES[0],
-    competitionLevel: COMPETITION_LEVELS[0],
-    ageGroup: AGE_GROUPS[0],
+    competitionLevel: "",
+    ageGroup: "",
     ageGroupMax: "",
     teamGender: "",
     preferredCoachGender: "",
-    region: REGIONS[0],
+    region: "",
     postcode: "",
-    requiredAccreditation: ACCREDITATION_LEVELS[0],
+    requiredAccreditation: "",
     requiredAbilityLevel: "",
     salaryMin: "",
     salaryMax: "",
@@ -188,6 +189,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
   const [outcomeNote, setOutcomeNote] = useState("");
   const [dirty, setDirty] = useState(false); // true once a detail has been changed since the last save/open
   const [error, setError] = useState<string | null>(null);
+  const [missing, setMissing] = useState<Missing>(null); // first unanswered required question after a failed save
 
   const [vacancies, setVacancies] = useState<Club2CoachClubVacancy[]>([]);
   const [clubs, setClubs] = useState<Club[]>([]);
@@ -400,36 +402,36 @@ function Club2CoachClubForm({ person }: { person: Person }) {
     e.preventDefault();
     setError(null);
 
-    if (!memberFederation) {
-      setError("Please select your Member Federation first.");
-      return;
-    }
+    // Every question the matching score depends on must be answered. A failed check scrolls back to that exact
+    // question, outlines it and says what is missing.
+    const issue = (id: string, msg: string) => {
+      setMissing({ id, msg });
+      scrollToField(id);
+    };
+    if (!memberFederation) return issue("f-federation", "Please select your Member Federation first.");
     const matchedClub = clubs.find(
       (c) =>
         c.state === memberFederation &&
         c.name.trim().toLowerCase() === form.clubName.trim().toLowerCase()
     );
     if (!matchedClub) {
-      setError(
-        "Please select a club from the suggestions list — start typing and choose a match. If your club doesn't appear, double-check you've selected the right Member Federation above."
+      return issue(
+        "f-club",
+        "Please select a club from the suggestions list: start typing and choose a match. If your club doesn't appear, double-check you've selected the right Member Federation above."
       );
-      return;
     }
-
-    if (!isValidPostcode(form.postcode)) {
-      setError("Please enter the club's 4-digit postcode.");
-      return;
-    }
-
-    if (form.salaryNegotiable && !form.salaryMin && !form.salaryMax) {
-      setError("Please enter a pay figure (min or max) before ticking \"Indicative pay negotiable\".");
-      return;
-    }
-
-    if (!form.agreedToTerms) {
-      setError("Please agree to the Terms of Service and Privacy Policy to continue.");
-      return;
-    }
+    if (!form.competitionLevel) return issue("f-competition", "Please choose the competition level.");
+    if (!form.ageGroup) return issue("f-age", "Please choose the age group.");
+    if (!isValidPostcode(form.postcode)) return issue("f-postcode", "Please enter the club's 4-digit postcode.");
+    if (!form.region) return issue("f-region", "Please choose the region.");
+    if (!form.teamGender) return issue("f-teamgender", "Please choose the team gender.");
+    if (!form.preferredCoachGender) return issue("f-coachgender", "Please choose the preferred coach gender (or No preference).");
+    if (!form.requiredAccreditation) return issue("f-accreditation", "Please choose the accreditation you require (None / In Progress if it doesn't matter).");
+    if (!form.requiredAbilityLevel) return issue("f-ability", "Please choose the ability level required.");
+    if (!form.salaryMin && !form.salaryMax) return issue("f-pay", "Please enter a pay figure: a minimum, a maximum, or both for a range.");
+    if (form.salaryMin && form.salaryMax && Number(form.salaryMin) > Number(form.salaryMax)) return issue("f-pay", "The minimum pay can't be higher than the maximum.");
+    if (!form.authoriseShare) return issue("f-authorise", "Please tick to authorise Coach In Mind to share this vacancy's details with a matched coach.");
+    if (!form.agreedToTerms) return issue("f-terms", "Please agree to the Terms of Service and Privacy Policy to continue.");
 
     setSaving(true);
 
@@ -953,8 +955,8 @@ function Club2CoachClubForm({ person }: { person: Person }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} onChange={() => setDirty(true)} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
-        <div>
+      <form noValidate onSubmit={handleSubmit} onChange={() => { setDirty(true); setMissing(null); }} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
+        <div id="f-federation" className={`p-1 ${missingCls(missing, "f-federation")}`}>
           <label className="text-xs font-semibold uppercase text-gray-500">Member Federation *</label>
           <select
             required
@@ -974,8 +976,8 @@ function Club2CoachClubForm({ person }: { person: Person }) {
               setForm((f) => ({
                 ...f,
                 clubName: "",
-                region: newRegions[0],
-                competitionLevel: newLevels[0],
+                region: "",
+                competitionLevel: "",
               }));
             }}
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
@@ -990,12 +992,12 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           <p className="mt-1 text-xs text-gray-500">
             This narrows the club list below to just your federation's clubs.
           </p>
+          <FieldMsg missing={missing} id="f-federation" />
         </div>
 
-        <div>
+        <div id="f-club" className={`p-1 ${missingCls(missing, "f-club")}`}>
           <label className="text-xs font-semibold uppercase text-gray-500">Club name *</label>
           <input
-            required
             disabled={!memberFederation}
             list="club-options"
             autoComplete="off"
@@ -1013,6 +1015,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             Pick your club from the suggestions as you type. Can't find
             it? Let Coach In Mind know and we'll add it.
           </p>
+          <FieldMsg missing={missing} id="f-club" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -1030,26 +1033,28 @@ function Club2CoachClubForm({ person }: { person: Person }) {
               ))}
             </select>
           </div>
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Competition level</label>
+          <div id="f-competition" className={`p-1 ${missingCls(missing, "f-competition")}`}>
+            <label className="text-xs font-semibold uppercase text-gray-500">Competition level *</label>
             <select
               value={form.competitionLevel}
               onChange={(e) => setForm((f) => ({ ...f, competitionLevel: e.target.value }))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             >
+              <option value="">Select…</option>
               {competitionLevelOptions.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
               ))}
             </select>
+            <FieldMsg missing={missing} id="f-competition" />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
+          <div id="f-age" className={`p-1 ${missingCls(missing, "f-age")}`}>
             <label className="text-xs font-semibold uppercase text-gray-500">
-              {TD_ROLES.includes(form.roleBeingRecruited) ? "Age group range overseen" : "Age group"}
+              {TD_ROLES.includes(form.roleBeingRecruited) ? "Age group range overseen *" : "Age group *"}
             </label>
             {TD_ROLES.includes(form.roleBeingRecruited) ? (
               <div className="mt-1 flex items-center gap-2">
@@ -1069,6 +1074,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                   }}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2"
                 >
+                  <option value="">Select…</option>
                   {AGE_GROUPS.map((a) => (
                     <option key={a} value={a}>
                       {a}
@@ -1094,6 +1100,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 onChange={(e) => setForm((f) => ({ ...f, ageGroup: e.target.value, ageGroupMax: "" }))}
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
               >
+                <option value="">Select…</option>
                 {AGE_GROUPS.map((a) => (
                   <option key={a} value={a}>
                     {a}
@@ -1101,8 +1108,9 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 ))}
               </select>
             )}
+            <FieldMsg missing={missing} id="f-age" />
           </div>
-          <div>
+          <div id="f-postcode" className={`p-1 ${missingCls(missing, "f-postcode")}`}>
             <label className="text-xs font-semibold uppercase text-gray-500">Club postcode *</label>
             <input
               value={form.postcode}
@@ -1118,20 +1126,23 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 Find a postcode
               </a>
             </p>
+            <FieldMsg missing={missing} id="f-postcode" />
           </div>
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Region</label>
+          <div id="f-region" className={`p-1 ${missingCls(missing, "f-region")}`}>
+            <label className="text-xs font-semibold uppercase text-gray-500">Region *</label>
             <select
               value={form.region}
               onChange={(e) => setForm((f) => ({ ...f, region: e.target.value }))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             >
+              <option value="">Select…</option>
               {regionOptions.map((r) => (
                 <option key={r} value={r}>
                   {r}
                 </option>
               ))}
             </select>
+            <FieldMsg missing={missing} id="f-region" />
           </div>
         </div>
 
@@ -1145,10 +1156,9 @@ function Club2CoachClubForm({ person }: { person: Person }) {
         )}
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
+          <div id="f-teamgender" className={`p-1 ${missingCls(missing, "f-teamgender")}`}>
             <label className="text-xs font-semibold uppercase text-gray-500">Team gender *</label>
             <select
-              required
               value={form.teamGender}
               onChange={(e) => setForm((f) => ({ ...f, teamGender: e.target.value }))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
@@ -1160,11 +1170,11 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 </option>
               ))}
             </select>
+            <FieldMsg missing={missing} id="f-teamgender" />
           </div>
-          <div>
+          <div id="f-coachgender" className={`p-1 ${missingCls(missing, "f-coachgender")}`}>
             <label className="text-xs font-semibold uppercase text-gray-500">Preferred coach gender *</label>
             <select
-              required
               value={form.preferredCoachGender}
               onChange={(e) => setForm((f) => ({ ...f, preferredCoachGender: e.target.value }))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
@@ -1176,6 +1186,7 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 </option>
               ))}
             </select>
+            <FieldMsg missing={missing} id="f-coachgender" />
           </div>
         </div>
         <p className="-mt-3 text-xs text-gray-500">
@@ -1184,22 +1195,24 @@ function Club2CoachClubForm({ person }: { person: Person }) {
         </p>
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Required accreditation</label>
+          <div id="f-accreditation" className={`p-1 ${missingCls(missing, "f-accreditation")}`}>
+            <label className="text-xs font-semibold uppercase text-gray-500">Required accreditation *</label>
             <select
               value={form.requiredAccreditation}
               onChange={(e) => setForm((f) => ({ ...f, requiredAccreditation: e.target.value }))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             >
+              <option value="">Select…</option>
               {ACCREDITATION_LEVELS.map((a) => (
                 <option key={a} value={a}>
                   {a}
                 </option>
               ))}
             </select>
+            <FieldMsg missing={missing} id="f-accreditation" />
           </div>
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Required ability level</label>
+          <div id="f-ability" className={`p-1 ${missingCls(missing, "f-ability")}`}>
+            <label className="text-xs font-semibold uppercase text-gray-500">Required ability level *</label>
             <select
               value={form.requiredAbilityLevel}
               onChange={(e) => setForm((f) => ({ ...f, requiredAbilityLevel: e.target.value }))}
@@ -1212,14 +1225,16 @@ function Club2CoachClubForm({ person }: { person: Person }) {
                 </option>
               ))}
             </select>
+            <FieldMsg missing={missing} id="f-ability" />
           </div>
         </div>
 
-        <div>
-          <p className="text-xs font-semibold uppercase text-gray-500">Indicative pay</p>
+        <div id="f-pay" className={`p-1 ${missingCls(missing, "f-pay")}`}>
+          <p className="text-xs font-semibold uppercase text-gray-500">Indicative pay (required: a minimum, a maximum, or a range)</p>
           <p className="mt-1 text-xs text-gray-500">
             Enter the <strong>total for the whole season</strong> (not a weekly or per-session rate), for example 6000 to 9000. This is only indicative and is not an offer or a contract: actual pay varies a lot by club and level, and this figure is more relevant to NSW &amp; VIC than other states.
           </p>
+          <FieldMsg missing={missing} id="f-pay" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -1281,10 +1296,9 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           <WordLimitedTextarea value={form.notes} onChange={(v) => setForm((f) => ({ ...f, notes: v }))} maxWords={100} rows={2} />
         </div>
 
-        <label className="flex items-start gap-2 text-sm">
+        <label id="f-authorise" className={`flex items-start gap-2 p-1 text-sm ${missingCls(missing, "f-authorise")}`}>
           <input
             type="checkbox"
-            required
             checked={form.authoriseShare}
             onChange={(e) => setForm((f) => ({ ...f, authoriseShare: e.target.checked }))}
             className="mt-0.5"
@@ -1295,11 +1309,11 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             confirmed. *
           </span>
         </label>
+        <FieldMsg missing={missing} id="f-authorise" />
 
-        <div className="flex items-start gap-2 text-sm">
+        <div id="f-terms" className={`flex items-start gap-2 p-1 text-sm ${missingCls(missing, "f-terms")}`}>
           <input
             type="checkbox"
-            required
             checked={form.agreedToTerms}
             readOnly
             onClick={() => setShowTermsModal(true)}
@@ -1312,13 +1326,14 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             {" *"}
           </button>
         </div>
+        <FieldMsg missing={missing} id="f-terms" />
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <div className="flex items-center gap-3">
           <button
             type="submit"
-            disabled={saving || !form.agreedToTerms}
+            disabled={saving}
             className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
           >
             {saving ? "Saving…" : existing ? (dirty ? "Save details" : "✓ Details saved") : "Advertise Coaching Role"}

@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { REGIONS_BY_STATE, STATE_LABELS, ACCREDITATION_LEVELS, GENDER_OPTIONS } from "@/lib/constants";
 import type { Person } from "@/types/database";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
+import { FieldMsg, missingCls, scrollToField, type Missing } from "@/components/FieldMsg";
 import { isValidPostcode, POSTCODE_FINDER_URL } from "@/lib/postcode";
 
 function ProfileForm() {
@@ -31,7 +32,8 @@ function ProfileForm() {
   const [gender, setGender] = useState("");
   const [region, setRegion] = useState("");
   const [postcode, setPostcode] = useState("");
-  const [currentLicence, setCurrentLicence] = useState("None / In Progress");
+  const [currentLicence, setCurrentLicence] = useState(""); // no silent default: it must be chosen
+  const [missing, setMissing] = useState<Missing>(null);
   const [mobileWarning, setMobileWarning] = useState(false);
   const [referralCode, setReferralCode] = useState("");
 
@@ -76,7 +78,7 @@ function ProfileForm() {
       setGender(p.gender ?? "");
       setRegion(p.region ?? "");
       setPostcode(p.postcode ?? "");
-      setCurrentLicence(p.current_licence ?? "None / In Progress");
+      setCurrentLicence(p.current_licence ?? "");
 
       const [{ data: c2c }, { data: c2m }] = await Promise.all([
         supabase
@@ -122,18 +124,16 @@ function ProfileForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!isValidMobile(mobile)) {
-      setError(MOBILE_ERROR);
-      return;
-    }
-    if (!isValidEmail(email)) {
-      setError(EMAIL_ERROR);
-      return;
-    }
-    if (!isValidPostcode(postcode)) {
-      setError("Please enter your 4-digit postcode.");
-      return;
-    }
+    const issue = (id: string, msg: string) => {
+      setMissing({ id, msg });
+      scrollToField(id);
+    };
+    if (!fullName.trim()) return issue("f-name", "Please enter your full name.");
+    if (!isValidMobile(mobile)) return issue("f-mobile", MOBILE_ERROR);
+    if (!isValidEmail(email)) return issue("f-email", EMAIL_ERROR);
+    if (!isValidPostcode(postcode)) return issue("f-postcode", "Please enter your 4-digit postcode.");
+    if (!region) return issue("f-region", "Please choose your region. It's used to match you with people nearby.");
+    if (!currentLicence) return issue("f-licence", "Please choose your current coaching accreditation (None / In Progress if you don't hold one). It decides which roles you can be matched with.");
     setSaving(true);
 
     const {
@@ -230,21 +230,20 @@ function ProfileForm() {
         for) separately.
       </p>
 
-      <form onSubmit={handleSubmit} onChange={() => setDirty(true)} className="mt-6 flex flex-col gap-4 rounded-xl border bg-white p-6">
+      <form noValidate onSubmit={handleSubmit} onChange={() => { setDirty(true); setMissing(null); }} className="mt-6 flex flex-col gap-4 rounded-xl border bg-white p-6">
         <div className="grid grid-cols-2 gap-4">
-          <div>
+          <div id="f-name" className={`p-1 ${missingCls(missing, "f-name")}`}>
             <label className="text-xs font-semibold uppercase text-gray-500">Full name *</label>
             <input
-              required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
+            <FieldMsg missing={missing} id="f-name" />
           </div>
-          <div>
+          <div id="f-mobile" className={`p-1 ${missingCls(missing, "f-mobile")}`}>
             <label className="text-xs font-semibold uppercase text-gray-500">Mobile *</label>
             <input
-              required
               value={mobile}
               type="tel"
               inputMode="tel"
@@ -261,13 +260,13 @@ function ProfileForm() {
                 accounts can't be merged later.
               </p>
             )}
+            <FieldMsg missing={missing} id="f-mobile" />
           </div>
         </div>
 
-        <div>
+        <div id="f-email" className={`p-1 ${missingCls(missing, "f-email")}`}>
           <label className="text-xs font-semibold uppercase text-gray-500">Email *</label>
           <input
-            required
             type="email"
             value={email}
             readOnly
@@ -275,6 +274,7 @@ function ProfileForm() {
             className="mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-600"
           />
           <p className="mt-1 text-xs text-gray-500">This is your sign-in email, and it's where we send match and payment emails.</p>
+          <FieldMsg missing={missing} id="f-email" />
         </div>
 
         {!existing && (
@@ -305,7 +305,7 @@ function ProfileForm() {
               ))}
             </select>
           </div>
-          <div>
+          <div id="f-postcode" className={`p-1 ${missingCls(missing, "f-postcode")}`}>
             <label className="text-xs font-semibold uppercase text-gray-500">Postcode *</label>
             <input
               value={postcode}
@@ -322,9 +322,10 @@ function ProfileForm() {
               </a>
               .
             </p>
+            <FieldMsg missing={missing} id="f-postcode" />
           </div>
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Region</label>
+          <div id="f-region" className={`p-1 ${missingCls(missing, "f-region")}`}>
+            <label className="text-xs font-semibold uppercase text-gray-500">Region *</label>
             <select
               value={region}
               onChange={(e) => setRegion(e.target.value)}
@@ -341,24 +342,27 @@ function ProfileForm() {
                 </optgroup>
               ))}
             </select>
+            <FieldMsg missing={missing} id="f-region" />
           </div>
         </div>
 
-        <div>
+        <div id="f-licence" className={`p-1 ${missingCls(missing, "f-licence")}`}>
           <label className="text-xs font-semibold uppercase text-gray-500">
-            Current coaching accreditation
+            Current coaching accreditation *
           </label>
           <select
             value={currentLicence}
             onChange={(e) => setCurrentLicence(e.target.value)}
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
           >
+            <option value="">Select…</option>
             {ACCREDITATION_LEVELS.map((a) => (
               <option key={a} value={a}>
                 {a}
               </option>
             ))}
           </select>
+          <FieldMsg missing={missing} id="f-licence" />
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}

@@ -3,6 +3,7 @@
 import { safeHttpsUrl } from "@/lib/videoEmbed";
 
 import { useEffect, useState } from "react";
+import { FieldMsg, missingCls, scrollToField, type Missing } from "@/components/FieldMsg";
 import RequireProfile from "@/components/RequireProfile";
 import EmptyState from "@/components/EmptyState";
 import CheckboxGroup from "@/components/CheckboxGroup";
@@ -46,12 +47,13 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
   const [existing, setExisting] = useState<Coach2MentorMentorListing | null>(null);
 
   const [preferredCoachGender, setPreferredCoachGender] = useState("");
-  const [availability, setAvailability] = useState("Either");
+  const [availability, setAvailability] = useState("");
+  const [missing, setMissing] = useState<Missing>(null); // first unanswered required question after a failed save
   const [statePreferences, setStatePreferences] = useState<string[]>([]);
   const [regionsServed, setRegionsServed] = useState<string[]>([]);
   const [faNumber, setFaNumber] = useState("");
-  const [licence, setLicence] = useState<string>(person.current_licence ?? ACCREDITATION_LEVELS[0]);
-  const [careerStage, setCareerStage] = useState<string>(CAREER_STAGES[0]);
+  const [licence, setLicence] = useState<string>(person.current_licence ?? "");
+  const [careerStage, setCareerStage] = useState<string>("");
   const [specialisms, setSpecialisms] = useState<string[]>([]);
   const [meetCapacity, setMeetCapacity] = useState("");
   const [rateType, setRateType] = useState<"paid" | "free">("paid");
@@ -100,12 +102,12 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
   function resetForm() {
     setExisting(null);
     setPreferredCoachGender("");
-    setAvailability("Either");
+    setAvailability("");
     setStatePreferences([]);
     setRegionsServed([]);
     setFaNumber("");
-    setLicence(person.current_licence ?? ACCREDITATION_LEVELS[0]);
-    setCareerStage(CAREER_STAGES[0]);
+    setLicence(person.current_licence ?? "");
+    setCareerStage("");
     setSpecialisms([]);
     setMeetCapacity("");
     setRateType("paid");
@@ -138,7 +140,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
       const l = data as Coach2MentorMentorListing;
       setExisting(l);
       setPreferredCoachGender(l.preferred_coach_gender ?? "");
-      setAvailability(l.availability ?? "Either");
+      setAvailability(l.availability ?? "");
       setRegionsServed(l.regions_served ?? []);
       // Regions inherently belong to one state each — derive which
       // state checkboxes should start ticked from whichever regions
@@ -148,8 +150,8 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
         STATE_OPTIONS.filter((s) => (REGIONS_BY_STATE[s] ?? []).some((r) => loadedRegions.includes(r)))
       );
       setFaNumber(l.fa_number ?? "");
-      setLicence(l.licence ?? ACCREDITATION_LEVELS[0]);
-      setCareerStage(l.career_stage ?? CAREER_STAGES[0]);
+      setLicence(l.licence ?? "");
+      setCareerStage(l.career_stage ?? "");
       setSpecialisms(l.specialisms ?? []);
       setMeetCapacity(l.meet_capacity_per_year?.toString() ?? "");
       setRateType(l.rate_type);
@@ -202,20 +204,20 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
     e.preventDefault();
     setError(null);
 
-    if (!/^\d{8}$/.test(faNumber)) {
-      setError("FA# must be exactly 8 digits.");
-      return;
-    }
-
-    if (!agreedToTerms) {
-      setError("Please agree to the Terms of Service and Privacy Policy to continue.");
-      return;
-    }
-
-    if (!evidenceFile && !existingEvidenceFilename) {
-      setError("Please upload evidence of your accreditation (a photo or PDF of your certificate).");
-      return;
-    }
+    // Every question the matching score depends on must be answered; a miss scrolls back to that question.
+    const issue = (id: string, msg: string) => {
+      setMissing({ id, msg });
+      scrollToField(id);
+    };
+    if (!availability) return issue("f-availability", "Please choose how you can mentor: In-person, Virtual or Either.");
+    if (!/^\d{8}$/.test(faNumber)) return issue("f-fa", "FA# must be exactly 8 digits.");
+    if (!licence) return issue("f-licence", "Please choose your licence. It decides which coaches you can be matched with.");
+    if (!careerStage) return issue("f-career", "Please choose your career stage.");
+    if (!evidenceFile && !existingEvidenceFilename) return issue("f-evidence", "Please upload evidence of your accreditation (a photo or PDF of your certificate).");
+    if (specialisms.length === 0) return issue("f-specialisms", "Please choose at least one area of expertise.");
+    if (!confirmAccurate) return issue("f-confirm", "Please tick to confirm the information you've provided is accurate.");
+    if (!authoriseShare) return issue("f-authorise", "Please tick to confirm your profile can be visible to coaches.");
+    if (!agreedToTerms) return issue("f-terms", "Please agree to the Terms of Service and Privacy Policy to continue.");
 
     if (evidenceFile) {
       const validType = ["application/pdf", "image/jpeg", "image/png"].includes(evidenceFile.type);
@@ -439,7 +441,7 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} onChange={() => setDirty(true)} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
+      <form noValidate onSubmit={handleSubmit} onChange={() => { setDirty(true); setMissing(null); }} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Preferred coach gender</label>
@@ -456,19 +458,21 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
               ))}
             </select>
           </div>
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Availability</label>
+          <div id="f-availability" className={`p-1 ${missingCls(missing, "f-availability")}`}>
+            <label className="text-xs font-semibold uppercase text-gray-500">Availability *</label>
             <select
               value={availability}
               onChange={(e) => setAvailability(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             >
+              <option value="">Select…</option>
               {AVAILABILITY_OPTIONS.map((a) => (
                 <option key={a} value={a}>
                   {a}
                 </option>
               ))}
             </select>
+            <FieldMsg missing={missing} id="f-availability" />
           </div>
         </div>
 
@@ -543,30 +547,30 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           </div>
         )}
 
-        <div>
-          <label className="text-xs font-semibold uppercase text-gray-500">FA# (8 digits)</label>
+        <div id="f-fa" className={`p-1 ${missingCls(missing, "f-fa")}`}>
+          <label className="text-xs font-semibold uppercase text-gray-500">FA# (8 digits) *</label>
           <input
             type="text"
             inputMode="numeric"
-            required
             maxLength={8}
-            pattern="\d{8}"
             value={faNumber}
             onChange={(e) => setFaNumber(e.target.value.replace(/\D/g, "").slice(0, 8))}
             className="mt-1 w-full max-w-xs rounded-lg border border-gray-300 px-3 py-2"
             placeholder="12345678"
           />
           <p className="mt-1 text-xs text-gray-500">Your Football Australia registration number.</p>
+          <FieldMsg missing={missing} id="f-fa" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Your licence</label>
+          <div id="f-licence" className={`p-1 ${missingCls(missing, "f-licence")}`}>
+            <label className="text-xs font-semibold uppercase text-gray-500">Your licence *</label>
             <select
               value={licence}
               onChange={(e) => setLicence(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             >
+              <option value="">Select…</option>
               {ACCREDITATION_LEVELS.map((a) => (
                 <option key={a} value={a}>
                   {a}
@@ -585,24 +589,27 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
                 Licence/Diploma level, where you can also mentor another A Licence/Diploma coach.
               </p>
             )}
+            <FieldMsg missing={missing} id="f-licence" />
           </div>
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Your career stage</label>
+          <div id="f-career" className={`p-1 ${missingCls(missing, "f-career")}`}>
+            <label className="text-xs font-semibold uppercase text-gray-500">Your career stage *</label>
             <select
               value={careerStage}
               onChange={(e) => setCareerStage(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             >
+              <option value="">Select…</option>
               {CAREER_STAGES.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
               ))}
             </select>
+            <FieldMsg missing={missing} id="f-career" />
           </div>
         </div>
 
-        <div>
+        <div id="f-evidence" className={`p-1 ${missingCls(missing, "f-evidence")}`}>
           <label className="text-xs font-semibold uppercase text-gray-500">
             Evidence of your accreditation *
           </label>
@@ -629,15 +636,17 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
               profile — it isn't automatically verified.
             </p>
           )}
+          <FieldMsg missing={missing} id="f-evidence" />
         </div>
 
-        <div>
+        <div id="f-specialisms" className={`p-1 ${missingCls(missing, "f-specialisms")}`}>
           <label className="text-xs font-semibold uppercase text-gray-500">
-            Areas of expertise — select all that apply
+            Areas of expertise — select all that apply *
           </label>
           <div className="mt-1">
             <CheckboxGroup options={MENTOR_SPECIALISMS} selected={specialisms} onToggle={toggleSpecialism} />
           </div>
+          <FieldMsg missing={missing} id="f-specialisms" />
         </div>
 
         <div>
@@ -855,10 +864,9 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
           <WordLimitedTextarea value={notes} onChange={setNotes} maxWords={100} rows={2} />
         </div>
 
-        <label className="flex items-start gap-2 text-sm">
+        <label id="f-confirm" className={`flex items-start gap-2 p-1 text-sm ${missingCls(missing, "f-confirm")}`}>
           <input
             type="checkbox"
-            required
             checked={confirmAccurate}
             onChange={(e) => setConfirmAccurate(e.target.checked)}
             className="mt-0.5"
@@ -868,10 +876,10 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
             current to the best of my knowledge. *
           </span>
         </label>
-        <label className="flex items-start gap-2 text-sm">
+        <FieldMsg missing={missing} id="f-confirm" />
+        <label id="f-authorise" className={`flex items-start gap-2 p-1 text-sm ${missingCls(missing, "f-authorise")}`}>
           <input
             type="checkbox"
-            required
             checked={authoriseShare}
             onChange={(e) => setAuthoriseShare(e.target.checked)}
             className="mt-0.5"
@@ -882,11 +890,11 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
             shared once I accept a request. *
           </span>
         </label>
+        <FieldMsg missing={missing} id="f-authorise" />
 
-        <div className="flex items-start gap-2 text-sm">
+        <div id="f-terms" className={`flex items-start gap-2 p-1 text-sm ${missingCls(missing, "f-terms")}`}>
           <input
             type="checkbox"
-            required
             checked={agreedToTerms}
             readOnly
             onClick={() => setShowTermsModal(true)}
@@ -899,13 +907,14 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
             {" *"}
           </button>
         </div>
+        <FieldMsg missing={missing} id="f-terms" />
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <div className="flex items-center gap-3">
           <button
             type="submit"
-            disabled={saving || !agreedToTerms}
+            disabled={saving}
             className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
           >
             {uploadingEvidence ? "Uploading evidence…" : saving ? "Saving…" : existing ? (dirty ? "Save details" : "✓ Details saved") : "Save profile"}

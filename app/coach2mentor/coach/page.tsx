@@ -10,6 +10,7 @@ import FoundingBanner from "@/components/FoundingBanner";
 import CoachActivation from "@/components/CoachActivation";
 import { isActivated, loadCoachBank } from "@/lib/coachPool";
 import PayWithCardButton from "@/components/PayWithCardButton";
+import { FieldMsg, missingCls, scrollToField, type Missing } from "@/components/FieldMsg";
 import ReferralCard from "@/components/ReferralCard";
 import { useStripePaymentsEnabled } from "@/lib/useStripePaymentsEnabled";
 import {
@@ -54,8 +55,9 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
   const [existing, setExisting] = useState<Coach2MentorCoachListing | null>(null);
 
   const [preferredMentorGender, setPreferredMentorGender] = useState("");
-  const [availability, setAvailability] = useState("Either");
-  const [careerStage, setCareerStage] = useState<string>(CAREER_STAGES[0]);
+  const [availability, setAvailability] = useState("");
+  const [careerStage, setCareerStage] = useState<string>("");
+  const [missing, setMissing] = useState<Missing>(null); // first unanswered required question after a failed save
   const [supportAreas, setSupportAreas] = useState<string[]>([]);
   // Only meaningful when mentoring might happen in person — a
   // Virtual-only mentee has no reason to specify where they are, so
@@ -101,8 +103,8 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
   function resetForm() {
     setExisting(null);
     setPreferredMentorGender("");
-    setAvailability("Either");
-    setCareerStage(CAREER_STAGES[0]);
+    setAvailability("");
+    setCareerStage("");
     setSupportAreas([]);
     setStatePreferences([]);
     setPreferredRegions([]);
@@ -143,8 +145,8 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
       const l = data as Coach2MentorCoachListing;
       setExisting(l);
       setPreferredMentorGender(l.preferred_mentor_gender ?? "");
-      setAvailability(l.availability ?? "Either");
-      setCareerStage(l.current_career_stage ?? CAREER_STAGES[0]);
+      setAvailability(l.availability ?? "");
+      setCareerStage(l.current_career_stage ?? "");
       setSupportAreas(l.support_areas ?? []);
 
       const loadedRegions = l.preferred_regions ?? [];
@@ -246,10 +248,17 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
     e.preventDefault();
     setError(null);
 
-    if (!agreedToTerms) {
-      setError("Please agree to the Terms of Service and Privacy Policy to continue.");
-      return;
-    }
+    // Every question the matching score depends on must be answered; a miss scrolls back to that question.
+    const issue = (id: string, msg: string) => {
+      setMissing({ id, msg });
+      scrollToField(id);
+    };
+    if (!availability) return issue("f-availability", "Please choose how you'd like to meet: In-person, Virtual or Either.");
+    if (!careerStage) return issue("f-career", "Please choose your current career stage.");
+    if (supportAreas.length === 0) return issue("f-support", "Please choose at least one area you want support with.");
+    if ((availability === "In-person" || availability === "Either") && !person.region)
+      return issue("f-region", "Your home region is missing. Please add it on your profile (the Profile link at the top), then come back and save.");
+    if (!agreedToTerms) return issue("f-terms", "Please agree to the Terms of Service and Privacy Policy to continue.");
 
     setSaving(true);
 
@@ -543,7 +552,7 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} onChange={() => setDirty(true)} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
+      <form noValidate onSubmit={handleSubmit} onChange={() => { setDirty(true); setMissing(null); }} className="mt-6 flex flex-col gap-5 rounded-xl border bg-white p-6">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Preferred mentor gender</label>
@@ -560,20 +569,26 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
               ))}
             </select>
           </div>
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Availability</label>
+          <div id="f-availability" className={`p-1 ${missingCls(missing, "f-availability")}`}>
+            <label className="text-xs font-semibold uppercase text-gray-500">Availability *</label>
             <select
               value={availability}
               onChange={(e) => setAvailability(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             >
+              <option value="">Select…</option>
               {AVAILABILITY_OPTIONS.map((a) => (
                 <option key={a} value={a}>
                   {a}
                 </option>
               ))}
             </select>
+            <FieldMsg missing={missing} id="f-availability" />
           </div>
+        </div>
+
+        <div id="f-region">
+          <FieldMsg missing={missing} id="f-region" />
         </div>
 
         {regionRelevant && (
@@ -648,28 +663,31 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
           </div>
         )}
 
-        <div>
-          <label className="text-xs font-semibold uppercase text-gray-500">Current career stage</label>
+        <div id="f-career" className={`p-1 ${missingCls(missing, "f-career")}`}>
+          <label className="text-xs font-semibold uppercase text-gray-500">Current career stage *</label>
           <select
             value={careerStage}
             onChange={(e) => setCareerStage(e.target.value)}
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
           >
+            <option value="">Select…</option>
             {CAREER_STAGES.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
           </select>
+          <FieldMsg missing={missing} id="f-career" />
         </div>
 
-        <div>
+        <div id="f-support" className={`p-1 ${missingCls(missing, "f-support")}`}>
           <label className="text-xs font-semibold uppercase text-gray-500">
-            Areas you want support with — select all that apply
+            Areas you want support with — select all that apply *
           </label>
           <div className="mt-1">
             <CheckboxGroup options={MENTOR_SPECIALISMS} selected={supportAreas} onToggle={toggleArea} />
           </div>
+          <FieldMsg missing={missing} id="f-support" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -766,10 +784,9 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
           <WordLimitedTextarea value={notes} onChange={setNotes} maxWords={100} rows={2} />
         </div>
 
-        <div className="flex items-start gap-2 text-sm">
+        <div id="f-terms" className={`flex items-start gap-2 p-1 text-sm ${missingCls(missing, "f-terms")}`}>
           <input
             type="checkbox"
-            required
             checked={agreedToTerms}
             readOnly
             onClick={() => setShowTermsModal(true)}
@@ -782,12 +799,13 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
             {" *"}
           </button>
         </div>
+        <FieldMsg missing={missing} id="f-terms" />
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <button
           type="submit"
-          disabled={saving || !agreedToTerms}
+          disabled={saving}
           className="btn-accent self-start rounded-lg px-6 py-2 font-semibold disabled:opacity-50"
         >
           {saving ? "Saving…" : existing ? (dirty ? "Save details" : "✓ Details saved") : "Save profile"}
