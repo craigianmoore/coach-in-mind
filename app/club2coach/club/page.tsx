@@ -1,5 +1,6 @@
 "use client";
 
+import { digitsOnly } from "@/lib/validate";
 import { fetchAll } from "@/lib/fetchAll";
 import { useEffect, useState } from "react";
 import RequireProfile from "@/components/RequireProfile";
@@ -1240,18 +1241,20 @@ function Club2CoachClubForm({ person }: { person: Person }) {
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Indicative pay min, season total (AUD)</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={form.salaryMin}
-              onChange={(e) => setForm((f) => ({ ...f, salaryMin: e.target.value, salaryNegotiable: e.target.value || f.salaryMax ? f.salaryNegotiable : false }))}
+              onChange={(e) => setForm((f) => ({ ...f, salaryMin: digitsOnly(e.target.value), salaryNegotiable: digitsOnly(e.target.value) || f.salaryMax ? f.salaryNegotiable : false }))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
           </div>
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Indicative pay max, season total (AUD)</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={form.salaryMax}
-              onChange={(e) => setForm((f) => ({ ...f, salaryMax: e.target.value, salaryNegotiable: e.target.value || f.salaryMin ? f.salaryNegotiable : false }))}
+              onChange={(e) => setForm((f) => ({ ...f, salaryMax: digitsOnly(e.target.value), salaryNegotiable: digitsOnly(e.target.value) || f.salaryMin ? f.salaryNegotiable : false }))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
           </div>

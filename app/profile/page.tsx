@@ -1,6 +1,6 @@
 "use client";
 
-import { isValidEmail, isValidMobile, EMAIL_ERROR, MOBILE_ERROR } from "@/lib/validate";
+import { isValidEmail, isValidMobile, isValidName, cleanName, EMAIL_ERROR, MOBILE_ERROR, NAME_ERROR } from "@/lib/validate";
 import { safeNext } from "@/lib/safeNext";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -128,7 +128,7 @@ function ProfileForm() {
       setMissing({ id, msg });
       scrollToField(id);
     };
-    if (!fullName.trim()) return issue("f-name", "Please enter your full name.");
+    if (!isValidName(fullName)) return issue("f-name", NAME_ERROR);
     if (!isValidMobile(mobile)) return issue("f-mobile", MOBILE_ERROR);
     if (!isValidEmail(email)) return issue("f-email", EMAIL_ERROR);
     if (!isValidPostcode(postcode)) return issue("f-postcode", "Please enter your 4-digit postcode.");
@@ -236,7 +236,7 @@ function ProfileForm() {
             <label className="text-xs font-semibold uppercase text-gray-500">Full name *</label>
             <input
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              onChange={(e) => setFullName(cleanName(e.target.value))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
             <FieldMsg missing={missing} id="f-name" />

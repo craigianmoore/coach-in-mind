@@ -1,5 +1,6 @@
 "use client";
 
+import { digitsOnly } from "@/lib/validate";
 import { useEffect, useState } from "react";
 import RequireProfile from "@/components/RequireProfile";
 import CheckboxGroup from "@/components/CheckboxGroup";
@@ -696,9 +697,10 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
               Meetings per year — min
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={meetMin}
-              onChange={(e) => setMeetMin(e.target.value)}
+              onChange={(e) => setMeetMin(digitsOnly(e.target.value))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
           </div>
@@ -707,9 +709,10 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
               Meetings per year — max
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={meetMax}
-              onChange={(e) => setMeetMax(e.target.value)}
+              onChange={(e) => setMeetMax(digitsOnly(e.target.value))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
           </div>
@@ -721,9 +724,10 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
               Budget min (AUD per session)
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={budgetMin}
-              onChange={(e) => setBudgetMin(e.target.value)}
+              onChange={(e) => setBudgetMin(digitsOnly(e.target.value))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
           </div>
@@ -732,9 +736,10 @@ function Coach2MentorCoachForm({ person }: { person: Person }) {
               Budget max (AUD per session)
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={budgetMax}
-              onChange={(e) => setBudgetMax(e.target.value)}
+              onChange={(e) => setBudgetMax(digitsOnly(e.target.value))}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
           </div>

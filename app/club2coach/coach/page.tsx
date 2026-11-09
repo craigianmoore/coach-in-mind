@@ -1,5 +1,6 @@
 "use client";
 
+import { digitsOnly } from "@/lib/validate";
 import { useEffect, useState } from "react";
 import RequireProfile from "@/components/RequireProfile";
 import CheckboxGroup from "@/components/CheckboxGroup";
@@ -937,9 +938,10 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
               Indicative pay min, season total (AUD)
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={salaryMin}
-              onChange={(e) => { setSalaryMin(e.target.value); if (!e.target.value && !salaryMax) setSalaryNegotiable(false); }}
+              onChange={(e) => { setSalaryMin(digitsOnly(e.target.value)); if (!digitsOnly(e.target.value) && !salaryMax) setSalaryNegotiable(false); }}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
           </div>
@@ -948,9 +950,10 @@ function Club2CoachCoachForm({ person }: { person: Person }) {
               Indicative pay max, season total (AUD)
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={salaryMax}
-              onChange={(e) => { setSalaryMax(e.target.value); if (!e.target.value && !salaryMin) setSalaryNegotiable(false); }}
+              onChange={(e) => { setSalaryMax(digitsOnly(e.target.value)); if (!digitsOnly(e.target.value) && !salaryMin) setSalaryNegotiable(false); }}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
             />
           </div>

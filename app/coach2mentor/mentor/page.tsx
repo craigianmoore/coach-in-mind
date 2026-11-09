@@ -1,5 +1,6 @@
 "use client";
 
+import { digitsOnly } from "@/lib/validate";
 import { safeHttpsUrl } from "@/lib/videoEmbed";
 
 import { useEffect, useState } from "react";
@@ -654,9 +655,10 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
             How many times a year are you able to meet with a mentee?
           </label>
           <input
-            type="number"
+            type="text"
+              inputMode="numeric"
             value={meetCapacity}
-            onChange={(e) => setMeetCapacity(e.target.value)}
+            onChange={(e) => setMeetCapacity(digitsOnly(e.target.value))}
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
           />
           <p className="mt-1 text-xs text-gray-500">
@@ -723,9 +725,10 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
               <div>
                 <label className="text-xs font-semibold uppercase text-gray-500">Rate (AUD)</label>
                 <input
-                  type="number"
+                  type="text"
+              inputMode="numeric"
                   value={rateAmount}
-                  onChange={(e) => setRateAmount(e.target.value)}
+                  onChange={(e) => setRateAmount(digitsOnly(e.target.value))}
                   className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
                 />
               </div>
@@ -770,9 +773,10 @@ function Coach2MentorMentorForm({ person }: { person: Person }) {
               <div>
                 <label className="text-xs font-semibold uppercase text-gray-500">In-person rate (AUD)</label>
                 <input
-                  type="number"
+                  type="text"
+              inputMode="numeric"
                   value={inPersonAmount}
-                  onChange={(e) => setInPersonAmount(e.target.value)}
+                  onChange={(e) => setInPersonAmount(digitsOnly(e.target.value))}
                   className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
                 />
                 <p className="mt-1 text-xs text-gray-500">
