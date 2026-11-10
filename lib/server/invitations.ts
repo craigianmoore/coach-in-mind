@@ -132,14 +132,37 @@ Sign up here: https://www.coachinmind.com.au/signup
 This is the only reminder we'll send. If you'd rather not hear from us again, just reply "no thanks" and we'll remove you.`;
 }
 
-export const CLUB_INVITE_SUBJECT = "Have you filled all your coaching roles?";
+// The club invitation is split-tested: version A is the original, version B opens with "What is your time worth?".
+// A club always gets the same version (decided by its id), so both contacts at one club see the same email.
+export type ClubVariant = "A" | "B";
+export const CLUB_INVITE_SUBJECT = "Have you filled all your coaching roles?"; // version A
+export const CLUB_INVITE_SUBJECT_B = "What is your time worth?";
+export const clubVariantFor = (clubId: string): ClubVariant => (parseInt(clubId.replace(/[^0-9a-f]/gi, "").slice(-1) || "0", 16) % 2 === 0 ? "A" : "B");
+export const clubInviteSubject = (v: ClubVariant = "A") => (v === "B" ? CLUB_INVITE_SUBJECT_B : CLUB_INVITE_SUBJECT);
 
 // Written in the "we" voice, signed by the standard Coach In Mind footer. Deliberately no mention of any
 // governing body or Football Victoria.
-export function clubInviteText(clubName: string, state?: string | null) {
+export function clubInviteText(clubName: string, state?: string | null, variant: ClubVariant = "A") {
   const adj = STATE_ADJECTIVE[state ?? ""];
   const what = adj ? `a ${adj} football club` : "a football club";
   const club = clubName.trim() ? `${clubName.trim()} is ${what}` : `you run ${what}`;
+  if (variant === "B") {
+    return `Hi there,
+
+You're receiving this one-off note because ${club}, and clubs often need to find coaches.
+
+What is your time worth?
+
+Most clubs find a coach the same way a corner shop finds staff: stick a "position vacant" sign in the window (or on the club Facebook page) and see who walks past. Then a volunteer spends their evenings reading replies, ringing around and hoping. Hiring a coach shouldn't be a lottery.
+
+Coach In Mind does the sifting. You tell us the role, age group, ability, competition level and area. At the same time, coaches are telling us what they're looking for. We introduce you to a coach who suits your club's needs.
+
+Have you filled all your coaching roles for next season? Setting up takes about five minutes, and your first introduction is free, with no obligation. Setting up your account and vacancy doesn't use it.
+
+Advertise a vacancy here: https://www.coachinmind.com.au/signup
+
+This isn't a regular newsletter. If you'd rather not hear from us again, just reply "no thanks" and we'll remove you.`;
+  }
   return `Hi there,
 
 You're receiving this one-off note because ${club}, and clubs often need to find coaches.
@@ -489,14 +512,15 @@ export async function sendClubInviteBatch(service: SupabaseClient, n: number, re
   for (const r of todo) {
     const { data: claimed } = await service
       .from(r.table)
-      .update({ invite_sent_at: new Date().toISOString() })
+      .update({ invite_sent_at: new Date().toISOString(), invite_variant: clubVariantFor(r.club_id) })
       .eq(keyCol(r.table), r.key)
       .eq("do_not_contact", false)
       .is("invite_sent_at", null)
       .select(keyCol(r.table));
     if (!claimed || claimed.length === 0) continue;
+    const variant = clubVariantFor(r.club_id);
     const res = await sendEmailDetailed(
-      { to: r.email, subject: CLUB_INVITE_SUBJECT, text: clubInviteText(r.clubs.name, r.clubs.state) },
+      { to: r.email, subject: clubInviteSubject(variant), text: clubInviteText(r.clubs.name, r.clubs.state, variant) },
       { record: false }
     );
     if (res.ok) {
@@ -504,7 +528,7 @@ export async function sendClubInviteBatch(service: SupabaseClient, n: number, re
       await service.from(r.table).update({ contacted_at: new Date().toISOString(), invite_error: null }).eq(keyCol(r.table), r.key);
     } else if (res.transient) {
       paused = true;
-      await service.from(r.table).update({ invite_sent_at: null }).eq(keyCol(r.table), r.key);
+      await service.from(r.table).update({ invite_sent_at: null, invite_variant: null }).eq(keyCol(r.table), r.key);
       break;
     } else {
       failed++; // stays marked so it is not retried every hour
@@ -593,4 +617,35 @@ export async function runInviteAutoSend(
   if (hour === 17) {
     await notify("Invitations: today's summary", `${counts.sentLast24h} emails sent in the last 24 hours (limit ${counts.dailyCap}). ${summary} Automatic sending continues tomorrow from 9am.`);
   }
+}
+
+
+// Split-test results for the club invitation: per version, how many contacts were emailed, how many of those clubs have
+// since signed up (a person with the same email, or a vacancy under the club's name) and how many said "no thanks".
+export async function clubVariantStats(service: SupabaseClient) {
+  const out: Record<ClubVariant, { sent: number; signedUp: number; optout: number }> = { A: { sent: 0, signedUp: 0, optout: 0 }, B: { sent: 0, signedUp: 0, optout: 0 } };
+  const signed = await signedUpEmails(service);
+  const vac = await fetchAll<{ club_name: string | null }>((x, y) =>
+    service.from("club2coach_club_vacancies").select("club_name").is("deleted_at", null).order("id").range(x, y)
+  );
+  const hasVacancy = new Set(vac.map((v) => (v.club_name ?? "").trim().toLowerCase()).filter(Boolean));
+  for (const tb of CLUB_TABLES) {
+    const rows = await fetchAll<{ email: string; invite_variant: ClubVariant | null; do_not_contact: boolean; clubs: { name: string } | { name: string }[] }>((x, y) =>
+      (service
+        .from(tb)
+        .select("email, invite_variant, do_not_contact, clubs!inner(name)")
+        .not("invite_variant", "is", null)
+        .not("invite_sent_at", "is", null)
+        .order(keyCol(tb))
+        .range(x, y) as unknown) as PromiseLike<{ data: { email: string; invite_variant: ClubVariant | null; do_not_contact: boolean; clubs: { name: string } | { name: string }[] }[] | null }>
+    );
+    for (const r of rows) {
+      const v = r.invite_variant === "B" ? "B" : "A";
+      const c = Array.isArray(r.clubs) ? r.clubs[0] : r.clubs;
+      out[v].sent++;
+      if (signed.has(r.email.trim().toLowerCase()) || hasVacancy.has((c?.name ?? "").trim().toLowerCase())) out[v].signedUp++;
+      if (r.do_not_contact) out[v].optout++;
+    }
+  }
+  return out;
 }

@@ -23,6 +23,7 @@ export default function ClubInvitationsPanel() {
   const [addSecond, setAddSecond] = useState(false);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [ab, setAb] = useState<Record<"A" | "B", { sent: number; signedUp: number; optout: number }> | null>(null);
 
   async function call(body?: object) {
     const res = await fetch("/api/admin/invitations", body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : undefined);
@@ -151,10 +152,17 @@ export default function ClubInvitationsPanel() {
         <span className="font-semibold text-gray-700">3. Send a test to yourself</span>
         <button
           disabled={busy}
-          onClick={() => run({ action: "club_test" }, (j) => `Test sent to ${j.to}.`)}
+          onClick={() => run({ action: "club_test", variant: "A" }, (j) => `Version A test sent to ${j.to}.`)}
           className="w-fit rounded-lg border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
         >
-          Send club test to me
+          Send club test (version A) to me
+        </button>
+        <button
+          disabled={busy}
+          onClick={() => run({ action: "club_test", variant: "B" }, (j) => `Version B test sent to ${j.to}.`)}
+          className="w-fit rounded-lg border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          Send club test (version B) to me
         </button>
         <button
           disabled={busy}
@@ -163,6 +171,47 @@ export default function ClubInvitationsPanel() {
         >
           Send club reminder test to me
         </button>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <span className="font-semibold text-gray-700">Which email works better?</span>
+        <span className="text-xs text-gray-500">
+          Half the clubs get version A (&quot;Have you filled all your coaching roles?&quot;) and half get version B (&quot;What is your time worth?&quot;). A club always gets the same version, and both
+          contacts at a club see the same one. Signed up means a person with that email or a vacancy under the club&apos;s name. Give it a couple of weeks and a few hundred sends before judging.
+        </span>
+        <button
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            const j = await call({ action: "club_ab_stats" });
+            if (j.ok) setAb(j.stats);
+            else setMsg(j.error ?? "Failed");
+            setBusy(false);
+          }}
+          className="w-fit rounded-lg border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          {ab ? "Refresh results" : "Show results"}
+        </button>
+        {ab && (
+          <table className="w-full max-w-md border-collapse text-left text-xs">
+            <thead>
+              <tr className="border-b border-gray-200 text-gray-500">
+                <th className="py-1 pr-2">Version</th><th className="pr-2">Emailed</th><th className="pr-2">Signed up</th><th className="pr-2">Rate</th><th>No thanks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(["A", "B"] as const).map((v) => (
+                <tr key={v} className="border-b border-gray-100">
+                  <td className="py-1 pr-2 font-semibold">{v === "A" ? "A (original)" : "B (time worth)"}</td>
+                  <td className="pr-2">{ab[v].sent}</td>
+                  <td className="pr-2">{ab[v].signedUp}</td>
+                  <td className="pr-2">{ab[v].sent ? `${((ab[v].signedUp / ab[v].sent) * 100).toFixed(1)}%` : "-"}</td>
+                  <td>{ab[v].optout}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <div className="flex flex-col gap-1">

@@ -13,7 +13,8 @@
 //   POST { action: "reminder_test" }      -> send the reminder to the signed-in admin only
 //   POST { action: "club_reminder_test" } -> send the club reminder to the signed-in admin only
 //   POST { action: "optout_test" }      -> send the "no thanks" confirmation to the signed-in admin only
-//   POST { action: "club_test" }          -> send the club invitation to the signed-in admin only
+//   POST { action: "club_test", variant } -> send club invitation version A or B to the signed-in admin only
+//   POST { action: "club_ab_stats" }      -> sent / signed up / no thanks for club invitation versions A and B
 //   POST { action: "club_settings", enabled, share, regions } -> club invitations on/off, % of each day, regions
 //   POST { action: "club_list" }          -> Victorian clubs with their region and invite status (for a CSV to fill in)
 //   POST { action: "club_regions_import", csv } -> set each club's region from a CSV (club, region)
@@ -25,7 +26,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/server/sendEmail";
 import { fetchAll } from "@/lib/fetchAll";
 import {
-  CLUB_INVITE_SUBJECT,
+  clubInviteSubject,
+  clubVariantStats,
   INVITE_SUBJECT,
   REMINDER_SUBJECT,
   clubInviteText,
@@ -80,6 +82,7 @@ export async function POST(req: Request) {
     state?: string;
     region?: string;
     second?: boolean;
+    variant?: string;
   };
   const service = createServiceClient();
 
@@ -223,8 +226,13 @@ export async function POST(req: Request) {
 
   if (body.action === "club_test") {
     if (!auth.email) return NextResponse.json({ ok: false, error: "No admin email on this session." }, { status: 400 });
-    const ok = await sendEmail({ to: auth.email, subject: `TEST: ${CLUB_INVITE_SUBJECT}`, text: clubInviteText("Example Football Club", "VIC") });
-    return NextResponse.json({ ok, to: auth.email });
+    const v = body.variant === "B" ? "B" : "A";
+    const ok = await sendEmail({ to: auth.email, subject: `TEST (version ${v}): ${clubInviteSubject(v)}`, text: clubInviteText("Example Football Club", "VIC", v) });
+    return NextResponse.json({ ok, to: auth.email, variant: v });
+  }
+
+  if (body.action === "club_ab_stats") {
+    return NextResponse.json({ ok: true, stats: await clubVariantStats(service) });
   }
 
   if (body.action === "club_settings") {
