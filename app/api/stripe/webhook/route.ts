@@ -54,6 +54,24 @@ export async function POST(req: NextRequest) {
   // If handling fails below we return 500, so release the event id — otherwise Stripe's retry
   // would hit "already processed" and the payment would never be applied.
   const releaseEvent = () => supabase.from("stripe_processed_events").delete().eq("event_id", event.id);
+  // A payment that Stripe has taken but we could not record is the worst failure we can have, so it emails the admin inbox
+  // straight away. Stripe retries a failed delivery for a few days, so the same alert can arrive more than once.
+  const alertFailure = async (what: string, err: unknown, extra: Record<string, string | null | undefined> = {}) => {
+    const sess = event.data.object as Stripe.Checkout.Session;
+    const lines = [
+      `A payment was taken by Stripe but could not be recorded: ${what}.`,
+      "",
+      `Customer: ${sess?.customer_details?.name ?? ""} ${sess?.customer_details?.email ?? sess?.customer_email ?? ""}`.trim(),
+      `Amount: ${typeof sess?.amount_total === "number" ? `$${(sess.amount_total / 100).toFixed(2)}` : "unknown"}`,
+      `Stripe session: ${sess?.id ?? ""}`,
+      `Stripe event: ${event.id}`,
+      ...Object.entries(extra).map(([k, v]) => `${k}: ${v ?? ""}`),
+      `Error: ${err && typeof err === "object" && "message" in err ? (err as { message: string }).message : String(err ?? "no row matched")}`,
+      "",
+      "What to do: in Stripe go to Workbench > Webhooks > your endpoint > Event deliveries, open the failed event and press Resend once the cause is fixed.",
+    ];
+    await sendAdminEmail("PAYMENT NOT RECORDED - action needed", lines.join("\n")).catch(() => {});
+  };
   if (dedupeError) {
     // Only a unique-constraint violation means we've already handled this exact event.
     // Anything else (transient DB error) must make Stripe retry.
@@ -61,6 +79,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true, note: "already processed" });
     }
     console.error("Stripe webhook: could not record event", dedupeError);
+    await alertFailure("the database could not record the event", dedupeError);
     return NextResponse.json({ error: "Could not record event." }, { status: 500 });
   }
 
@@ -204,6 +223,7 @@ export async function POST(req: NextRequest) {
         .select("id");
       if (upErr || !done?.length) {
         console.error("Stripe webhook: bulk advert update failed", id, upErr);
+        await alertFailure("a bulk advert could not be marked paid", upErr, { "Advert ids": ids.join(", "), Advert: id });
         await releaseEvent();
         return NextResponse.json({ error: "Failed to update an advert." }, { status: 500 });
       }
@@ -257,6 +277,7 @@ export async function POST(req: NextRequest) {
       .select("id");
     if (upErr || !done?.length) {
       console.error("Stripe webhook: peak top-up update failed", listingId, upErr);
+      await alertFailure("a peak top-up could not be applied", upErr, { Table: listingTable, Listing: listingId });
       await releaseEvent();
       return NextResponse.json({ error: "Failed to update the advert." }, { status: 500 });
     }
@@ -343,6 +364,7 @@ export async function POST(req: NextRequest) {
   const { error: updateError } = await supabase.from(listingTable).update(updatePayload).eq("id", listingId);
   if (updateError) {
     console.error("Stripe webhook: failed to update listing", listingTable, listingId, updateError);
+    await alertFailure("the listing could not be marked paid", updateError, { Table: listingTable, Listing: listingId });
     await releaseEvent();
     return NextResponse.json({ error: "Failed to update listing." }, { status: 500 });
   }
