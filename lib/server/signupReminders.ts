@@ -72,7 +72,7 @@ export function profileNudgeText(firstName: string) {
 
 Clubs are using Coach In Mind right now to find coaches, and we're matching them with coaches as they come in.
 
-You've signed up, but you haven't completed a profile yet, and without one we can't match you with anyone. Until you do, you won't be put forward for any club.
+You've signed up, but you haven't completed a profile yet, and **without one we can't match you with anyone**. Until you do, you won't be put forward for any club.
 
 It takes about five minutes. Pick the one that fits you:
 - Looking for a coaching role: ${APP_URL}/club2coach/coach

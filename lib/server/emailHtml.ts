@@ -12,6 +12,7 @@ export function renderEmailHtml(text: string): string {
     .map((para) => {
       const html = esc(para)
         .replace(/(https?:\/\/[A-Za-z0-9\-._~:/?#%=&;+]+)/g, '<a href="$1" style="color:#1d4ed8">$1</a>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong style="background:#fef08a;padding:0 2px">$1</strong>') // **text** is highlighted
         .replace(/\n/g, "<br>");
       return `<p style="margin:0 0 14px;line-height:1.5">${html}</p>`;
     })

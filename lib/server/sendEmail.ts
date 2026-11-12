@@ -27,7 +27,9 @@ export async function sendEmailDetailed(
     if (record) await recordEmailFailure(null, "RESEND_API_KEY is not set", mail(true));
     return { ok: false, transient: true };
   }
-  const full = `${opts.text}\n\n—\nThe Coach In Mind team\n${APP_URL}\nQuestions? Just reply to this email.`;
+  const footer = `\n\n—\nThe Coach In Mind team\n${APP_URL}\nQuestions? Just reply to this email.`;
+  const full = `${opts.text}${footer}`; // HTML version: **text** is highlighted
+  const plain = full.replace(/\*\*(.+?)\*\*/g, "$1"); // plain-text version: markers removed
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -37,7 +39,7 @@ export async function sendEmailDetailed(
         to: opts.to,
         reply_to: "coachinmindcim@gmail.com",
         subject: opts.subject,
-        text: full,
+        text: plain,
         html: renderEmailHtml(full),
       }),
     });
