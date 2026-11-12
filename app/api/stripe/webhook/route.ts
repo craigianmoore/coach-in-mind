@@ -326,7 +326,8 @@ export async function POST(req: NextRequest) {
   }
   if (usesIntroductions) {
     updatePayload.included_introductions = introductionsToSet;
-    updatePayload.topup_requested = null; // clears any pending top-up request now that it's fulfilled
+    // Only coach listings have a topup_requested column. Club vacancies do not, so writing it made every club payment fail.
+    if (isCoachListing) updatePayload.topup_requested = null; // clears any pending top-up request now that it's fulfilled
   } else {
     // Mentor capacity: a top-up ADDS mentee places to what they already have.
     // Always ADD to an already-paid mentor (never overwrite), whatever the checkout mode said.
