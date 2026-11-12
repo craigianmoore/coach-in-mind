@@ -63,3 +63,52 @@ export async function sendSignupFollowups(supabase: SupabaseClient): Promise<num
   }
   return sent;
 }
+
+export const PROFILE_NUDGE_SUBJECT = "Clubs are looking: finish your profile so we can match you";
+
+export function profileNudgeText(firstName: string) {
+  const first = firstName.trim() || "there";
+  return `Hi ${first},
+
+Clubs are using Coach In Mind right now to find coaches, and we're matching them with coaches as they come in.
+
+You've signed up, but you haven't completed a profile yet, and without one we can't match you with anyone. Until you do, you won't be put forward for any club.
+
+It takes about five minutes. Pick the one that fits you:
+- Looking for a coaching role: ${APP_URL}/club2coach/coach
+- Advertising a vacancy for your club: ${APP_URL}/club2coach/club
+- Looking for a mentor: ${APP_URL}/coach2mentor/coach
+- Offering to mentor: ${APP_URL}/coach2mentor/mentor
+
+Nothing goes live until you activate it, completing your profile doesn't use your credit, and your contact details stay private until we've approved an introduction.
+
+If you've decided it's not for you, just reply "no thanks" and we'll leave you alone.`;
+}
+
+// How many people would get the profile nudge right now.
+export async function profileNudgeCount(supabase: SupabaseClient): Promise<number> {
+  const { data, error } = await supabase.rpc("signup_nudge3_count");
+  if (error) throw new Error(error.message);
+  return Number(data ?? 0);
+}
+
+// Admin-triggered: sends the nudge to the next `n` people who still have no profile. The database claims each person
+// first (so nobody is emailed twice, even if two clicks overlap); a failed email releases the claim so it can be retried.
+export async function sendProfileNudges(supabase: SupabaseClient, n: number): Promise<{ sent: number; failed: number }> {
+  const { data, error } = await supabase.rpc("signup_nudge3_due", { max_rows: n });
+  if (error) throw new Error(error.message);
+  let sent = 0;
+  let failed = 0;
+  for (const row of (data as { reminder_person_id: string }[] | null) ?? []) {
+    const { data: p } = await supabase.from("people").select("full_name,email").eq("id", row.reminder_person_id).maybeSingle();
+    let ok = false;
+    if (p?.email) ok = await sendEmail({ to: p.email, subject: PROFILE_NUDGE_SUBJECT, text: profileNudgeText((p.full_name ?? "").trim().split(/\s+/)[0] ?? "") });
+    if (ok) sent++;
+    else {
+      failed++;
+      await supabase.from("signup_reminders").delete().eq("person_id", row.reminder_person_id).eq("kind", "no_profile_3");
+    }
+    await new Promise((res) => setTimeout(res, 600)); // stay under Resend's request rate limit
+  }
+  return { sent, failed };
+}

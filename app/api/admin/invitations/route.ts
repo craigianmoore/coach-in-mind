@@ -12,6 +12,7 @@
 //   POST { action: "daily_limit", limit } -> emails allowed per rolling 24 hours (all kinds together)
 //   POST { action: "reminder_test" }      -> send the reminder to the signed-in admin only
 //   POST { action: "club_reminder_test" } -> send the club reminder to the signed-in admin only
+//   POST { action: "profile_nudge_count" | "profile_nudge_test" | "profile_nudge_send", count } -> the "clubs are looking, finish your profile" email to people with no profile
 //   POST { action: "optout_test" }      -> send the "no thanks" confirmation to the signed-in admin only
 //   POST { action: "club_test", variant } -> send club invitation version A or B to the signed-in admin only
 //   POST { action: "club_ab_stats" }      -> sent / signed up / no thanks for club invitation versions A and B
@@ -24,6 +25,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/server/sendEmail";
+import { PROFILE_NUDGE_SUBJECT, profileNudgeCount, profileNudgeText, sendProfileNudges } from "@/lib/server/signupReminders";
 import { fetchAll } from "@/lib/fetchAll";
 import {
   clubInviteSubject,
@@ -216,6 +218,30 @@ export async function POST(req: Request) {
     if (!auth.email) return NextResponse.json({ ok: false, error: "No admin email on this session." }, { status: 400 });
     const ok = await sendEmail({ to: auth.email, subject: `TEST: ${CLUB_REMINDER_SUBJECT}`, text: clubReminderText("Sample United FC") });
     return NextResponse.json({ ok, to: auth.email });
+  }
+
+  if (body.action === "profile_nudge_count") {
+    try {
+      return NextResponse.json({ ok: true, waiting: await profileNudgeCount(service) });
+    } catch (e) {
+      return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
+    }
+  }
+
+  if (body.action === "profile_nudge_test") {
+    if (!auth.email) return NextResponse.json({ ok: false, error: "No admin email on this session." }, { status: 400 });
+    const ok = await sendEmail({ to: auth.email, subject: `TEST: ${PROFILE_NUDGE_SUBJECT}`, text: profileNudgeText("Aaron") });
+    return NextResponse.json({ ok, to: auth.email });
+  }
+
+  if (body.action === "profile_nudge_send") {
+    const n = Math.min(Math.max(Math.floor(Number(body.count) || 0), 1), 40);
+    try {
+      const r = await sendProfileNudges(service, n);
+      return NextResponse.json({ ok: true, ...r, waiting: await profileNudgeCount(service) });
+    } catch (e) {
+      return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
+    }
   }
 
   if (body.action === "optout_test") {

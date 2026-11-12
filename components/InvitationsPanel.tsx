@@ -43,6 +43,7 @@ export default function InvitationsPanel() {
   const [addEmail, setAddEmail] = useState("");
   const [addName, setAddName] = useState("");
   const [addState, setAddState] = useState("VIC");
+  const [nudgeWaiting, setNudgeWaiting] = useState<number | null>(null);
   const msgRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (msg) msgRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [msg]);
 
@@ -260,6 +261,53 @@ export default function InvitationsPanel() {
         >
           Send reminder test to me
         </button>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <span className="font-semibold text-gray-700">&quot;Clubs are looking&quot; email to people with no profile</span>
+        <span className="text-xs text-gray-500">
+          One-off, sent by you. Goes to people who signed up but still have no coach, club or mentor profile. It skips admins, anyone who said &quot;no thanks&quot;, anyone nudged in
+          the last 2 days, and anyone who has already had this one. Each person gets it once. Sends up to 40 per click, so press it again until none are waiting.
+        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              const j = await call({ action: "profile_nudge_count" });
+              if (j.ok) setNudgeWaiting(j.waiting);
+              else setMsg(j.error ?? "Failed");
+              setBusy(false);
+            }}
+            className="rounded-lg border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            {nudgeWaiting === null ? "How many would get it?" : `${nudgeWaiting} waiting. Recount`}
+          </button>
+          <button
+            disabled={busy}
+            onClick={() => run({ action: "profile_nudge_test" }, (j) => `Test sent to ${j.to}.`)}
+            className="rounded-lg border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Send test to me
+          </button>
+          <button
+            disabled={busy || nudgeWaiting === null || nudgeWaiting === 0}
+            onClick={async () => {
+              if (!window.confirm(`Send the "clubs are looking" email to the next ${Math.min(nudgeWaiting ?? 0, 40)} people? This can't be undone.`)) return;
+              setBusy(true);
+              setMsg("");
+              const j = await call({ action: "profile_nudge_send", count: 40 });
+              if (j.ok) {
+                setNudgeWaiting(j.waiting);
+                setMsg(`Sent ${j.sent}${j.failed ? `, ${j.failed} failed (they'll be picked up next time)` : ""}. ${j.waiting} still waiting.`);
+              } else setMsg(j.error ?? "Failed");
+              setBusy(false);
+            }}
+            className="rounded-lg bg-brand-navy px-3 py-1.5 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+          >
+            Send to next 40
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-1">
