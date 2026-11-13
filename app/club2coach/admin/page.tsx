@@ -1222,8 +1222,13 @@ function Club2CoachAdmin() {
     return true;
   }
 
-  const filteredCoachListingsForListingsTab = coachListings.filter(passesListingsFilter);
-  const filteredVacanciesForListingsTab = vacancies.filter(passesListingsFilter);
+  // Newest first, with superseded (old edited copies) and deleted rows pushed to the bottom.
+  function listingsOrder(a: { created_at: string; status: string; deleted_at: string | null }, b: { created_at: string; status: string; deleted_at: string | null }) {
+    const rank = (x: { status: string; deleted_at: string | null }) => (x.deleted_at ? 2 : x.status === "superseded" ? 1 : 0);
+    return rank(a) - rank(b) || (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0);
+  }
+  const filteredCoachListingsForListingsTab = coachListings.filter(passesListingsFilter).sort(listingsOrder);
+  const filteredVacanciesForListingsTab = vacancies.filter(passesListingsFilter).sort(listingsOrder);
 
   // Everything this one person has been matched with, across every
   // role they hold and BOTH products — a Club2Coach coach listing's
