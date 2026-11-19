@@ -3,6 +3,7 @@ import Link from "next/link";
 import CoachInMindLogo from "@/components/CoachInMindLogo";
 import { clubPackPrice } from "@/lib/constants";
 import ClubPriceNotice from "@/components/ClubPriceNotice";
+import QrCodeInline from "@/components/QrCodeInline";
 
 // The club price changes with the calendar month, so refresh this page hourly rather than freezing it at build time.
 export const revalidate = 3600;
@@ -178,6 +179,13 @@ export default function HomePage() {
         >
           Log in
         </Link>
+      </div>
+
+      {/* Scan to join */}
+      <div className="mx-auto mt-8 flex max-w-md flex-col items-center gap-2 text-center">
+        <QrCodeInline />
+        <p className="text-sm font-semibold text-brand-navy">Scan with your phone to join</p>
+        <p className="text-xs text-gray-500">Pass it on to a coach or a club.</p>
       </div>
 
       {/* HOW IT WORKS */}
