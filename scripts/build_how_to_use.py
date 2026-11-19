@@ -303,6 +303,8 @@ story.append(bullets([
     "<b>Your contact details.</b> Your name, email and mobile come from My Profile and are shown "
     "(read-only, behind a frosted panel) at the top of your listing forms. To change them, update "
     "My Profile — that keeps what a club or coach sees once you're matched accurate.",
+    "<b>What the forms accept.</b> Names use letters only (accents are fine, as are spaces, hyphens and apostrophes). Your mobile must be exactly 10 digits. Postcodes are 4 digits. "
+    "Pay can't be more than $100,000 (anything higher shows as 100,000+), and mentee visits per year can't be more than 52. If something isn't accepted, the form tells you what to change.",
     "<b>Postcode.</b> My Profile asks for your 4-digit postcode (clubs also give their own club "
     "postcode on each vacancy). It's only used to see where people are.",
     "<b>Emails you'll receive from hello@coachinmind.com.au.</b> A confirmation when you save a "

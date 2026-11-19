@@ -168,18 +168,28 @@ story.append(bullets([
     "<b>Overview</b> — summary figures.",
     "<b>Matches</b> — described above.",
     "<b>Loading</b> — the scoring weights (how much each criterion counts), and the switch for using real distance between postcodes (off at present).",
-    "<b>Listings</b> — the full detail of every coach listing and club vacancy, including indicative pay.",
+    "<b>Listings</b> — every coach listing and club vacancy, <b>newest first</b>, with old edited copies (superseded) and deleted rows at the bottom. "
+    "The full detail of a vacancy (pay, ability, age groups, region, overview and the pricing line) is on the <b>People</b> tab, under that person.",
     "<b>Clubs</b> — the club directory with contact emails and outreach status.",
     "<b>Admins</b> — admin PINs and the card payments switch. Some actions need the master PIN.",
     "<b>Support</b> — queries from users; mark them resolved when done.",
-    "<b>People</b> — everyone who has signed up, with a count of new sign-ups.",
-    "<b>Payments</b> — payments received and refunds, both products.",
+    "<b>People</b> — everyone who has signed up, with a count of new sign-ups. Open a person to see everything they have placed, including a club's vacancy in full "
+    "and what they paid, the price shown, and when they accepted the price terms.",
+    "<b>Payments</b> — payments received and refunds, both products. A $0 entry is a free introduction: a club's reads \"Free first introduction (automatic)\".",
 ]))
 story.append(Paragraph("Marketing &amp; tools", h3_style))
 story.append(bullets([
     "<b>Promos</b> — free first introductions and referral rewards.",
     "<b>Invites</b> — the coach invitation mail-out (sent a few at a time, with a daily limit and a one-off reminder to coaches who haven't responded) and club invitations (off at present). "
     "Emails are in the CIM voice and signed by the Coach In Mind team. When someone replies \"no thanks\", enter their address in the \"Never email\" box (coaches or clubs): they are removed and sent one short confirmation (\"You're off our list\"). It is never sent twice. To add someone by hand, use \"Add one coach by hand\" (email, optional name and state) or, for clubs, \"Add or change a club contact by hand\" (club name, email, optional region): the club is found by name or created, and a new email replaces the old one unless you tick \"second contact\", which keeps the main contact and adds another person who is emailed and reminded separately (a \"no thanks\" from either stops both). They join the normal send queue; people already signed up or already listed are skipped with a message.",
+    "<b>Invites: club email test (A/B).</b> Half of the clubs get version A (\"Have you filled all your coaching roles?\") and half get version B (\"What is your time worth?\"). "
+    "A club always gets the same version, and both contacts at a club see the same one. Use <b>Send club test (version A / B) to me</b> to read each, and <b>Show results</b> under "
+    "\"Which email works better?\" for emailed, signed up, sign-up rate and no thanks per version. Judge it after a couple of weeks and a few hundred sends, not before.",
+    "<b>Invites: add by hand.</b> Add a coach, a club contact, or a club's optional second contact from the Invites tab. A no thanks stops the whole club.",
+    "<b>Invites: \"Clubs are looking\" email.</b> A one-off email you send yourself to people who signed up but still have no coach, club or mentor profile: "
+    "clubs are looking, and without a profile we can't match them. Press <b>How many would get it?</b> first (the send button stays grey until you do), then <b>Send test to me</b>, then "
+    "<b>Send to next 40</b> (it asks you to confirm), and repeat until none are waiting. It skips admins, anyone who said no thanks, anyone nudged in the last 2 days, "
+    "and anyone who has already had it, so nobody gets it twice.",
     "<b>Announcements</b> — banners shown to users.",
     "<b>Map</b> — hot spots by postcode (coaches, clubs, mentors in three colours). Above the map, \"Clubs with different postcodes\": "
     "pick the right postcode or type another, then confirm. <b>Once confirmed, a club's postcode is locked</b> and the app can never change it again; "
@@ -191,6 +201,27 @@ story.append(bullets([
     "<b>Share</b> copies a ready-to-paste email introducing Coach In Mind; <b>Text sign-up link</b> sends the sign-up link; "
     "<b>Share flyer</b> shares the printable flyer; <b>Show QR code</b> opens a full-screen QR code (with the logo) that people can scan to reach the sign-up page. Press Close or Esc to return.",
 ]))
+
+story.append(callout(
+    "Free first introductions: nothing for you to approve",
+    [
+        "A club claims its own free first introduction with the green <b>Claim free introduction</b> button on a draft vacancy. It is one per club, not one per vacancy, "
+        "so a second vacancy from a club that has already used it is charged as normal. Coaches have no automatic free introduction: theirs is the founding offer only, while places last.",
+        "Anyone on <b>Unpaid</b> has not used one yet (a claimed one shows as paid and active with a $0 payment). If you want to give someone a free introduction yourself, use <b>Gift free</b> on their row. That is your call alone.",
+    ],
+))
+story.append(Spacer(1, 4))
+story.append(callout(
+    "If an email says \"PAYMENT NOT RECORDED\"",
+    [
+        "It means Stripe took a payment but the app couldn't mark the listing paid, so the customer may still see \"payment outstanding\" and pay again. The email names the customer, amount, listing and error. "
+        "Stripe retries for a few days, so the same alert can repeat.",
+        "To fix it, do <b>one</b> of these, not both: in Stripe go to Workbench &gt; Webhooks &gt; your endpoint &gt; Event deliveries, open the failed <i>checkout.session.completed</i> and press <b>Resend</b>; "
+        "or on the <b>Unpaid</b> tab press <b>Mark paid</b> on the listing (check the introductions and amount first). Doing both records the payment twice. "
+        "If the customer paid twice, refund the later payment in Stripe (Payments &gt; the payment &gt; Refund, reason Duplicate) and do not resend its event.",
+    ],
+))
+story.append(Spacer(1, 4))
 
 story.append(Paragraph("Rules of thumb", h2_style))
 story.append(bullets([
