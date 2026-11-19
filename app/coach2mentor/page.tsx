@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ShareWithCoaches from "@/components/ShareWithCoaches";
 
 export const metadata = { title: "Coach 2 Mentor", description: "Get matched with a verified mentor, or become a mentor." };
 
@@ -36,6 +37,7 @@ export default function Coach2MentorHomePage() {
           mentor like you.
         </p>
       </Link>
+      <ShareWithCoaches />
     </div>
   );
 }

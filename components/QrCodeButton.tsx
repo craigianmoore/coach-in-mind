@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 
 // "Show QR" button: opens a full-screen overlay with the sign-up QR code so people can scan it straight off the screen.
-export default function QrCodeButton() {
+export default function QrCodeButton({ label = "Show QR code", className }: { label?: string; className?: string } = {}) {
   const [open, setOpen] = useState(false);
   const [img, setImg] = useState("");
   const url = typeof window !== "undefined" ? `${window.location.origin}/signup` : "";
@@ -49,9 +49,9 @@ export default function QrCodeButton() {
         type="button"
         onClick={() => setOpen(true)}
         title="Show the sign-up QR code on screen for people to scan"
-        className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+        className={className ?? "rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"}
       >
-        Show QR code
+        {label}
       </button>
       {open && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white p-6" onClick={() => setOpen(false)}>

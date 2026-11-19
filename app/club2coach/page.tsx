@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ShareWithCoaches from "@/components/ShareWithCoaches";
 
 export const metadata = { title: "Club 2 Coach", description: "Find a coach for your club, or find a coaching role near you." };
 
@@ -27,6 +28,7 @@ export default function Club2CoachHomePage() {
           looking for a role like this one.
         </p>
       </Link>
+      <ShareWithCoaches />
     </div>
   );
 }
