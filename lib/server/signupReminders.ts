@@ -80,6 +80,8 @@ It takes about five minutes. Pick the one that fits you:
 - Looking for a mentor: ${APP_URL}/coach2mentor/coach
 - Offering to mentor: ${APP_URL}/coach2mentor/mentor
 
+Is your club also looking for a coach? If so, pass this on to whoever runs it. A club's first introduction is free.
+
 Nothing goes live until you activate it, completing your profile doesn't use your credit, and your contact details stay private until we've approved an introduction.
 
 If you've decided it's not for you, just reply "no thanks" and we'll leave you alone.`;

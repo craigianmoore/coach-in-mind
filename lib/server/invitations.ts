@@ -55,6 +55,8 @@ If you're still looking, you're not alone. Finding your next club often comes do
 
 Coach In Mind matches on fit instead. You tell us what you're looking for (role, age group, ability, competition level and area), clubs tell us what they need, and we match the two. If you're after a Ford, we won't send you to a Toyota showroom.
 
+Is your club also looking for a coach? If so, pass this on to whoever runs it. A club's first introduction is free, and they can advertise a vacancy here: https://www.coachinmind.com.au/signup
+
 Many of the best coaches had a mentor along the way. If you're not ready for one, that's fine. If you think you are, sign up and we'll connect you with one.
 
 Founding coaches get a free credit while places last. Signing up and completing your profile doesn't start the clock or touch your credit; that only happens when you choose to activate.
