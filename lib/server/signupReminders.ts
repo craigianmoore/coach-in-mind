@@ -70,7 +70,7 @@ export function profileNudgeText(firstName: string) {
   const first = firstName.trim() || "there";
   return `Hi ${first},
 
-Clubs are using Coach In Mind right now to find coaches, and we're matching them with coaches as they come in.
+Coaches are registered and looking for roles, and clubs are registered and looking for coaches. We're matching them now.
 
 You've signed up, but you haven't completed a profile yet, and **without one we can't match you with anyone**. Until you do, you won't be put forward for any club.
 
@@ -83,6 +83,8 @@ It takes about five minutes. Pick the one that fits you:
 Is your club also looking for a coach? If so, pass this on to whoever runs it. A club's first introduction is free.
 
 Nothing goes live until you activate it, completing your profile doesn't use your credit, and your contact details stay private until we've approved an introduction.
+
+Why we're doing this: Coach In Mind wants to raise the standard of coach selection at clubs. Better selection keeps good coaches at their clubs, better-supported coaches run better sessions, and that's how players develop.
 
 If you've decided it's not for you, just reply "no thanks" and we'll leave you alone.`;
 }
