@@ -165,6 +165,15 @@ export default function TermsPage() {
         believe an introduction has been misused.
       </p>
 
+      <p className="mt-2">
+        The "Recruits through Coach In Mind" badge shown for a club
+        reflects process only: that the club has described the role
+        fully, stated pay, answered introductions and named a contact.
+        It is not a rating, endorsement or guarantee of the club, its
+        coaches or its coaching environment, and we may pause or remove
+        it at any time.
+      </p>
+
       <h2 className="mt-8 text-lg font-semibold text-gray-900">7. Account suspension and termination</h2>
       <p className="mt-2">
         We may suspend or remove a listing or account that we

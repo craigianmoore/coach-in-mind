@@ -41,6 +41,7 @@ import WordLimitedTextarea from "@/components/WordLimitedTextarea";
 import { notifyAdmin, notifySelf } from "@/lib/notify";
 import { isValidPostcode, POSTCODE_FINDER_URL } from "@/lib/postcode";
 import MatchedContacts from "@/components/MatchedContacts";
+import ClubBadgeCard from "@/components/ClubBadgeCard";
 import ContactDetailsGlass from "@/components/ContactDetailsGlass";
 
 const PRIORITY_HINTS = [
@@ -883,6 +884,8 @@ function Club2CoachClubForm({ person }: { person: Person }) {
             </li>
             {existing.filled_at && <li>Marked filled: {formatDate(existing.filled_at)}</li>}
           </ul>
+
+          <ClubBadgeCard vacancyId={existing.id} />
 
           <MatchedContacts listingTable="club2coach_club_vacancies" listingId={existing.id} heading="Coaches introduced to you" />
 

@@ -26,11 +26,17 @@ export default function MatchedContacts({
 }) {
   const supabase = createClient();
   const [rows, setRows] = useState<Intro[] | null>(null);
+  const [badged, setBadged] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     supabase
       .rpc("get_my_c2c_introductions", { listing_table: listingTable, target_listing_id: listingId })
       .then(({ data }) => setRows((data as Intro[]) ?? []));
+    if (listingTable === "club2coach_coach_listings") {
+      supabase.rpc("get_my_intro_badges", { target_listing_id: listingId }).then(({ data }) => {
+        setBadged(new Set(((data as { share_id: string; earned: boolean }[]) ?? []).filter((b) => b.earned).map((b) => b.share_id)));
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listingTable, listingId]);
 
@@ -46,6 +52,11 @@ export default function MatchedContacts({
             <p className="text-xs text-gray-500">
               {r.summary} · matched {new Date(r.shared_at).toLocaleDateString("en-GB")}
             </p>
+            {badged.has(r.share_id) && (
+              <p className="mt-1 inline-block rounded-full bg-brand-navy px-2 py-0.5 text-xs font-semibold text-white" title="This club describes its role fully, states pay, answers coaches and names a contact. Process only, not a quality rating.">
+                ✓ Recruits through Coach In Mind
+              </p>
+            )}
             <p className="mt-1 font-medium text-gray-900">{r.contact_name}</p>
             <p className="mt-0.5">
               <a href={`mailto:${r.contact_email}`} className="text-blue-700 underline">
